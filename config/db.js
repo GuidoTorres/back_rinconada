@@ -3,11 +3,12 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "rinconada",
-  username: "root",
-  password: "Tupapi00",
-  host: "localhost",
+  database: "freedb_rinconada",
+  username: "freedb_Prueba",
+  password: "?#dJ*cuTETC&*8?",
+  host: "sql.freedb.tech",
   dialect: "mysql",
+  port:3306,
   define: { timestamps: false },
 });
 
