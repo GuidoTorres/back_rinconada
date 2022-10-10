@@ -1,17 +1,5 @@
 const { Sequelize, DataTypes } = require("sequelize");
 
-const trabajadorModel = require("../src/models/trabajador");
-const campamentoModel = require("../src/models/campamento");
-const cargoModel = require("../src/models/cargo");
-const contratoModel = require("../src/models/contrato");
-const evaluacionModel = require("../src/models/evaluacion");
-// const usuarioModel = require("../src/models/usuario");
-const gerenciaModel = require("../src/models/gerencia");
-const rolModel = require("../src/models/rol");
-const rolPuestoModel = require("../src/models/rol_puesto");
-const areaModel = require("../src/models/area");
-const { usuarioModel } = require("../src/models/usuario");
-
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
