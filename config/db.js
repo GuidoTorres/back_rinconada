@@ -249,6 +249,24 @@ const area = sequelize.define(
   }
 );
 
+usuario.hasMany(rolPuesto, { foreignKey: "usuario_id" });
+rolPuesto.belongsTo(usuario, { foreignKey: "usuario_id" });
+
+gerencia.hasMany(area, { foreignKey: "gerencia_id" });
+area.belongsTo(gerencia, { foreignKey: "gerencia_id" });
+
+area.hasMany(cargo, { foreignKey: "area_id" });
+cargo.belongsTo(area, { foreignKey: "area_id" });
+
+cargo.hasMany(rolPuesto, { foreignKey: "cargo_id" });
+rolPuesto.belongsTo(cargo, { foreignKey: "cargo_id" });
+
+rol.hasMany(rolPuesto, { foreignKey: "rol_id" });
+rolPuesto.belongsTo(rol, { foreignKey: "rol_id" });
+
+usuario.belongsToMany(trabajador, { through: "trabajador_usuario" });
+trabajador.belongsToMany(usuario, { through: "trabajador_usuario" });
+
 
 
 module.exports = {
