@@ -1,9 +1,9 @@
 const router = require("express").Router();
-const cargo = require("../controllers/cargo")
+const area = require("../controllers/area")
 
 
 
-router.get("/",cargo.getCargo)
+router.get("/", area.getArea)
 // router.get("/:id", rol.getRolById)
 // router.post("/", rol.postRol)
 // router.put("/:id", rol.updateRol)

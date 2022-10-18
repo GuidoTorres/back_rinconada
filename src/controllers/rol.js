@@ -7,14 +7,28 @@ const rol = require("../../config/db");
 const getRol = async (req, res, next) => {
   try {
     const all = await rolPuesto.findAll({
-      include:[
-        {model: usuario.usuario},
-        {model: cargo.cargo},
-        {model: rol.rol}
-      ] 
+      attributes: ["id", "usuario_id", "cargo_id", "rol_id"],
+      include: [
+        
+        { model: usuario.usuario, attributes: ["nombre", "usuario"] },
+        { model: cargo.cargo, attributes: ["nombre"] },
+        { model: rol.rol, attributes: ["nombre"] },
+      ],
     });
-    console.log(all);
-    res.status(200).json({ data: all });
+
+    const obj = all.map((obj) => {
+      return {
+        id: obj.id,
+        nombre: obj.usuario.nombre,
+        usuario: obj.usuario.usuario,
+        cargo: obj.cargo.nombre,
+        rol: obj.rol.nombre,
+        usuario_id: obj.usuario_id,
+        cargo_id: obj.cargo_id,
+        rol_id: obj.rol_id
+      };
+    });
+    res.status(200).json({ data: obj });
     next();
   } catch (error) {
     console.log(error);
@@ -42,7 +56,6 @@ const postRol = async (req, res, next) => {
     cargo_id: req.body.cargo_id,
     rol_id: req.body.rol_id,
   };
-
 
   try {
     const createRol = await rolPuesto.create(info);

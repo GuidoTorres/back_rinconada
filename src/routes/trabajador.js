@@ -1,9 +1,9 @@
-const trabajador = require("../controllers/trabajador")
+const trabajador = require("../controllers/trabajador");
 const router = require("express").Router();
 
-const getTrabajador = trabajador.getTrabajador
-const postTrabajador = trabajador.postTrabajador
-
-router.get("/", getTrabajador)
-router.post("/", postTrabajador)
-module.exports = router
+router.get("/", trabajador.getTrabajador);
+router.get("/:id", trabajador.getTrabajadorById);
+router.post("/", trabajador.postTrabajador);
+router.put("/:id", trabajador.updateTrabajador);
+router.delete("/:id", trabajador.deleteTrabajador);
+module.exports = router;

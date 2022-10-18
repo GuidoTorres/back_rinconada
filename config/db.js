@@ -3,25 +3,14 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "freedb_rinconada",
-  username: "freedb_Prueba",
-  password: "?#dJ*cuTETC&*8?",
-  host: "sql.freedb.tech",
+  database: "rinconada",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
   dialect: "mysql",
-  port:3306,
-  define: { timestamps: false },
+  port: 3306,
+  define: { timestamps: false, freezeTableName: true },
 });
-
-// const trabajador = trabajadorModel(sequelize, DataTypes);
-// const campamento = campamentoModel(sequelize, DataTypes);
-// const cargo = cargoModel(sequelize, DataTypes);
-// const contrato = contratoModel(sequelize, DataTypes);
-// const evaluacion = evaluacionModel(sequelize, DataTypes);
-// // const usuario = usuarioModel(sequelize, DataTypes);
-// const gerencia = gerenciaModel(sequelize, DataTypes);
-// const rol = rolModel(sequelize, DataTypes);
-// // const rolPuesto = rolPuestoModel(sequelize, DataTypes);
-// const area = areaModel(sequelize, DataTypes);
 
 const dbConnect = async () => {
   try {
@@ -83,16 +72,18 @@ const trabajador = sequelize.define(
       allowNull: false,
     },
     dni: DataTypes.INTEGER,
-    codigo_trabajador: DataTypes.INTEGER,
+    codigo_trabajador: DataTypes.STRING,
     fecha_nacimiento: DataTypes.DATE,
     telefono: DataTypes.INTEGER,
     apellido_paterno: DataTypes.STRING,
     apellido_materno: DataTypes.STRING,
+    nombre: DataTypes.STRING,
     email: DataTypes.STRING,
     estado_civil: DataTypes.STRING,
     genero: DataTypes.STRING,
     direccion: DataTypes.STRING,
-    tipo_trabajador: DataTypes.STRING,
+    asociacion_id: DataTypes.INTEGER,
+    deshabilitado: DataTypes.BOOLEAN
   },
   {
     tableName: "trabajador",
@@ -144,9 +135,7 @@ const evaluacion = sequelize.define(
       allowNull: false,
     },
     fecha_evaluacion: DataTypes.DATE,
-    dni: DataTypes.INTEGER,
     puesto: DataTypes.STRING,
-    contrato_id: DataTypes.INTEGER,
     capacitacion_sso: DataTypes.INTEGER,
     capacitacion_gema: DataTypes.INTEGER,
     evaluacion_laboral: DataTypes.INTEGER,
@@ -156,8 +145,9 @@ const evaluacion = sequelize.define(
     imc: DataTypes.FLOAT,
     pulso: DataTypes.FLOAT,
     diabetes: DataTypes.STRING,
-    antecendentes: DataTypes.TEXT("long"),
-    emo: DataTypes.BLOB,
+    antecedentes: DataTypes.STRING,
+    emo: DataTypes.STRING,
+    contrato_id: DataTypes.INTEGER
   },
   {
     tableName: "evaluacion",
@@ -180,14 +170,18 @@ const contrato = sequelize.define(
     recomendado_por: DataTypes.STRING,
     cooperativa: DataTypes.STRING,
     condicion_cooperativa: DataTypes.STRING,
-    id_campamento: DataTypes.INTEGER,
     periodo_trabajo: DataTypes.STRING,
     fecha_fin: DataTypes.DATE,
     gerencia: DataTypes.STRING,
     area: DataTypes.STRING,
     jefe_directo: DataTypes.STRING,
     base: DataTypes.STRING,
-    termino_contrato: DataTypes.TEXT("long"),
+    termino_contrato: DataTypes.STRING,
+    nota_contrato: DataTypes.STRING,
+    puesto: DataTypes.STRING,
+    trabajador_id: DataTypes.INTEGER,
+    campamento_id: DataTypes.INTEGER,
+    empresa_id: DataTypes.INTEGER,
   },
   {
     tableName: "contrato",
@@ -224,7 +218,6 @@ const campamento = sequelize.define(
     },
     nombre: DataTypes.STRING,
     direccion: DataTypes.STRING,
-    trabajador_id: { type: DataTypes.INTEGER, allowNull: false },
   },
   {
     tableName: "campamento",
@@ -250,14 +243,52 @@ const area = sequelize.define(
   }
 );
 
-usuario.hasMany(rolPuesto, { foreignKey: "usuario_id" });
-rolPuesto.belongsTo(usuario, { foreignKey: "usuario_id" });
+const empresa = sequelize.define(
+  "empresa",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    razon_social: DataTypes.STRING,
+    ruc: DataTypes.STRING,
+  },
+  {
+    tableName: "empresa",
+    timestamp: false,
+  }
+);
+
+const asociacion = sequelize.define(
+  "asociacion",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    nombre: DataTypes.STRING,
+    codigo: DataTypes.STRING,
+  },
+  {
+    tableName: "asociacion",
+    timestamp: false,
+  }
+);
+
+
 
 gerencia.hasMany(area, { foreignKey: "gerencia_id" });
 area.belongsTo(gerencia, { foreignKey: "gerencia_id" });
 
 area.hasMany(cargo, { foreignKey: "area_id" });
 cargo.belongsTo(area, { foreignKey: "area_id" });
+
+usuario.hasMany(rolPuesto, { foreignKey: "usuario_id", onDelete: "cascade" });
+rolPuesto.belongsTo(usuario, { foreignKey: "usuario_id", onDelete: "cascade" });
 
 cargo.hasMany(rolPuesto, { foreignKey: "cargo_id" });
 rolPuesto.belongsTo(cargo, { foreignKey: "cargo_id" });
@@ -267,6 +298,28 @@ rolPuesto.belongsTo(rol, { foreignKey: "rol_id" });
 
 usuario.belongsToMany(trabajador, { through: "trabajador_usuario" });
 trabajador.belongsToMany(usuario, { through: "trabajador_usuario" });
+
+asociacion.hasMany(trabajador, { foreignKey: "asociacion_id" });
+trabajador.belongsTo(asociacion, { foreignKey: "asociacion_id" });
+
+empresa.hasMany(contrato, { foreignKey: "empresa_id" });
+contrato.belongsTo(empresa, { foreignKey: "empresa_id" });
+
+
+campamento.hasMany(contrato, { foreignKey: "campamento_id" });
+contrato.belongsTo(campamento, { foreignKey: "campamento_id" });
+
+asociacion.hasMany(trabajador, {as:"trabajador", foreignKey: "asociacion_id"})
+trabajador.belongsTo(asociacion, {as:"trabajador", foreignKey: "asociacion_id"})
+
+
+//trabajador contrato evaluacion
+
+trabajador.hasMany(contrato, { foreignKey: "trabajador_id" });
+contrato.belongsTo(trabajador, { foreignKey: "trabajador_id" });
+
+contrato.hasMany(evaluacion, { foreignKey: "contrato_id" });
+evaluacion.belongsTo(contrato, { foreignKey: "contrato_id" });
 
 
 
@@ -281,4 +334,6 @@ module.exports = {
   rol,
   area,
   rolPuesto,
+  empresa,
+  asociacion,
 };

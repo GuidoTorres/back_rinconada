@@ -1,9 +1,9 @@
 const router = require("express").Router();
-const cargo = require("../controllers/cargo")
+const puesto = require("../controllers/puesto")
 
 
 
-router.get("/",cargo.getCargo)
+router.get("/", puesto.getPuesto)
 // router.get("/:id", rol.getRolById)
 // router.post("/", rol.postRol)
 // router.put("/:id", rol.updateRol)

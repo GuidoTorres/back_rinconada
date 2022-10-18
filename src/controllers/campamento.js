@@ -31,10 +31,12 @@ const postCampamento = async (req, res, next) => {
 
   try {
     const camp = await campamento.create(info);
+    console.log(camp);
     res.status(200).json({data:camp});
 
     next();
   } catch (error) {
+    
     res.status(500).json(error);
   }
 };
