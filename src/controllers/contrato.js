@@ -1,9 +1,10 @@
-const { contrato } = require("../../config/db");
-const trabajador = require("../../config/db");
+const { contrato, trabajador, trabajadorContrato } = require("../../config/db");
 
 const getContrato = async (req, res, next) => {
   try {
-    const get = await contrato.findAll();
+    const get = await trabajadorContrato.trabajadorContrato.findAll({
+      include: [{ model: trabajador }, { model: contrato }],
+    });
     res.status(200).json({ data: get });
     next();
   } catch (error) {
@@ -16,12 +17,21 @@ const getContratoById = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-    const user = await contrato.findAll({
-      include: [{ model: trabajador.trabajador }],
-      where: { trabajador_id: id },
+    const user = await trabajadorContrato.findAll({
+      where: { trabajadorId: id },
+      include: [{ model: contrato }],
     });
 
-    res.status(200).json({ data: user });
+    const obj = user
+      .filter((item) => item.contrato !== null)
+      .map((item) => {
+        return {
+          id: item.id,
+          contrato: item.contrato,
+        };
+      });
+
+    res.status(200).json({ data: obj });
 
     next();
   } catch (error) {
@@ -50,6 +60,11 @@ const postContrato = async (req, res, next) => {
 
   try {
     const post = await contrato.create(info);
+
+    const tablaIntermedia = await trabajadorContrato.create({
+      trabajadorId: req.body.trabajadorId,
+      contratoId: post.id,
+    });
     res.status(200).json(post);
 
     next();
@@ -65,6 +80,7 @@ const updateContrato = async (req, res, next) => {
     const put = await contrato.update(req.body, {
       where: { id: id },
     });
+
     res.status(200).json({ msg: "Contrato actualizado con éxito" });
     next();
   } catch (error) {

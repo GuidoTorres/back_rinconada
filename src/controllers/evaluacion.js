@@ -25,24 +25,33 @@ const getEvaluacionById = async (req, res, next) => {
         },
       ],
     });
-
     const obj = user.map((item) => {
       return {
         id: item.id,
-        dni: item.contrato.trabajador.dni,
-        nombre:
-          item.contrato.trabajador.nombre +
-          " " +
-          item.contrato.trabajador.apellido_paterno +
-          " " +
-          item.contrato.trabajador.apellido_materno,
+        nombre: item.contrato.trabajadors.map(
+          (data) =>
+            data.nombre +
+            " " +
+            data.apellido_paterno +
+            " " +
+            data.apellido_materno
+        ),
         fecha_evaluacion: item.fecha_evaluacion,
-        nota: item.evaluacion_laboral,
-        // nombre: item?.contrato.map((data) => data?.trabajador),
-        // campamento: item?.contratos.map((item) => item?.campamento?.nombre),
+        evaluacion_laboral: item.evaluacion_laboral,
+        antecedentes: item.antecedentes,
+        capacitacion_gema: item.capacitacion_gema,
+        capacitacion_sso: item.capacitacion_sso,
+        diabetes: item.diabetes,
+        emo: item.emo,
+        imc: item.imc,
+        presion_arterial: item.presion_arterial,
+        puesto: item.puesto,
+        pulso: item.pulso,
+        saturacion: item.saturacion,
+        temperatura: item.temperatura,
       };
     });
-    res.status(200).json({ data: user });
+    res.status(200).json({ data: obj });
 
     next();
   } catch (error) {
@@ -66,6 +75,7 @@ const postEvaluacion = async (req, res, next) => {
     diabetes: req.body.diabetes,
     antecedentes: req.body.antecedentes,
     emo: req.body.emo,
+    contrato_id: req.body.contrato_id,
   };
 
   try {

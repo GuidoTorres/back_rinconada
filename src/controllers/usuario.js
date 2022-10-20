@@ -30,7 +30,6 @@ const postUsuario = async (req, res, next) => {
     contrasenia: req.body.contrasenia,
     estado: req.body.estado,
   };
-  console.log(info);
   try {
     const nuevoUsuario = await usuario.create(info);
     res.status(200).json({ data: nuevoUsuario });

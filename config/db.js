@@ -3,10 +3,16 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "heroku_30cfe8f0814e57f",
-  username: "bcbf9d2c2227ee",
-  password: "011e52da",
-  host: "us-cdbr-east-06.cleardb.net",
+  // database: "heroku_30cfe8f0814e57f",
+  // username: "bcbf9d2c2227ee",
+  // password: "011e52da",
+  // host: "us-cdbr-east-06.cleardb.net",
+  // dialect: "mysql",
+  // port: 3306,
+  database: "rinconada",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
   dialect: "mysql",
   port: 3306,
   define: { timestamps: false, freezeTableName: true },
@@ -83,7 +89,7 @@ const trabajador = sequelize.define(
     genero: DataTypes.STRING,
     direccion: DataTypes.STRING,
     asociacion_id: DataTypes.INTEGER,
-    deshabilitado: DataTypes.BOOLEAN
+    deshabilitado: DataTypes.BOOLEAN,
   },
   {
     tableName: "trabajador",
@@ -147,7 +153,7 @@ const evaluacion = sequelize.define(
     diabetes: DataTypes.STRING,
     antecedentes: DataTypes.STRING,
     emo: DataTypes.STRING,
-    contrato_id: DataTypes.INTEGER
+    contrato_id: DataTypes.INTEGER,
   },
   {
     tableName: "evaluacion",
@@ -179,9 +185,9 @@ const contrato = sequelize.define(
     termino_contrato: DataTypes.STRING,
     nota_contrato: DataTypes.STRING,
     puesto: DataTypes.STRING,
-    trabajador_id: DataTypes.INTEGER,
     campamento_id: DataTypes.INTEGER,
     empresa_id: DataTypes.INTEGER,
+    asociacion_id: DataTypes.INTEGER
   },
   {
     tableName: "contrato",
@@ -279,48 +285,76 @@ const asociacion = sequelize.define(
   }
 );
 
+const trabajadorContrato = sequelize.define(
+  "trabajador_contrato",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    contratoId: DataTypes.INTEGER,
+    trabajadorId: DataTypes.INTEGER,
+  },
+  {
+    tableName: "trabajador_contrato",
+    timestamp: false,
+  }
+);
 
+gerencia.hasMany(area, { foreignKey: "gerencia_id", onDelete: "CASCADE" });
+area.belongsTo(gerencia, { foreignKey: "gerencia_id", onDelete: "CASCADE" });
 
-gerencia.hasMany(area, { foreignKey: "gerencia_id" });
-area.belongsTo(gerencia, { foreignKey: "gerencia_id" });
+area.hasMany(cargo, { foreignKey: "area_id", onDelete: "CASCADE" });
+cargo.belongsTo(area, { foreignKey: "area_id", onDelete: "CASCADE" });
 
-area.hasMany(cargo, { foreignKey: "area_id" });
-cargo.belongsTo(area, { foreignKey: "area_id" });
+usuario.hasMany(rolPuesto, { foreignKey: "usuario_id", onDelete: "CASCADE" });
+rolPuesto.belongsTo(usuario, { foreignKey: "usuario_id", onDelete: "CASCADE" });
 
-usuario.hasMany(rolPuesto, { foreignKey: "usuario_id", onDelete: "cascade" });
-rolPuesto.belongsTo(usuario, { foreignKey: "usuario_id", onDelete: "cascade" });
+cargo.hasMany(rolPuesto, { foreignKey: "cargo_id", onDelete: "CASCADE" });
+rolPuesto.belongsTo(cargo, { foreignKey: "cargo_id", onDelete: "CASCADE" });
 
-cargo.hasMany(rolPuesto, { foreignKey: "cargo_id" });
-rolPuesto.belongsTo(cargo, { foreignKey: "cargo_id" });
+rol.hasMany(rolPuesto, { foreignKey: "rol_id", onDelete: "CASCADE" });
+rolPuesto.belongsTo(rol, { foreignKey: "rol_id", onDelete: "CASCADE" });
 
-rol.hasMany(rolPuesto, { foreignKey: "rol_id" });
-rolPuesto.belongsTo(rol, { foreignKey: "rol_id" });
+usuario.belongsToMany(trabajador, { through: "trabajador_usuario", onDelete: "CASCADE" });
+trabajador.belongsToMany(usuario, { through: "trabajador_usuario", onDelete: "CASCADE" });
 
-usuario.belongsToMany(trabajador, { through: "trabajador_usuario" });
-trabajador.belongsToMany(usuario, { through: "trabajador_usuario" });
+empresa.hasMany(contrato, { foreignKey: "empresa_id", onDelete: "CASCADE" });
+contrato.belongsTo(empresa, { foreignKey: "empresa_id" , onDelete: "CASCADE"});
 
-asociacion.hasMany(trabajador, { foreignKey: "asociacion_id" });
-trabajador.belongsTo(asociacion, { foreignKey: "asociacion_id" });
-
-empresa.hasMany(contrato, { foreignKey: "empresa_id" });
-contrato.belongsTo(empresa, { foreignKey: "empresa_id" });
-
-
-campamento.hasMany(contrato, { foreignKey: "campamento_id" });
-contrato.belongsTo(campamento, { foreignKey: "campamento_id" });
-
-asociacion.hasMany(trabajador, {as:"trabajador", foreignKey: "asociacion_id"})
-trabajador.belongsTo(asociacion, {as:"trabajador", foreignKey: "asociacion_id"})
-
+campamento.hasMany(contrato, { foreignKey: "campamento_id" , onDelete: "CASCADE"});
+contrato.belongsTo(campamento, { foreignKey: "campamento_id", onDelete: "CASCADE" });
 
 //trabajador contrato evaluacion
+asociacion.hasMany(trabajador, {
+  foreignKey: "asociacion_id",
+  as: "trabajador", onDelete: "CASCADE"
+});
+trabajador.belongsTo(asociacion, {
+  foreignKey: "asociacion_id",
+  as: "trabajador",
+  onDelete: "CASCADE",
+});
 
-trabajador.hasMany(contrato, { foreignKey: "trabajador_id" });
-contrato.belongsTo(trabajador, { foreignKey: "trabajador_id" });
+trabajador.belongsToMany(contrato, {
+  through: trabajadorContrato,
+  foreignKey: "trabajadorId",
+  onDelete: "CASCADE",
+});
+contrato.belongsToMany(trabajador, {
+  through: trabajadorContrato,
+  foreignKey: "contratoId",
+});
+trabajadorContrato.belongsTo(trabajador, { foreignKey: "trabajadorId" , onDelete: "CASCADE" });
+trabajadorContrato.belongsTo(contrato, { foreignKey: "contratoId", onDelete: "CASCADE" });
 
-contrato.hasMany(evaluacion, { foreignKey: "contrato_id" });
-evaluacion.belongsTo(contrato, { foreignKey: "contrato_id" });
+contrato.hasMany(evaluacion, { foreignKey: "contrato_id", onDelete: "CASCADE" });
+evaluacion.belongsTo(contrato, { foreignKey: "contrato_id", onDelete: "CASCADE" });
 
+asociacion.hasMany(contrato, {foreignKey: "asociacion_id"})
+contrato.belongsTo(asociacion, {foreignKey: "asociacion_id"})
 
 
 module.exports = {
@@ -336,4 +370,5 @@ module.exports = {
   rolPuesto,
   empresa,
   asociacion,
+  trabajadorContrato,
 };

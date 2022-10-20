@@ -1,19 +1,47 @@
-const { asociacion, trabajador } = require("../../config/db");
-const contrato = require("../../config/db");
+const { asociacion, trabajador, contrato } = require("../../config/db");
+
 const XLSX = require("xlsx");
 const { Op } = require("sequelize");
 
 const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
-      include: {
-        model: trabajador,
-        as: "trabajador",
-        include: [{ model: contrato.contrato }],
-      },
+      include: [
+        { model: trabajador, as: "trabajador", include: [{ model: contrato }] },
+      ],
     });
-    console.log(all);
     res.status(200).json({ data: all });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
+const getAsociacionById = async (req, res, next) => {
+  let id = req.params.id;
+
+  try {
+    const all = await asociacion.findAll({
+      where: { id: id },
+      include: [{ model: contrato }],
+    });
+
+    const obj = all
+      .filter((item) => item.contratos.length)
+      .map((item) => {
+        return {
+          id: item.id,
+          nombre: item.nombre,
+          codigo: item.codigo,
+          contrato: item.contratos,
+          tipo_contrato: item.contratos.map((item) => item.tipo_contrato),
+          fecha_inicio: item.contratos.map((item) => item.fecha_inicio),
+          fecha_fin: item.contratos.map((item) => item.fecha_fin),
+          nota_contrato: item.contratos.map((item) => item.nota_contrato),
+        };
+      });
+    res.status(200).json({ data: obj });
     next();
   } catch (error) {
     console.log(error);
@@ -61,7 +89,6 @@ const deleteAsociacion = async (req, res, next) => {
 
 const uploadFile = async (req, res, next) => {
   let id = req.params.id;
-  // console.log(req.file);
 
   try {
     const workbook = XLSX.readFile("./upload/data.xlsx");
@@ -86,13 +113,20 @@ const uploadFile = async (req, res, next) => {
     });
 
     const getTrabajador = await trabajador.findAll();
-    const filtered = obj.filter(({dni, codigo_trabajador}) => !getTrabajador.some(x => x.dni == dni) && codigo_trabajador)
+    const filtered = obj.filter(
+      ({ dni, codigo_trabajador }) =>
+        !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
+    );
 
     const nuevoTrabajador = await trabajador.bulkCreate(filtered);
-    res.status(200).send({ data: "Trabajadores creados con éxito",status:200 });
+
+    const idsTrabajdores = nuevoTrabajador.map((item) => item.id);
+
+    res
+      .status(200)
+      .send({ data: "Trabajadores creados con éxito", status: 200 });
     next();
   } catch (error) {
-    console.log(error);
     res.status(500).json(error);
   }
 };
@@ -103,4 +137,5 @@ module.exports = {
   updateAsociacion,
   deleteAsociacion,
   uploadFile,
+  getAsociacionById,
 };

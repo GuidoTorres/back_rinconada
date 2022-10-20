@@ -3,7 +3,6 @@ const { empresa } = require("../../config/db");
 const getEmpresa = async (req, res, next) => {
   try {
     const all = await empresa.findAll();
-    console.log(all);
     res.status(200).json({ data: all });
     next();
   } catch (error) {
@@ -19,7 +18,6 @@ const postEmpresa = async (req, res, next) => {
 
   try {
     const empre = await empresa.create(info);
-    console.log(camp);
     res.status(200).json({ data: empre });
 
     next();

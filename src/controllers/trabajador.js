@@ -1,43 +1,36 @@
-const { trabajador } = require("../../config/db");
-const campamento = require("../../config/db");
-const evaluacion = require("../../config/db");
-const contrato = require("../../config/db");
+const { trabajador, campamento, contrato } = require("../../config/db");
 const { Op } = require("sequelize");
-
 
 const getTrabajador = async (req, res, next) => {
   try {
     const get = await trabajador.findAll({
       include: [
         {
-          model: contrato.contrato,
-          include: [{ model: campamento.campamento }],
+          model: contrato,
+          include: { model: campamento },
         },
       ],
-      where: {asociacion_id: {[Op.is]: null}}
+      where: { asociacion_id: { [Op.is]: null } },
     });
+
     const obj = get.map((obj) => {
       return {
         id: obj.id,
         dni: obj.dni,
-        nombre:
-          obj.nombre ,
-        tipo_trabajador: obj.tipo_trabajador,
+        nombre: obj.nombre,
+        apellido_paterno: obj.apellido_paterno,
+        apellido_materno: obj.apellido_materno,
         contrato_id: obj?.contratos.map((item) => item?.id),
         campamento: obj?.contratos.map((item) => item?.campamento?.nombre),
         codigo_trabajador: obj.codigo_trabajador,
         fecha_nacimiento: obj.fecha_nacimiento,
         telefono: obj.telefono,
-        apellido_paterno: obj.apellido_paterno,
-        apellido_materno:   obj.apellido_materno,
         email: obj.email,
         estado_civil: obj.estado_civil,
         genero: obj.genero,
-        direccion: obj.direccion
-
+        direccion: obj.direccion,
       };
     });
-    console.log(obj);
     res.status(200).json({ data: obj });
     next();
   } catch (error) {
@@ -51,7 +44,6 @@ const getTrabajadorById = async (req, res, next) => {
   try {
     const get = await trabajador.findAll({
       include: [{ model: contrato.contrato }],
-      where: { trabajador_id: id },
     });
 
     res.status(200).json({ data: get });
@@ -79,7 +71,8 @@ const postTrabajador = async (req, res, next) => {
   };
 
   try {
-    const nuevoTrabajador = await trabajador.create(info,{ignoreDuplicates: true});
+    const nuevoTrabajador = await trabajador.create(info);
+
     res.status(200).json(nuevoTrabajador);
 
     next();
@@ -92,8 +85,6 @@ const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-
-
     const putTrabajador = await trabajador.update(req.body, {
       where: { id: id },
     });

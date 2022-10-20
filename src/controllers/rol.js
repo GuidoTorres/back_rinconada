@@ -9,7 +9,6 @@ const getRol = async (req, res, next) => {
     const all = await rolPuesto.findAll({
       attributes: ["id", "usuario_id", "cargo_id", "rol_id"],
       include: [
-        
         { model: usuario.usuario, attributes: ["nombre", "usuario"] },
         { model: cargo.cargo, attributes: ["nombre"] },
         { model: rol.rol, attributes: ["nombre"] },
@@ -25,7 +24,7 @@ const getRol = async (req, res, next) => {
         rol: obj.rol.nombre,
         usuario_id: obj.usuario_id,
         cargo_id: obj.cargo_id,
-        rol_id: obj.rol_id
+        rol_id: obj.rol_id,
       };
     });
     res.status(200).json({ data: obj });
@@ -51,7 +50,6 @@ const getRolById = async (req, res, next) => {
 
 const postRol = async (req, res, next) => {
   let info = {
-    //   nombre: req.body.nombre,
     usuario_id: req.body.usuario_id,
     cargo_id: req.body.cargo_id,
     rol_id: req.body.rol_id,
