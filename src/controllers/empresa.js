@@ -1,8 +1,11 @@
-const { empresa } = require("../../config/db");
+const { empresa, contrato } = require("../../config/db");
 
 const getEmpresa = async (req, res, next) => {
   try {
-    const all = await empresa.findAll();
+    const all = await empresa.findAll({
+
+      include:[{model:contrato}]
+    });
     res.status(200).json({ data: all });
     next();
   } catch (error) {

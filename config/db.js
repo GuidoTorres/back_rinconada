@@ -3,18 +3,18 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  // database: "heroku_30cfe8f0814e57f",
-  // username: "bcbf9d2c2227ee",
-  // password: "011e52da",
-  // host: "us-cdbr-east-06.cleardb.net",
-  // dialect: "mysql",
-  // port: 3306,
-  database: "rinconada",
-  username: "root",
-  password: "Tupapi00",
-  host: "localhost",
+  database: "heroku_30cfe8f0814e57f",
+  username: "bcbf9d2c2227ee",
+  password: "011e52da",
+  host: "us-cdbr-east-06.cleardb.net",
   dialect: "mysql",
   port: 3306,
+  // database: "rinconada",
+  // username: "root",
+  // password: "Tupapi00",
+  // host: "localhost",
+  // dialect: "mysql",
+  // port: 3306,
   define: { timestamps: false, freezeTableName: true },
 });
 
@@ -153,7 +153,7 @@ const evaluacion = sequelize.define(
     diabetes: DataTypes.STRING,
     antecedentes: DataTypes.STRING,
     emo: DataTypes.STRING,
-    contrato_id: DataTypes.INTEGER,
+    trabajador_id: DataTypes.INTEGER,
   },
   {
     tableName: "evaluacion",
@@ -285,8 +285,8 @@ const asociacion = sequelize.define(
   }
 );
 
-const trabajadorContrato = sequelize.define(
-  "trabajador_contrato",
+const contratoEvaluacion = sequelize.define(
+  "contrato_evaluacion",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -294,11 +294,11 @@ const trabajadorContrato = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    contratoId: DataTypes.INTEGER,
-    trabajadorId: DataTypes.INTEGER,
+    contrato_id: DataTypes.INTEGER,
+    evaluacion_id: DataTypes.INTEGER,
   },
   {
-    tableName: "trabajador_contrato",
+    tableName: "contrato_evaluacion",
     timestamp: false,
   }
 );
@@ -318,19 +318,32 @@ rolPuesto.belongsTo(cargo, { foreignKey: "cargo_id", onDelete: "CASCADE" });
 rol.hasMany(rolPuesto, { foreignKey: "rol_id", onDelete: "CASCADE" });
 rolPuesto.belongsTo(rol, { foreignKey: "rol_id", onDelete: "CASCADE" });
 
-usuario.belongsToMany(trabajador, { through: "trabajador_usuario", onDelete: "CASCADE" });
-trabajador.belongsToMany(usuario, { through: "trabajador_usuario", onDelete: "CASCADE" });
+usuario.belongsToMany(trabajador, {
+  through: "trabajador_usuario",
+  onDelete: "CASCADE",
+});
+trabajador.belongsToMany(usuario, {
+  through: "trabajador_usuario",
+  onDelete: "CASCADE",
+});
 
 empresa.hasMany(contrato, { foreignKey: "empresa_id", onDelete: "CASCADE" });
-contrato.belongsTo(empresa, { foreignKey: "empresa_id" , onDelete: "CASCADE"});
+contrato.belongsTo(empresa, { foreignKey: "empresa_id", onDelete: "CASCADE" });
 
-campamento.hasMany(contrato, { foreignKey: "campamento_id" , onDelete: "CASCADE"});
-contrato.belongsTo(campamento, { foreignKey: "campamento_id", onDelete: "CASCADE" });
+campamento.hasMany(contrato, {
+  foreignKey: "campamento_id",
+  onDelete: "CASCADE",
+});
+contrato.belongsTo(campamento, {
+  foreignKey: "campamento_id",
+  onDelete: "CASCADE",
+});
 
 //trabajador contrato evaluacion
 asociacion.hasMany(trabajador, {
   foreignKey: "asociacion_id",
-  as: "trabajador", onDelete: "CASCADE"
+  as: "trabajador",
+  onDelete: "CASCADE",
 });
 trabajador.belongsTo(asociacion, {
   foreignKey: "asociacion_id",
@@ -338,23 +351,17 @@ trabajador.belongsTo(asociacion, {
   onDelete: "CASCADE",
 });
 
-trabajador.belongsToMany(contrato, {
-  through: trabajadorContrato,
-  foreignKey: "trabajadorId",
-  onDelete: "CASCADE",
-});
-contrato.belongsToMany(trabajador, {
-  through: trabajadorContrato,
-  foreignKey: "contratoId",
-});
-trabajadorContrato.belongsTo(trabajador, { foreignKey: "trabajadorId" , onDelete: "CASCADE" });
-trabajadorContrato.belongsTo(contrato, { foreignKey: "contratoId", onDelete: "CASCADE" });
+trabajador.hasMany(evaluacion, { foreignKey: "trabajador_id" });
+evaluacion.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-contrato.hasMany(evaluacion, { foreignKey: "contrato_id", onDelete: "CASCADE" });
-evaluacion.belongsTo(contrato, { foreignKey: "contrato_id", onDelete: "CASCADE" });
+contrato.belongsToMany(evaluacion, { through: contratoEvaluacion, foreignKey:"contrato_id" });
+evaluacion.belongsToMany(contrato, { through: contratoEvaluacion, foreignKey:"evaluacion_id" });
+
+contratoEvaluacion.belongsTo(contrato, {foreignKey:"contrato_id"})
+contratoEvaluacion.belongsTo(evaluacion,{foreignKey:"evaluacion_id"})
 
 asociacion.hasMany(contrato, {foreignKey: "asociacion_id"})
-contrato.belongsTo(asociacion, {foreignKey: "asociacion_id"})
+contrato.belongsTo(asociacion,{foreignKey: "asociacion_id"})
 
 
 module.exports = {
@@ -370,5 +377,5 @@ module.exports = {
   rolPuesto,
   empresa,
   asociacion,
-  trabajadorContrato,
+  contratoEvaluacion
 };

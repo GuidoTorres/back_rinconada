@@ -1,4 +1,10 @@
-const { asociacion, trabajador, contrato } = require("../../config/db");
+const {
+  asociacion,
+  trabajador,
+  contrato,
+  evaluacion,
+  campamento,
+} = require("../../config/db");
 
 const XLSX = require("xlsx");
 const { Op } = require("sequelize");
@@ -7,10 +13,32 @@ const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       include: [
-        { model: trabajador, as: "trabajador", include: [{ model: contrato }] },
+        { model: contrato, include: [{ model: campamento }] },
+        {
+          model: trabajador,
+          as: "trabajador",
+          include: [{ model: evaluacion }],
+        },
       ],
     });
-    res.status(200).json({ data: all });
+
+    const orderData = all.map((item) => {
+      return {
+        id: item.id,
+        nombre: item.nombre,
+        codigo: item.codigo,
+        contrato: item.contratos.filter((i) => i.length !== 0),
+        campamento: item.contratos
+          .map((dat) => dat.campamento.nombre)
+          .toString(),
+        trabajador: item.trabajador,
+        evaluacion_id: item.trabajador
+          .map((data) => data.evaluacions.map((dat) => dat.id))
+          .flat(),
+      };
+    });
+
+    res.status(200).json({ data: orderData });
     next();
   } catch (error) {
     console.log(error);
@@ -24,23 +52,43 @@ const getAsociacionById = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       where: { id: id },
-      include: [{ model: contrato }],
+
+      include: [{ model: contrato }, { model: trabajador, as: "trabajador" }],
     });
 
-    const obj = all
-      .filter((item) => item.contratos.length)
-      .map((item) => {
-        return {
-          id: item.id,
-          nombre: item.nombre,
-          codigo: item.codigo,
-          contrato: item.contratos,
-          tipo_contrato: item.contratos.map((item) => item.tipo_contrato),
-          fecha_inicio: item.contratos.map((item) => item.fecha_inicio),
-          fecha_fin: item.contratos.map((item) => item.fecha_fin),
-          nota_contrato: item.contratos.map((item) => item.nota_contrato),
-        };
-      });
+    const obj = all.map((item) => {
+      return {
+        id: item.id,
+        nombre: item.nombre,
+        codigo: item.nombre,
+        contrato: item.contratos.map((item) => {
+          return {
+            id: item.id,
+            area: item.area,
+            asociacion_id: item.asociacion_id,
+            base: item.base,
+            campamento_id: item.campamento_id,
+            codigo_contrato: item.codigo_contrato,
+            condicion_cooperativa: item.condicion_cooperativa,
+            cooperativa: item.cooperativa,
+            empresa_id: item.empresa_id,
+            fecha_fin: item.fecha_fin,
+            fecha_inicio: item.fecha_inicio,
+            gerencia: item.gerencia,
+            id: item.id,
+            jefe_directo: item.jefe_directo,
+            nota_contrato: item.nota_contrato,
+            periodo_trabajo: item.periodo_trabajo,
+            puesto: item.puesto,
+            recomendado_por: item.recomendado_por,
+            termino_contrato: item.termino_contrato,
+            tipo_contrato: item.tipo_contrato,
+          };
+        }),
+        trabajador: item.trabajador,
+      };
+    });
+
     res.status(200).json({ data: obj });
     next();
   } catch (error) {
@@ -69,7 +117,7 @@ const updateAsociacion = async (req, res, next) => {
 
   try {
     let update = await asociacion.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Asociacion actualizado con exito" });
+    res.status(200).json({ msg: "Asociacion actualizado con exito", rspta: update });
     next();
   } catch (error) {
     res.status(500).json(error);

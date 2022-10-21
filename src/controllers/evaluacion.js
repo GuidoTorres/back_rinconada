@@ -1,6 +1,5 @@
-const { evaluacion } = require("../../config/db");
+const { evaluacion, trabajador } = require("../../config/db");
 const contrato = require("../../config/db");
-const trabajador = require("../../config/db");
 
 const getEvaluacion = async (req, res, next) => {
   try {
@@ -17,25 +16,13 @@ const getEvaluacionById = async (req, res, next) => {
 
   try {
     const user = await evaluacion.findAll({
-      where: { contrato_id: id },
-      include: [
-        {
-          model: contrato.contrato,
-          include: [{ model: trabajador.trabajador }],
-        },
-      ],
+      where: { trabajador_id: id },
+      include: [{ model: trabajador }],
     });
     const obj = user.map((item) => {
       return {
-        id: item.id,
-        nombre: item.contrato.trabajadors.map(
-          (data) =>
-            data.nombre +
-            " " +
-            data.apellido_paterno +
-            " " +
-            data.apellido_materno
-        ),
+        evaluacion_id: item.id,
+        trabajador_id: item.trabajador.id,
         fecha_evaluacion: item.fecha_evaluacion,
         evaluacion_laboral: item.evaluacion_laboral,
         antecedentes: item.antecedentes,
@@ -49,6 +36,12 @@ const getEvaluacionById = async (req, res, next) => {
         pulso: item.pulso,
         saturacion: item.saturacion,
         temperatura: item.temperatura,
+        nombre:
+          item.trabajador.nombre +
+          " " +
+          item.trabajador.apellido_paterno +
+          " " +
+          item.trabajador.apellido_materno,
       };
     });
     res.status(200).json({ data: obj });
@@ -75,7 +68,7 @@ const postEvaluacion = async (req, res, next) => {
     diabetes: req.body.diabetes,
     antecedentes: req.body.antecedentes,
     emo: req.body.emo,
-    contrato_id: req.body.contrato_id,
+    trabajador_id: req.body.trabajador_id,
   };
 
   try {

@@ -3,7 +3,7 @@ const { campamento } = require("../../config/db");
 const getCampamento = async (req, res, next) => {
   try {
     const all = await campamento.findAll();
-    res.status(200).json({data:all});
+    res.status(200).json({ data: all });
     next();
   } catch (error) {
     res.status(500).json();
@@ -15,7 +15,7 @@ const getCampamentoById = async (req, res, next) => {
 
   try {
     const camp = await campamento.findAll({ where: { id: id } });
-    res.status(200).json({data:camp});
+    res.status(200).json({ data: camp });
 
     next();
   } catch (error) {
@@ -31,11 +31,10 @@ const postCampamento = async (req, res, next) => {
 
   try {
     const camp = await campamento.create(info);
-    res.status(200).json({data:camp});
+    res.status(200).json({ data: camp });
 
     next();
   } catch (error) {
-    
     res.status(500).json(error);
   }
 };

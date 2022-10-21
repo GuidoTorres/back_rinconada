@@ -1,16 +1,14 @@
-const { trabajador, campamento, contrato } = require("../../config/db");
+const { trabajador, campamento, contrato, evaluacion } = require("../../config/db");
 const { Op } = require("sequelize");
 
 const getTrabajador = async (req, res, next) => {
+
+  // trabajadores que no son de asociación
   try {
     const get = await trabajador.findAll({
-      include: [
-        {
-          model: contrato,
-          include: { model: campamento },
-        },
-      ],
+
       where: { asociacion_id: { [Op.is]: null } },
+      include:[{model:evaluacion, include:[{model:contrato, include:[{model:campamento}]}]}]
     });
 
     const obj = get.map((obj) => {
@@ -20,8 +18,6 @@ const getTrabajador = async (req, res, next) => {
         nombre: obj.nombre,
         apellido_paterno: obj.apellido_paterno,
         apellido_materno: obj.apellido_materno,
-        contrato_id: obj?.contratos.map((item) => item?.id),
-        campamento: obj?.contratos.map((item) => item?.campamento?.nombre),
         codigo_trabajador: obj.codigo_trabajador,
         fecha_nacimiento: obj.fecha_nacimiento,
         telefono: obj.telefono,
@@ -29,6 +25,17 @@ const getTrabajador = async (req, res, next) => {
         estado_civil: obj.estado_civil,
         genero: obj.genero,
         direccion: obj.direccion,
+        campamento: obj.evaluacions.map(item => item.contratos.map(dat=> dat.campamento.nombre)).flat(),
+        imc: obj.evaluacions.map(item => item.imc).toString(),
+        evaluacion_laboral: obj.evaluacions.map(item => item.evaluacion_laboral).toString(),
+        temperatura: obj.evaluacions.map(item => item.temperatura).toString(),
+        pulso: obj.evaluacions.map(item => item.pulso).toString(),
+        capacitacion_gema: obj.evaluacions.map(item => item.capacitacion_gema).toString(),
+        capacitacion_sso: obj.evaluacions.map(item => item.capacitacion_sso).toString(),
+        evaluacion_id:obj.evaluacions.map(item => item.id).toString(),
+
+
+
       };
     });
     res.status(200).json({ data: obj });
@@ -43,7 +50,7 @@ const getTrabajadorById = async (req, res, next) => {
   let id = req.params.id;
   try {
     const get = await trabajador.findAll({
-      include: [{ model: contrato.contrato }],
+      
     });
 
     res.status(200).json({ data: get });

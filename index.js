@@ -13,6 +13,7 @@ const gerenciaRouter = require("./src/routes/gerencia");
 const areaRouter = require("./src/routes/area");
 const empresaRouter = require("./src/routes/empresa");
 const asociacionRouter = require("./src/routes/asociacion");
+const evaluacionContratoRouter = require("./src/routes/evaluacionContrato");
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/api/v1/gerencia", gerenciaRouter);
 app.use("/api/v1/area", areaRouter);
 app.use("/api/v1/empresa", empresaRouter);
 app.use("/api/v1/asociacion", asociacionRouter);
+
 
 
 app.listen(PORT, () => {
