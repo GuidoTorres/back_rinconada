@@ -1,19 +1,42 @@
-const { trabajador, campamento, contrato, evaluacion } = require("../../config/db");
+const {
+  trabajador,
+  campamento,
+  contrato,
+  evaluacion,
+  contratoEvaluacion,
+} = require("../../config/db");
 const { Op } = require("sequelize");
 
 const getTrabajador = async (req, res, next) => {
-
   // trabajadores que no son de asociación
   try {
     const get = await trabajador.findAll({
-
       where: { asociacion_id: { [Op.is]: null } },
-      include:[{model:evaluacion, include:[{model:contrato, include:[{model:campamento}]}]}]
+      include: [
+        {
+          model: evaluacion,
+
+          include: [
+            {
+              model: contratoEvaluacion,
+              include: [
+                {
+                  model: contrato,
+                  attributes: { exclude: ["contrato_id"] },
+                  include: [{ model: campamento }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     });
+
 
     const obj = get.map((obj) => {
       return {
         id: obj.id,
+        deshabilitado: obj.deshabilitado,
         dni: obj.dni,
         nombre: obj.nombre,
         apellido_paterno: obj.apellido_paterno,
@@ -25,17 +48,27 @@ const getTrabajador = async (req, res, next) => {
         estado_civil: obj.estado_civil,
         genero: obj.genero,
         direccion: obj.direccion,
-        campamento: obj.evaluacions.map(item => item.contratos.map(dat=> dat.campamento.nombre)).flat(),
-        imc: obj.evaluacions.map(item => item.imc).toString(),
-        evaluacion_laboral: obj.evaluacions.map(item => item.evaluacion_laboral).toString(),
-        temperatura: obj.evaluacions.map(item => item.temperatura).toString(),
-        pulso: obj.evaluacions.map(item => item.pulso).toString(),
-        capacitacion_gema: obj.evaluacions.map(item => item.capacitacion_gema).toString(),
-        capacitacion_sso: obj.evaluacions.map(item => item.capacitacion_sso).toString(),
-        evaluacion_id:obj.evaluacions.map(item => item.id).toString(),
 
-
-
+        contrato: obj.evaluacions
+          .map((item) => item.contrato_evaluacions.map((dat) => dat.contrato))
+          .flat(),
+        imc: obj.evaluacions.map((item) => item.imc).toString(),
+        evaluacion_laboral: obj.evaluacions
+          .map((item) => item.evaluacion_laboral)
+          .toString(),
+        temperatura: obj.evaluacions.map((item) => item.temperatura).toString(),
+        pulso: obj.evaluacions.map((item) => item.pulso).toString(),
+        capacitacion_gema: obj.evaluacions
+          .map((item) => item.capacitacion_gema)
+          .toString(),
+        capacitacion_sso: obj.evaluacions
+          .map((item) => item.capacitacion_sso)
+          .toString(),
+        evaluacion_id: obj.evaluacions.map((item) => item.id).toString(),
+        aprobado: obj.evaluacions.map((item) => item.aprobado).toString(),
+        // contrato_id: obj.evaluacions
+        //   .map((data) => data.contratos.map((dat) => dat.id))
+        //   .toString(),
       };
     });
     res.status(200).json({ data: obj });
@@ -49,9 +82,7 @@ const getTrabajador = async (req, res, next) => {
 const getTrabajadorById = async (req, res, next) => {
   let id = req.params.id;
   try {
-    const get = await trabajador.findAll({
-      
-    });
+    const get = await trabajador.findAll({});
 
     res.status(200).json({ data: get });
     next();

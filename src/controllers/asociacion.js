@@ -13,10 +13,10 @@ const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       include: [
-        { model: contrato, include: [{ model: campamento }] },
+        { model: contrato,      attributes: { exclude: ["contrato_id"] },
+        include: [{ model: campamento }] },
         {
           model: trabajador,
-          as: "trabajador",
           include: [{ model: evaluacion }],
         },
       ],
@@ -27,14 +27,14 @@ const getAsociacion = async (req, res, next) => {
         id: item.id,
         nombre: item.nombre,
         codigo: item.codigo,
-        contrato: item.contratos.filter((i) => i.length !== 0),
+        contrato: item.contratos.length !== 0 ? item.contratos : "",
         campamento: item.contratos
           .map((dat) => dat.campamento.nombre)
           .toString(),
-        trabajador: item.trabajador,
-        evaluacion_id: item.trabajador
+        trabajador: item.trabajadors.length !== 0 ? item.trabajadors : "",
+        evaluacion_id: item.trabajadors
           .map((data) => data.evaluacions.map((dat) => dat.id))
-          .flat(),
+          .toString(),
       };
     });
 
@@ -53,7 +53,7 @@ const getAsociacionById = async (req, res, next) => {
     const all = await asociacion.findAll({
       where: { id: id },
 
-      include: [{ model: contrato }, { model: trabajador, as: "trabajador" }],
+      include: [{ model: contrato }, { model: trabajador }],
     });
 
     const obj = all.map((item) => {
@@ -85,11 +85,13 @@ const getAsociacionById = async (req, res, next) => {
             tipo_contrato: item.tipo_contrato,
           };
         }),
-        trabajador: item.trabajador,
+        trabajador: item.trabajadors,
       };
     });
 
-    res.status(200).json({ data: obj });
+    const resultJson = obj.filter(item => item.contrato.length !== 0)
+
+    res.status(200).json({ data: resultJson });
     next();
   } catch (error) {
     console.log(error);
@@ -117,7 +119,9 @@ const updateAsociacion = async (req, res, next) => {
 
   try {
     let update = await asociacion.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Asociacion actualizado con exito", rspta: update });
+    res
+      .status(200)
+      .json({ msg: "Asociacion actualizado con exito", rspta: update });
     next();
   } catch (error) {
     res.status(500).json(error);

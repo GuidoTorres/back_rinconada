@@ -3,9 +3,26 @@ const { empresa, contrato } = require("../../config/db");
 const getEmpresa = async (req, res, next) => {
   try {
     const all = await empresa.findAll({
-
-      include:[{model:contrato}]
+      include: [{ model: contrato }],
     });
+    res.status(200).json({ data: all });
+    next();
+  } catch (error) {
+    res.status(500).json();
+  }
+};
+
+const getEmpresaById = async (req, res, next) => {
+  let id = req.params.id;
+
+  try {
+    const all = await empresa.findByPk(
+      id,
+      {
+        include: [{ model: contrato }],
+      }
+    );
+
     res.status(200).json({ data: all });
     next();
   } catch (error) {
@@ -52,4 +69,10 @@ const deleteEmpresa = async (req, res, next) => {
   }
 };
 
-module.exports = { getEmpresa, postEmpresa, updateEmpresa, deleteEmpresa };
+module.exports = {
+  getEmpresa,
+  postEmpresa,
+  updateEmpresa,
+  deleteEmpresa,
+  getEmpresaById,
+};

@@ -3,7 +3,9 @@ const {
   trabajador,
   evaluacion,
   contratoEvaluacion,
+  teletrans,
 } = require("../../config/db");
+const date = require("date-and-time");
 
 const getContrato = async (req, res, next) => {
   try {
@@ -18,20 +20,57 @@ const getContrato = async (req, res, next) => {
 
 const getContratoById = async (req, res, next) => {
   let id = req.params.id;
+  // obtener contrato de trabajador con el id de trabajador
+  try {
+    const user = await trabajador.findAll({
+      where: { id: id },
+      include: [
+        {
+          model: evaluacion,
+          include: [
+            {
+              model: contratoEvaluacion,
+              include: [
+                { model: contrato, attributes: { exclude: ["contrato_id"] } },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const obj = user.map((item) => {
+      return {
+        id: item.id,
+        contrato: item.evaluacions
+          .map((data) => data.contrato_evaluacions)
+          .flat(),
+      };
+    });
+
+    const obj2 = obj.map((item) => 
+      
+       item.contrato.map((data) => data.contrato),
+      
+    ).flat();
+
+    res.status(200).json({ data: obj2 });
+
+    next();
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+const getContratoAsociacionById = async (req, res, next) => {
+  let id = req.params.id;
 
   try {
     const user = await contrato.findAll({
-      include: [{ model: evaluacion, where: { trabajador_id: id } }],
+      attributes: { exclude: ["contrato_id"] },
+      where: { asociacion_id: id },
     });
 
     // const obj = user
-    //   .filter((item) => item.contrato !== null)
-    //   .map((item) => {
-    //     return {
-    //       id: item.id,
-    //       contrato: item.contrato,
-    //     };
-    //   });
 
     res.status(200).json({ data: user });
 
@@ -59,8 +98,7 @@ const postContrato = async (req, res, next) => {
     nota_contrato: req.body.nota_contrato,
     puesto: req.body.puesto,
     campamento_id: req.body.campamento_id,
-    empresa_id: req.body.empresa_id,
-    evaluacion_id: req.body.evaluacion_id,
+    estado: req.body.estado,
   };
 
   try {
@@ -70,7 +108,34 @@ const postContrato = async (req, res, next) => {
       contrato_id: post.id,
       evaluacion_id: req.body.evaluacion_id,
     });
-    console.log(tablaIntermedia);
+
+    // creacion de campos teletrans una vez creado el contrato
+    let ttransTotal;
+    let ttranSaldo;
+    let ttransResult;
+    let descuento = 4;
+    const ttrans = parseInt(
+      date.subtract(data.fecha_fin, data.fecha_inicio).toDays()
+    );
+    ttransTotal = (ttrans / 15) * 4;
+
+    if (ttransTotal >= 4) {
+      ttranSaldo = ttransTotal - descuento;
+      ttransResult = ttransTotal;
+    } else if (ttransTotal < 4) {
+      ttranSaldo = ttransTotal - ttransTotal;
+      ttransResult = ttransTotal;
+    } else if (ttransTotal === 0) {
+      ttranSaldo = 0;
+      ttransResult = 0;
+    }
+    const createtTrans = await teletrans.create({
+      total: ttransResult,
+      saldo: ttranSaldo,
+      contrato_id: post.id,
+    });
+    console.log(createtTrans);
+
     res.status(200).json(info);
 
     next();
@@ -98,7 +163,6 @@ const postContratoAsociacion = async (req, res, next) => {
     nota_contrato: req.body.nota_contrato,
     puesto: req.body.puesto,
     campamento_id: req.body.campamento_id,
-    empresa_id: req.body.empresa_id,
     asociacion_id: req.body.asociacion_id,
   };
 
@@ -112,8 +176,39 @@ const postContratoAsociacion = async (req, res, next) => {
           evaluacion_id: item,
         };
       });
-      const tablaIntermedia = await contratoEvaluacion.bulkCreate(createEvaluacionContrato);
-      res.status(200).json(tablaIntermedia);
+      const tablaIntermedia = await contratoEvaluacion.bulkCreate(
+        createEvaluacionContrato
+      );
+
+
+          // creacion de campos teletrans una vez creado el contrato
+    let ttransTotal;
+    let ttranSaldo;
+    let ttransResult;
+    let descuento = 4;
+    const ttrans = parseInt(
+      date.subtract(data.fecha_fin, data.fecha_inicio).toDays()
+    );
+    ttransTotal = (ttrans / 15) * 4;
+
+    if (ttransTotal >= 4) {
+      ttranSaldo = ttransTotal - descuento;
+      ttransResult = ttransTotal;
+    } else if (ttransTotal < 4) {
+      ttranSaldo = ttransTotal - ttransTotal;
+      ttransResult = ttransTotal;
+    } else if (ttransTotal === 0) {
+      ttranSaldo = 0;
+      ttransResult = 0;
+    }
+    const ttransInfo={
+      total: ttransResult,
+      saldo: ttranSaldo,
+      contrato_id: post.id,
+    }
+    const createtTrans = await teletrans.create(ttransInfo);
+    console.log(createtTrans);
+      res.status(200).json(createtTrans);
     }
 
     next();
@@ -129,7 +224,7 @@ const updateContrato = async (req, res, next) => {
     const put = await contrato.update(req.body, {
       where: { id: id },
     });
-    
+
     console.log(put);
     res.status(200).json({ msg: "Contrato actualizado con éxito" });
     next();
@@ -156,4 +251,5 @@ module.exports = {
   deleteContrato,
   getContratoById,
   postContratoAsociacion,
+  getContratoAsociacionById,
 };

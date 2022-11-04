@@ -36,6 +36,7 @@ const getEvaluacionById = async (req, res, next) => {
         pulso: item.pulso,
         saturacion: item.saturacion,
         temperatura: item.temperatura,
+        aprobado: item.aprobado,
         nombre:
           item.trabajador.nombre +
           " " +
@@ -69,6 +70,7 @@ const postEvaluacion = async (req, res, next) => {
     antecedentes: req.body.antecedentes,
     emo: req.body.emo,
     trabajador_id: req.body.trabajador_id,
+    aprobado: req.body.aprobado
   };
 
   try {
