@@ -19,6 +19,10 @@ const getPlanilla = async (req, res, next) => {
       where: { asociacion_id: { [Op.is]: null } },
       include: [
         {
+          model: trabajadorAsistencia,
+          attributes: { exclude: ["trabajadorId", "asistenciumId"] },
+        },
+        {
           model: evaluacion,
           include: [
             {
@@ -92,6 +96,9 @@ const getPlanilla = async (req, res, next) => {
           direccion: item.direccion,
           asociacion_id: item.asociacion_id,
           deshabilitado: item.deshabilitado,
+          asistencia: item.trabajador_asistencia.filter(
+            (item) => item.asistencia === "Asistio"
+          ).length,
         },
         evaluaciones: {
           id: item.evaluacions.map((data) => data.id).toString(),
@@ -132,6 +139,11 @@ const getPlanilla = async (req, res, next) => {
         contrato: item.evaluacions
           .map((data) => data.contrato_evaluacions.map((dat) => dat.contrato))
           .flat(),
+        teletrans: item.evaluacions
+          .map((data) =>
+            data.contrato_evaluacions.map((dat) => dat.contrato.teletrans)
+          )
+          .flat(),
       };
     });
 
@@ -146,11 +158,15 @@ const getPlanilla = async (req, res, next) => {
           item.trabajador.apellido_materno,
         dni: item.trabajador.dni,
         telefono: item.trabajador.telefono,
+        asistencia: item.trabajador.asistencia,
         fecha_inicio: item.contrato
           .map((data) => data.fecha_inicio)
-          .toLocaleString(),
-        fecha_fin: item.contrato.map((data) => data.fecha_fin).toLocaleString(),
+          .toLocaleString("es-MX", { timeZone: "UTC" }),
+        fecha_fin: item.contrato
+          .map((data) => data.fecha_fin)
+          .toLocaleString("es-MX", { timeZone: "UTC" }),
         contrato: item.contrato,
+        teletrans: item.teletrans.flat(),
       };
     });
 
@@ -205,4 +221,25 @@ const getTareoTrabajador = async (req, res, next) => {
   }
 };
 
-module.exports = { getPlanilla, campamentoPlanilla, getTareoTrabajador };
+const getTareoAsociacion = async (req, res, next) => {
+  id = req.params.id;
+  try {
+    const getAsociacionTareo = await trabajador.findAll({
+      where: { asociacion_id: id },
+      include: [
+        {
+          model: trabajadorAsistencia,
+          attributes: { exclude: ["trabajadorId", "asistenciumId"] },
+          include: [{ model: asistencia }],
+        },
+      ],
+    });
+    res.status(200).json({ data: getAsociacionTareo });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
+module.exports = { getPlanilla, campamentoPlanilla, getTareoTrabajador, getTareoAsociacion };

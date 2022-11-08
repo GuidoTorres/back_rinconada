@@ -37,22 +37,12 @@ const getAsistenciaByCampamento = async (req, res, next) => {
 //obtener todos los trabajadores por campamento para marcar asistencia
 const getTrabajadorByCampamento = async (req, res, next) => {
   let id = req.params.id;
+  let id_asis = req.params.asistencia;
 
   try {
-
-    
     const get = await campamento.findAll({
       where: { id: id },
       include: [
-        // {
-        //   model: asistencia,
-        //   include: [
-        //     {
-        //       model: trabajadorAsistencia,
-        //       attributes: { exclude: ["trabajadorId", "asistenciumId"] },
-        //     },
-        //   ],
-        // },
         {
           model: contrato,
           attributes: { exclude: ["contrato_id"] },
@@ -60,7 +50,24 @@ const getTrabajadorByCampamento = async (req, res, next) => {
             {
               model: contratoEvaluacion,
               include: [
-                { model: evaluacion, include: [{ model: trabajador }] },
+                {
+                  model: evaluacion,
+                  include: [
+                    {
+                      model: trabajador,
+
+                      include: [
+                        {
+                          model: trabajadorAsistencia,
+                          // where: { asistencia_id: asis },
+                          attributes: {
+                            exclude: ["trabajadorId", "asistenciumId"],
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
               ],
             },
           ],
@@ -76,7 +83,12 @@ const getTrabajadorByCampamento = async (req, res, next) => {
       )
       .flat();
     const obj2 = obj.map((item) => item.trabajador);
-    res.status(200).json({ data: obj2 });
+    //corregir esta devolviendo 2 asistencia por dia
+    const filterAsistencia = obj2.filter((item) =>
+      item.trabajador_asistencia.filter((data) => data.asistencia_id == id_asis)
+    );
+    // const filter = obj2.filter((item) => item !== null);
+    res.status(200).json({ data: filterAsistencia });
     next();
   } catch (error) {
     console.log(error);
@@ -129,7 +141,6 @@ const postTrabajadorAsistencia = async (req, res, next) => {
         trabajador_id: info.trabajador_id,
       },
     });
-    console.log(getAsistencia);
 
     if (getAsistencia) {
       const updateAsistencia = await trabajadorAsistencia.update(info, {
@@ -138,11 +149,9 @@ const postTrabajadorAsistencia = async (req, res, next) => {
           trabajador_id: info.trabajador_id,
         },
       });
-      console.log("update");
       res.status(200).json({ data: updateAsistencia });
     } else if (!getAsistencia) {
       const createAsistencia = await trabajadorAsistencia.create(info);
-      console.log("create");
       res.status(200).json({ data: createAsistencia });
     }
     next();
@@ -171,6 +180,17 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
   }
 };
 
+const deleteAsistencia = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    let delAsis = await asistencia.destroy({ where: { id: id } });
+    res.status(200).json({ msg: "Asistencia eliminada con éxito" });
+    next();
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
 module.exports = {
   getAsistencia,
   postAsistencia,
@@ -178,4 +198,5 @@ module.exports = {
   getTrabajadorByCampamento,
   postTrabajadorAsistencia,
   updateTrabajadorAsistencia,
+  deleteAsistencia,
 };

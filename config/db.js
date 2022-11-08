@@ -503,6 +503,8 @@ trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id"})
 trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id"})
 trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id"})
 
+
+
 module.exports = {
   trabajador,
   campamento,

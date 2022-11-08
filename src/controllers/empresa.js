@@ -3,7 +3,7 @@ const { empresa, contrato } = require("../../config/db");
 const getEmpresa = async (req, res, next) => {
   try {
     const all = await empresa.findAll({
-      include: [{ model: contrato }],
+      include: [{ model: contrato, attributes: { exclude: ["contrato_id"] }, }],
     });
     res.status(200).json({ data: all });
     next();

@@ -48,11 +48,9 @@ const getContratoById = async (req, res, next) => {
       };
     });
 
-    const obj2 = obj.map((item) => 
-      
-       item.contrato.map((data) => data.contrato),
-      
-    ).flat();
+    const obj2 = obj
+      .map((item) => item.contrato.map((data) => data.contrato))
+      .flat();
 
     res.status(200).json({ data: obj2 });
 
@@ -104,19 +102,19 @@ const postContrato = async (req, res, next) => {
   try {
     const post = await contrato.create(info);
 
-    const tablaIntermedia = await contratoEvaluacion.create({
-      contrato_id: post.id,
-      evaluacion_id: req.body.evaluacion_id,
-    });
-
     // creacion de campos teletrans una vez creado el contrato
     let ttransTotal;
     let ttranSaldo;
     let ttransResult;
     let descuento = 4;
+
     const ttrans = parseInt(
-      date.subtract(data.fecha_fin, data.fecha_inicio).toDays()
+      date
+        .subtract(new Date(info.fecha_fin), new Date(info.fecha_inicio))
+        .toDays()
     );
+
+    console.log(ttrans);
     ttransTotal = (ttrans / 15) * 4;
 
     if (ttransTotal >= 4) {
@@ -134,12 +132,17 @@ const postContrato = async (req, res, next) => {
       saldo: ttranSaldo,
       contrato_id: post.id,
     });
+
+    const tablaIntermedia = await contratoEvaluacion.create({
+      contrato_id: post.id,
+      evaluacion_id: req.body.evaluacion_id,
+    });
+
     console.log(createtTrans);
-
     res.status(200).json(info);
-
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };
@@ -164,10 +167,12 @@ const postContratoAsociacion = async (req, res, next) => {
     puesto: req.body.puesto,
     campamento_id: req.body.campamento_id,
     asociacion_id: req.body.asociacion_id,
+    evaluacion_id: req.body.evaluacion_id
   };
 
+  console.log(req.body.evaluacion_id);
+  console.log(info.evaluacion_id);
   try {
-    console.log("lo intento");
     if (req.body.evaluacion_id.length > 0) {
       const post = await contrato.create(info);
       const createEvaluacionContrato = req.body.evaluacion_id.map((item) => {
@@ -176,43 +181,45 @@ const postContratoAsociacion = async (req, res, next) => {
           evaluacion_id: item,
         };
       });
+      console.log(createEvaluacionContrato);
       const tablaIntermedia = await contratoEvaluacion.bulkCreate(
         createEvaluacionContrato
       );
 
+      // creacion de campos teletrans una vez creado el contrato
+      let ttransTotal;
+      let ttranSaldo;
+      let ttransResult;
+      let descuento = 4;
+      const ttrans = parseInt(
+        date
+          .subtract(new Date(info.fecha_fin), new Date(info.fecha_inicio))
+          .toDays()
+      );
+      ttransTotal = ((ttrans / 15) * 4 ) * createEvaluacionContrato.length;
 
-          // creacion de campos teletrans una vez creado el contrato
-    let ttransTotal;
-    let ttranSaldo;
-    let ttransResult;
-    let descuento = 4;
-    const ttrans = parseInt(
-      date.subtract(data.fecha_fin, data.fecha_inicio).toDays()
-    );
-    ttransTotal = (ttrans / 15) * 4;
-
-    if (ttransTotal >= 4) {
-      ttranSaldo = ttransTotal - descuento;
-      ttransResult = ttransTotal;
-    } else if (ttransTotal < 4) {
-      ttranSaldo = ttransTotal - ttransTotal;
-      ttransResult = ttransTotal;
-    } else if (ttransTotal === 0) {
-      ttranSaldo = 0;
-      ttransResult = 0;
-    }
-    const ttransInfo={
-      total: ttransResult,
-      saldo: ttranSaldo,
-      contrato_id: post.id,
-    }
-    const createtTrans = await teletrans.create(ttransInfo);
-    console.log(createtTrans);
+      if (ttransTotal >= 4) {
+        ttranSaldo = ttransTotal - descuento;
+        ttransResult = ttransTotal;
+      } else if (ttransTotal < 4) {
+        ttranSaldo = ttransTotal - ttransTotal;
+        ttransResult = ttransTotal;
+      } else if (ttransTotal === 0) {
+        ttranSaldo = 0;
+        ttransResult = 0;
+      }
+      const ttransInfo = {
+        total: ttransResult,
+        saldo: ttranSaldo,
+        contrato_id: post.id,
+      };
+      const createtTrans = await teletrans.create(ttransInfo);
       res.status(200).json(createtTrans);
     }
 
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };

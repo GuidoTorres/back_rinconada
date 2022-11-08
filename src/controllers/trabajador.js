@@ -32,10 +32,19 @@ const getTrabajador = async (req, res, next) => {
       ],
     });
 
-
     const obj = get.map((obj) => {
       return {
         id: obj.id,
+        campamento: obj.evaluacions
+          .map((data) =>
+            data.contrato_evaluacions.map((item) => item?.contrato?.campamento)
+          )
+          .flat(),
+        nota: obj.evaluacions
+          .map((data) =>
+            data.contrato_evaluacions.map((item) => item?.contrato?.nota_contrato)
+          )
+          .toString(),
         deshabilitado: obj.deshabilitado,
         dni: obj.dni,
         nombre: obj.nombre,
@@ -66,9 +75,6 @@ const getTrabajador = async (req, res, next) => {
           .toString(),
         evaluacion_id: obj.evaluacions.map((item) => item.id).toString(),
         aprobado: obj.evaluacions.map((item) => item.aprobado).toString(),
-        // contrato_id: obj.evaluacions
-        //   .map((data) => data.contratos.map((dat) => dat.id))
-        //   .toString(),
       };
     });
     res.status(200).json({ data: obj });
@@ -142,7 +148,9 @@ const deleteTrabajador = async (req, res, next) => {
       .json({ msg: "Trabajador eliminado con éxito", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json({ msg: error, status: 500 });
+    res
+      .status(500)
+      .json({ msg: error, error: "No se pudo eliminar al trabajador" });
   }
 };
 
