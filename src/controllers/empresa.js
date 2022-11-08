@@ -22,12 +22,12 @@ const getEmpresaById = async (req, res, next) => {
         include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
       }
     );
-    const filterContrato = all.map(item => item.contratos.length !== 0)
+    const filterContrato = all.map(item => item.contratos.length > 0)
 
     res.status(200).json({ data: filterContrato });
     next();
   } catch (error) {
-    res.status(500).json();
+    res.status(500).json({error: error});
   }
 };
 
