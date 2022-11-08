@@ -115,6 +115,9 @@ const postTrabajador = async (req, res, next) => {
   };
 
   try {
+    const getTrabajador = await trabajador.findAll({
+      raw:true
+    })
     const nuevoTrabajador = await trabajador.create(info);
 
     res.status(200).json(nuevoTrabajador);

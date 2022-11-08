@@ -19,7 +19,7 @@ const getEmpresaById = async (req, res, next) => {
     const all = await empresa.findByPk(
       id,
       {
-        include: [{ model: contrato }],
+        include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
       }
     );
 
