@@ -16,14 +16,14 @@ const asociacionRouter = require("./src/routes/asociacion");
 const planillaRouter = require("./src/routes/planilla");
 const asistenciaRouter = require("./src/routes/asistencia");
 
-
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/v1/trabajador", trabajadorRouter);
+app.use(express.static("images"))
+app.use("/api/v1/trabajador", trabajadorRouter,);
 app.use("/api/v1/usuario", usuarioRouter);
 app.use("/api/v1/campamento", campamentoRouter);
 app.use("/api/v1/rol", rolRouter);
@@ -37,10 +37,6 @@ app.use("/api/v1/empresa", empresaRouter);
 app.use("/api/v1/asociacion", asociacionRouter);
 app.use("/api/v1/planilla", planillaRouter);
 app.use("/api/v1/asistencia", asistenciaRouter);
-
-
-
-
 
 app.listen(PORT, () => {
   console.log("server funcionando en puerto", PORT);

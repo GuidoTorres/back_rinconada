@@ -159,6 +159,7 @@ const getPlanilla = async (req, res, next) => {
         dni: item.trabajador.dni,
         telefono: item.trabajador.telefono,
         asistencia: item.trabajador.asistencia,
+        deshabilitado: item.trabajador.deshabilitado,
         fecha_inicio: item.contrato
           .map((data) => data.fecha_inicio)
           .toLocaleString("es-MX", { timeZone: "UTC" }),

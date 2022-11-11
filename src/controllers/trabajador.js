@@ -42,7 +42,9 @@ const getTrabajador = async (req, res, next) => {
           .flat(),
         nota: obj.evaluacions
           .map((data) =>
-            data.contrato_evaluacions.map((item) => item?.contrato?.nota_contrato)
+            data.contrato_evaluacions.map(
+              (item) => item?.contrato?.nota_contrato
+            )
           )
           .toString(),
         deshabilitado: obj.deshabilitado,
@@ -112,18 +114,27 @@ const postTrabajador = async (req, res, next) => {
     genero: req.body.genero,
     direccion: req.body.direccion,
     tipo_trabajador: req.body.tipo_trabajador,
+    foto: `https://rinconada.herokuapp.com/${req.file.path}`,
   };
 
   try {
     const getTrabajador = await trabajador.findAll({
-      raw:true
-    })
-    const nuevoTrabajador = await trabajador.create(info);
+      raw: true,
+    });
 
-    res.status(200).json(nuevoTrabajador);
-
+    const filterRepeated = getTrabajador.filter(
+      (item) => item.dni === info.dni
+    );
+    console.log(filterRepeated);
+    if (filterRepeated.length > 0) {
+      res.status(200).json({ data: "Trabajador ya existe" });
+    } else {
+      const nuevoTrabajador = await trabajador.create(info);
+      res.status(200).json({ data: "Trabajador creado exitosamente" });
+    }
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };
