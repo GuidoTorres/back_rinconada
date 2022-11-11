@@ -92,6 +92,7 @@ const trabajador = sequelize.define(
     direccion: DataTypes.STRING,
     asociacion_id: DataTypes.INTEGER,
     deshabilitado: DataTypes.BOOLEAN,
+    foto: DataTypes.STRING
   },
   {
     tableName: "trabajador",

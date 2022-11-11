@@ -130,6 +130,7 @@ const postTrabajador = async (req, res, next) => {
       res.status(200).json({ data: "Trabajador ya existe" });
     } else {
       const nuevoTrabajador = await trabajador.create(info);
+      console.log(nuevoTrabajador);
       res.status(200).json({ data: "Trabajador creado exitosamente" });
     }
     next();
