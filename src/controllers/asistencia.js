@@ -39,7 +39,7 @@ const getExcelAsistencia = async (req, res, next) => {
   try {
     const workbook = XLSX.readFile("./upload/asistencia.xlsx");
     const workbookSheets = workbook.SheetNames;
-    const sheet = workbookSheets[0];
+    const sheet = workbookSheets[3];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
 
     const prueba = dataExcel[2];
@@ -57,6 +57,11 @@ const getExcelAsistencia = async (req, res, next) => {
       return {
         dni: item.__EMPTY,
         nombre: item._Reporte_de_Turnos,
+        // fecha: [prueba]
+        //   .map((data) => {
+        //     return { [Object.values(data)]: Object.values(item) };
+        //   })
+        //   .flat(),
       };
     });
 

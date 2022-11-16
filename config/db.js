@@ -159,7 +159,10 @@ const evaluacion = sequelize.define(
     control: DataTypes.STRING,
     topico: DataTypes.STRING,
     seguridad: DataTypes.STRING,
-    medio_ambiente: DataTypes.STRING
+    medio_ambiente: DataTypes.STRING,
+    recomendado_por: DataTypes.STRING,
+    cooperativa: DataTypes.STRING,
+    condicion_cooperativa: DataTypes.STRING
   },
   {
     tableName: "evaluacion",

@@ -37,6 +37,9 @@ const getEvaluacionById = async (req, res, next) => {
         saturacion: item.saturacion,
         temperatura: item.temperatura,
         aprobado: item.aprobado,
+        recomendado_por: item.recomendado_por,
+        cooperativa: item.cooperativa,
+        condicion_cooperativa: item.condicion_cooperativa,
         nombre:
           item.trabajador.nombre +
           " " +
