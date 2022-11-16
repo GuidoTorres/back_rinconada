@@ -8,6 +8,7 @@ const {
   contratoEvaluacion,
   trabajadorAsistencia,
 } = require("../../config/db");
+const XLSX = require("xlsx");
 
 const getAsistencia = async (req, res, next) => {
   try {
@@ -20,17 +21,79 @@ const getAsistencia = async (req, res, next) => {
 };
 
 //obtiene las fechas de asistenecia por campamento
-const getAsistenciaByCampamento = async (req, res, next) => {
-  let id = req.params.id;
+// const getAsistenciaByCampamento = async (req, res, next) => {
+//   let id = req.params.id;
 
+//   try {
+//     const all = await asistencia.findAll({
+//       where: { campamento_id: id },
+//     });
+//     res.status(200).json({ data: all });
+//     next();
+//   } catch (error) {
+//     res.status(500).json();
+//   }
+// };
+
+const getExcelAsistencia = async (req, res, next) => {
   try {
-    const all = await asistencia.findAll({
-      where: { campamento_id: id },
+    const workbook = XLSX.readFile("./upload/asistencia.xlsx");
+    const workbookSheets = workbook.SheetNames;
+    const sheet = workbookSheets[0];
+    const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+
+    const prueba = dataExcel[2];
+
+    const result = dataExcel.map((v) =>
+      Object.entries(v).reduce(
+        (acc, [key, value]) =>
+          Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
+        {}
+      )
+    );
+
+    const prueba2 = result.map((item, i) => {
+      const index = i + 1;
+      return {
+        dni: item.__EMPTY,
+        nombre: item._Reporte_de_Turnos,
+      };
     });
-    res.status(200).json({ data: all });
+
+    res.status(200).json({ data: dataExcel });
     next();
   } catch (error) {
-    res.status(500).json();
+    console.log(error);
+  }
+};
+
+const getTrabajadorAsistencia = async (req, res, next) => {
+  try {
+    const get = await trabajador.findAll({
+      include: [
+        {
+          model: evaluacion,
+          include: [
+            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+          ],
+        },
+      ],
+    });
+    const filterDeshabilitado = get.filter(
+      (item) => item.deshabilitado === false || item.deshabilitado === null
+    );
+    const filter = filterDeshabilitado.filter(
+      (item) => item.evaluacions.length !== 0
+    );
+    const filterContrato = filter.filter((item) =>
+      item.evaluacions.filter((data) => data.contratos.length !== 0)
+    );
+
+    res.status(200).json({ data: filterContrato });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: error, status: 500 });
   }
 };
 
@@ -194,9 +257,11 @@ const deleteAsistencia = async (req, res, next) => {
 module.exports = {
   getAsistencia,
   postAsistencia,
-  getAsistenciaByCampamento,
+  // getAsistenciaByCampamento,
   getTrabajadorByCampamento,
   postTrabajadorAsistencia,
   updateTrabajadorAsistencia,
   deleteAsistencia,
+  getTrabajadorAsistencia,
+  getExcelAsistencia,
 };

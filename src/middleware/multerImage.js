@@ -1,5 +1,7 @@
 const multer = require("multer");
-const path = require("path")
+const path = require("path");
+const sharp = require("sharp");
+
 const uploadFile = (req, res, next) => {
   const storage = multer.diskStorage({
     destination: "./images",
@@ -9,8 +11,12 @@ const uploadFile = (req, res, next) => {
       cb(null, Date.now() + path.extname(res.originalname));
     },
   });
+  const upload = multer({ storage: storage }).single("image");
 
-  const upload = multer({ storage: storage, limits: { fieldSize: 10 * 1024 * 1024 } }).single("image");
   return upload;
 };
-module.exports = uploadFile;
+
+const helperImage = (filePath, fileName, size = 100) => {
+  return sharp(filePath).resize(size).toFile(`./optimizeImage/${fileName}`);
+};
+module.exports = { uploadFile, helperImage };

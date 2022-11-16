@@ -6,6 +6,9 @@ const {
   contratoEvaluacion,
 } = require("../../config/db");
 const { Op } = require("sequelize");
+const { cloudinary } = require("../../config/cloudinary");
+const XLSX = require("xlsx");
+const sharp = require('sharp')
 
 const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
@@ -59,6 +62,7 @@ const getTrabajador = async (req, res, next) => {
         estado_civil: obj.estado_civil,
         genero: obj.genero,
         direccion: obj.direccion,
+        foto: obj.foto,
 
         contrato: obj.evaluacions
           .map((item) => item.contrato_evaluacions.map((dat) => dat.contrato))
@@ -101,60 +105,187 @@ const getTrabajadorById = async (req, res, next) => {
 };
 
 const postTrabajador = async (req, res, next) => {
-  let info = {
-    dni: req.body.dni,
-    codigo_trabajador: req.body.codigo_trabajador,
-    fecha_nacimiento: req.body.fecha_nacimiento,
-    telefono: req.body.telefono,
-    apellido_paterno: req.body.apellido_paterno,
-    apellido_materno: req.body.apellido_materno,
-    nombre: req.body.nombre,
-    email: req.body.email,
-    estado_civil: req.body.estado_civil,
-    genero: req.body.genero,
-    direccion: req.body.direccion,
-    tipo_trabajador: req.body.tipo_trabajador,
-    foto: `https://rinconada.herokuapp.com/${req.file.path}`,
-  };
+  let info;
+
+
+
+  if (req.file) {
+
+    const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+      upload_preset: "ml_default",
+      height: 80,
+      width: 80,
+    });
+    info = {
+      dni: req.body.dni,
+      codigo_trabajador: req.body.codigo_trabajador,
+      fecha_nacimiento: req.body.fecha_nacimiento,
+      telefono: req.body.telefono,
+      apellido_paterno: req.body.apellido_paterno,
+      apellido_materno: req.body.apellido_materno,
+      nombre: req.body.nombre,
+      email: req.body.email,
+      estado_civil: req.body.estado_civil,
+      genero: req.body.genero,
+      direccion: req.body.direccion,
+      tipo_trabajador: req.body.tipo_trabajador,
+      foto: uploadResponse.url,
+    };
+  } else {
+    info = {
+      dni: req.body.dni,
+      codigo_trabajador: req.body.codigo_trabajador,
+      fecha_nacimiento: req.body.fecha_nacimiento,
+      telefono: req.body.telefono,
+      apellido_paterno: req.body.apellido_paterno,
+      apellido_materno: req.body.apellido_materno,
+      nombre: req.body.nombre,
+      email: req.body.email,
+      estado_civil: req.body.estado_civil,
+      genero: req.body.genero,
+      direccion: req.body.direccion,
+      tipo_trabajador: req.body.tipo_trabajador,
+    };
+  }
 
   try {
     const getTrabajador = await trabajador.findAll({
       raw: true,
     });
-
-    const filterRepeated = getTrabajador.filter(
-      (item) => item.dni === info.dni
-    );
-    console.log(filterRepeated);
+    const filterRepeated = getTrabajador.filter((item) => item.dni == info.dni);
     if (filterRepeated.length > 0) {
-      res.status(200).json({ data: "Trabajador ya existe" });
+      res.status(200).json({ msg: "El trabajador ya esta registrado.", status: 403 });
     } else {
       const nuevoTrabajador = await trabajador.create(info);
-      console.log(nuevoTrabajador);
-      res.status(200).json({ data: "Trabajador creado exitosamente" });
+      res
+        .status(200)
+        .json({ msg: "Trabajador creado con exito!", status: 200 });
     }
     next();
   } catch (error) {
     console.log(error);
-    res.status(500).json(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo crear el trabajador.", status: 500 });
+  }
+};
+
+const postMultipleTrabajador = async (req, res, next) => {
+  try {
+    const workbook = XLSX.readFile("./upload/data.xlsx");
+    const workbookSheets = workbook.SheetNames;
+    const sheet = workbookSheets[0];
+    const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+
+    const obj = dataExcel.map((item) => {
+      return {
+        dni: item.Dni,
+        codigo_trabajador: item.codigo_trabajador,
+        fecha_nacimiento: item.fecha_nacimiento,
+        telefono: item.telefono,
+        apellido_paterno: item.apellido_paterno,
+        apellido_materno: item.apellido_materno,
+        nombre: item.nombre,
+        email: item.Email,
+        estado_civil: item.estado_civil,
+        genero: item.Genero,
+      };
+    });
+    const getTrabajador = await trabajador.findAll();
+    const filtered = obj.filter(
+      ({ dni, codigo_trabajador }) =>
+        !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
+    );
+
+    const nuevoTrabajador = await trabajador.bulkCreate(filtered);
+    res.status(200).json({ data: "Trabajadores creados con éxito!" });
+
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
   }
 };
 
 const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
+  let info;
+  if (req.file) {
+    const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+      upload_preset: "ml_default",
+      height: 120,
+      width: 120,
+    });
+    info = {
+      dni: req.body.dni,
+      codigo_trabajador: req.body.codigo_trabajador,
+      fecha_nacimiento: req.body.fecha_nacimiento,
+      telefono: req.body.telefono,
+      apellido_paterno: req.body.apellido_paterno,
+      apellido_materno: req.body.apellido_materno,
+      nombre: req.body.nombre,
+      email: req.body.email,
+      estado_civil: req.body.estado_civil,
+      genero: req.body.genero,
+      direccion: req.body.direccion,
+      tipo_trabajador: req.body.tipo_trabajador,
+      asociacion_id: req.body.asociacion_id || null,
+      deshabilitado:req.body.deshabilitado,
+
+      foto: uploadResponse.url,
+    };
+  } else {
+    info = {
+      dni: req.body.dni,
+      codigo_trabajador: req.body.codigo_trabajador,
+      fecha_nacimiento: req.body.fecha_nacimiento,
+      telefono: req.body.telefono,
+      apellido_paterno: req.body.apellido_paterno,
+      apellido_materno: req.body.apellido_materno,
+      nombre: req.body.nombre,
+      email: req.body.email,
+      estado_civil: req.body.estado_civil,
+      genero: req.body.genero,
+      direccion: req.body.direccion,
+      asociacion_id: req.body.asociacion_id || null,
+      tipo_trabajador: req.body.tipo_trabajador,
+      deshabilitado:req.body.deshabilitado,
+
+    };
+  }
 
   try {
-    const putTrabajador = await trabajador.update(req.body, {
+    const putTrabajador = await trabajador.update(info, {
       where: { id: id },
     });
-    res.status(200).json({ msg: "Trabajador actualizado con éxito" });
+    res
+      .status(200)
+      .json({ msg: "Trabajador actualizado con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json({ msg: error, status: 500 });
+    console.log(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo actualizar el trabajador.", status: 500 });
   }
 };
 
 const deleteTrabajador = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    let response = await trabajador.destroy({ where: { id: id } });
+    res
+      .status(200)
+      .json({ msg: "Trabajador eliminado con éxito!", status: 200 });
+    next();
+  } catch (error) {
+    res
+      .status(500)
+      .json({ msg: "No se pudo eliminar el trabajador.", status: 500 });
+  }
+};
+
+const softDeleteTrabajador = async (req, res, next) => {
   let id = req.params.id;
   try {
     let response = await trabajador.destroy({ where: { id: id } });
@@ -175,4 +306,5 @@ module.exports = {
   updateTrabajador,
   deleteTrabajador,
   getTrabajadorById,
+  postMultipleTrabajador,
 };

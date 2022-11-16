@@ -13,8 +13,11 @@ const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       include: [
-        { model: contrato,      attributes: { exclude: ["contrato_id"] },
-        include: [{ model: campamento }] },
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          include: [{ model: campamento }],
+        },
         {
           model: trabajador,
           include: [{ model: evaluacion }],
@@ -27,6 +30,7 @@ const getAsociacion = async (req, res, next) => {
         id: item.id,
         nombre: item.nombre,
         codigo: item.codigo,
+        tipo: item.tipo,
         contrato: item.contratos.length !== 0 ? item.contratos : "",
         campamento: item.contratos
           .map((dat) => dat.campamento.nombre)
@@ -61,6 +65,7 @@ const getAsociacionById = async (req, res, next) => {
         id: item.id,
         nombre: item.nombre,
         codigo: item.nombre,
+        tipo: item.tipo,
         contrato: item.contratos.map((item) => {
           return {
             id: item.id,
@@ -89,7 +94,7 @@ const getAsociacionById = async (req, res, next) => {
       };
     });
 
-    const resultJson = obj.filter(item => item.contrato.length !== 0)
+    const resultJson = obj.filter((item) => item.contrato.length !== 0);
 
     res.status(200).json({ data: resultJson });
     next();
@@ -103,14 +108,17 @@ const postAsociacion = async (req, res, next) => {
   let info = {
     nombre: req.body.nombre,
     codigo: req.body.codigo,
+    tipo: req.body.tipo,
   };
 
   try {
     const camp = await asociacion.create(info);
-    res.status(200).json({ data: camp });
+    res.status(200).json({ msg: "Asociación creada con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo crear la asociación.", status: 500 });
   }
 };
 
@@ -121,10 +129,12 @@ const updateAsociacion = async (req, res, next) => {
     let update = await asociacion.update(req.body, { where: { id: id } });
     res
       .status(200)
-      .json({ msg: "Asociacion actualizado con exito", rspta: update });
+      .json({ msg: "Asociacion actualizada con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo actualizar la asociación.", status: 500 });
   }
 };
 
@@ -132,10 +142,14 @@ const deleteAsociacion = async (req, res, next) => {
   let id = req.params.id;
   try {
     let deletes = await asociacion.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Campamento eliminado con exito" });
+    res
+      .status(200)
+      .json({ msg: "Asociación eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo eliminar la asociación.", status: 500 });
   }
 };
 

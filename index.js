@@ -15,6 +15,7 @@ const empresaRouter = require("./src/routes/empresa");
 const asociacionRouter = require("./src/routes/asociacion");
 const planillaRouter = require("./src/routes/planilla");
 const asistenciaRouter = require("./src/routes/asistencia");
+const socioRouter = require("./src/routes/socio");
 
 const app = express();
 
@@ -37,6 +38,8 @@ app.use("/api/v1/empresa", empresaRouter);
 app.use("/api/v1/asociacion", asociacionRouter);
 app.use("/api/v1/planilla", planillaRouter);
 app.use("/api/v1/asistencia", asistenciaRouter);
+app.use("/api/v1/socio", socioRouter);
+
 
 app.listen(PORT, () => {
   console.log("server funcionando en puerto", PORT);

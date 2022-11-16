@@ -43,6 +43,10 @@ const getEvaluacionById = async (req, res, next) => {
           item.trabajador.apellido_paterno +
           " " +
           item.trabajador.apellido_materno,
+        control: item.control,
+        topico:item.topico,
+        seguridad: item.seguridad,
+        medio_ambiente: item.medio_ambiente
       };
     });
     res.status(200).json({ data: obj });
@@ -74,12 +78,12 @@ const postEvaluacion = async (req, res, next) => {
   };
 
   try {
-    const post = await evaluacion.create(info);
+    const post = await evaluacion.create({ msg: "Evaluación creada con éxito!", status: 200 });
     res.status(200).json(post);
 
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo crear la evaluación.", status: 500 });
   }
 };
 
@@ -90,7 +94,7 @@ const updateEvaluacion = async (req, res, next) => {
     const put = await evaluacion.update(req.body, {
       where: { id: id },
     });
-    res.status(200).json({ msg: "Evaluacion actualizada con éxito" });
+    res.status(200).json({ msg: "Evaluacion actualizada con éxito!", status:200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: error, status: 500 });
@@ -103,10 +107,10 @@ const deleteEvaluacion = async (req, res, next) => {
     let response = await evaluacion.destroy({ where: { id: id } });
     res
       .status(200)
-      .json({ msg: "Evaluación eliminada con éxito", status: 200 });
+      .json({ msg: "Evaluación eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json({ msg: error, status: 500 });
+    res.status(500).json({ msg: "No se pudo eliminar la evaluación.", status: 500 });
   }
 };
 

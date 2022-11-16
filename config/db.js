@@ -29,8 +29,6 @@ const dbConnect = async () => {
 
 dbConnect();
 
-
-
 const usuario = sequelize.define(
   "usuario",
   {
@@ -92,7 +90,7 @@ const trabajador = sequelize.define(
     direccion: DataTypes.STRING,
     asociacion_id: DataTypes.INTEGER,
     deshabilitado: DataTypes.BOOLEAN,
-    foto: DataTypes.STRING
+    foto: DataTypes.STRING,
   },
   {
     tableName: "trabajador",
@@ -158,6 +156,10 @@ const evaluacion = sequelize.define(
     emo: DataTypes.STRING,
     trabajador_id: DataTypes.INTEGER,
     aprobado: DataTypes.STRING,
+    control: DataTypes.STRING,
+    topico: DataTypes.STRING,
+    seguridad: DataTypes.STRING,
+    medio_ambiente: DataTypes.STRING
   },
   {
     tableName: "evaluacion",
@@ -193,6 +195,9 @@ const contrato = sequelize.define(
     empresa_id: DataTypes.INTEGER,
     asociacion_id: DataTypes.INTEGER,
     estado: DataTypes.BOOLEAN,
+    volquete: DataTypes.STRING,
+    teletran: DataTypes.STRING,
+    suspendido: DataTypes.BOOLEAN
   },
   {
     tableName: "contrato",
@@ -283,6 +288,7 @@ const asociacion = sequelize.define(
     },
     nombre: DataTypes.STRING,
     codigo: DataTypes.STRING,
+    tipo: DataTypes.STRING
   },
   {
     tableName: "asociacion",
@@ -361,6 +367,27 @@ const trabajadorAsistencia = sequelize.define(
   },
   {
     tableName: "trabajador_asistencia",
+    timestamp: false,
+  }
+);
+
+const socio = sequelize.define(
+  "socio",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    nombre: DataTypes.STRING,
+    dni: DataTypes.STRING,
+    telefono: DataTypes.STRING,
+    cooperativa: DataTypes.STRING,
+  },
+  {
+    tableName: "socio",
     timestamp: false,
   }
 );
@@ -468,21 +495,20 @@ trabajador.belongsTo(asociacion, {
 trabajador.hasMany(evaluacion, { foreignKey: "trabajador_id" });
 evaluacion.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-
 // contrato evaluacion
 contrato.belongsToMany(evaluacion, {
-  through: contratoEvaluacion, foreignKey:"contrato_id"
+  through: contratoEvaluacion,
+  foreignKey: "contrato_id",
 });
 evaluacion.belongsToMany(contrato, {
-  through: contratoEvaluacion, foreignKey:"contrato_id"
+  through: contratoEvaluacion,
+  foreignKey: "contrato_id",
 });
 
-contrato.hasMany(contratoEvaluacion, {foreignKey:"contrato_id"})
-contratoEvaluacion.belongsTo(contrato, {foreignKey:"contrato_id"})
-evaluacion.hasMany(contratoEvaluacion, {foreignKey:"evaluacion_id"})
-contratoEvaluacion.belongsTo(evaluacion, {foreignKey:"evaluacion_id"})
-
-
+contrato.hasMany(contratoEvaluacion, { foreignKey: "contrato_id" });
+contratoEvaluacion.belongsTo(contrato, { foreignKey: "contrato_id" });
+evaluacion.hasMany(contratoEvaluacion, { foreignKey: "evaluacion_id" });
+contratoEvaluacion.belongsTo(evaluacion, { foreignKey: "evaluacion_id" });
 
 //asociacion contrato
 
@@ -498,13 +524,11 @@ asistencia.belongsToMany(trabajador, { through: trabajadorAsistencia });
 campamento.hasMany(asistencia, { foreignKey: "campamento_id" });
 asistencia.belongsTo(campamento, { foreignKey: "campamento_id" });
 
-asistencia.hasMany(trabajadorAsistencia, { foreignKey: "asistencia_id"})
-trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id"})
+asistencia.hasMany(trabajadorAsistencia, { foreignKey: "asistencia_id" });
+trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id" });
 
-trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id"})
-trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id"})
-
-
+trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id" });
+trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
 module.exports = {
   trabajador,
@@ -523,4 +547,5 @@ module.exports = {
   asistencia,
   teletrans,
   trabajadorAsistencia,
+  socio
 };

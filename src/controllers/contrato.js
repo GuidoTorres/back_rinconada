@@ -97,53 +97,35 @@ const postContrato = async (req, res, next) => {
     puesto: req.body.puesto,
     campamento_id: req.body.campamento_id,
     estado: req.body.estado,
+    volquete: req.body.volquete,
+    teletran: req.body.teletran,
+    suspendido: false,
   };
 
   try {
     const post = await contrato.create(info);
-
-    // creacion de campos teletrans una vez creado el contrato
-    let ttransTotal;
-    let ttranSaldo;
-    let ttransResult;
-    let descuento = 4;
-
-    const ttrans = parseInt(
-      date
-        .subtract(new Date(info.fecha_fin), new Date(info.fecha_inicio))
-        .toDays()
-    );
-
-    console.log(ttrans);
-    ttransTotal = (ttrans / 15) * 4;
-
-    if (ttransTotal >= 4) {
-      ttranSaldo = ttransTotal - descuento;
-      ttransResult = ttransTotal;
-    } else if (ttransTotal < 4) {
-      ttranSaldo = ttransTotal - ttransTotal;
-      ttransResult = ttransTotal;
-    } else if (ttransTotal === 0) {
-      ttranSaldo = 0;
-      ttransResult = 0;
-    }
-    const createtTrans = await teletrans.create({
-      total: ttransResult,
-      saldo: ttranSaldo,
-      contrato_id: post.id,
-    });
-
     const tablaIntermedia = await contratoEvaluacion.create({
       contrato_id: post.id,
       evaluacion_id: req.body.evaluacion_id,
     });
 
-    console.log(createtTrans);
-    res.status(200).json(info);
+    let volquete = parseInt(req.body?.volquete);
+    let teletran = parseInt(req.body?.teletran);
+    let total = parseInt(volquete) * 4 + parseInt(teletran);
+
+    const ttransInfo = {
+      volquete: volquete,
+      total: total,
+      saldo: total,
+      contrato_id: post.id,
+    };
+    const createtTrans = await teletrans.create(ttransInfo);
+
+    res.status(200).json({ msg: "Contrato creado con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo crear el contrato.", status: 500 });
   }
 };
 
@@ -167,11 +149,12 @@ const postContratoAsociacion = async (req, res, next) => {
     puesto: req.body.puesto,
     campamento_id: req.body.campamento_id,
     asociacion_id: req.body.asociacion_id,
-    evaluacion_id: req.body.evaluacion_id
+    evaluacion_id: req.body.evaluacion_id,
+    volquete: req.body.volquete,
+    teletran: req.body.teletran,
+    suspendido: false,
   };
 
-  console.log(req.body.evaluacion_id);
-  console.log(info.evaluacion_id);
   try {
     if (req.body.evaluacion_id.length > 0) {
       const post = await contrato.create(info);
@@ -181,46 +164,27 @@ const postContratoAsociacion = async (req, res, next) => {
           evaluacion_id: item,
         };
       });
-      console.log(createEvaluacionContrato);
       const tablaIntermedia = await contratoEvaluacion.bulkCreate(
         createEvaluacionContrato
       );
 
-      // creacion de campos teletrans una vez creado el contrato
-      let ttransTotal;
-      let ttranSaldo;
-      let ttransResult;
-      let descuento = 4;
-      const ttrans = parseInt(
-        date
-          .subtract(new Date(info.fecha_fin), new Date(info.fecha_inicio))
-          .toDays()
-      );
-      ttransTotal = ((ttrans / 15) * 4 ) * createEvaluacionContrato.length;
+      let volquete = parseInt(req.body?.volquete);
+      let teletran = parseInt(req.body?.teletran);
+      let total = parseInt(volquete) * 4 + parseInt(teletran);
 
-      if (ttransTotal >= 4) {
-        ttranSaldo = ttransTotal - descuento;
-        ttransResult = ttransTotal;
-      } else if (ttransTotal < 4) {
-        ttranSaldo = ttransTotal - ttransTotal;
-        ttransResult = ttransTotal;
-      } else if (ttransTotal === 0) {
-        ttranSaldo = 0;
-        ttransResult = 0;
-      }
       const ttransInfo = {
-        total: ttransResult,
-        saldo: ttranSaldo,
+        volquete: volquete,
+        total: total,
+        saldo: total,
         contrato_id: post.id,
       };
       const createtTrans = await teletrans.create(ttransInfo);
-      res.status(200).json(createtTrans);
+      res.status(200).json({ msg: "Contrato creado con éxito!", status: 200 });
     }
 
     next();
   } catch (error) {
-    console.log(error);
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo crear el contrato.", status: 500 });
   }
 };
 
@@ -233,10 +197,14 @@ const updateContrato = async (req, res, next) => {
     });
 
     console.log(put);
-    res.status(200).json({ msg: "Contrato actualizado con éxito" });
+    res
+      .status(200)
+      .json({ msg: "Contrato actualizado con éxito", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json({ msg: error, status: 500 });
+    res
+      .status(500)
+      .json({ msg: "No se pudo actualizar el contrato.", status: 500 });
   }
 };
 
@@ -247,7 +215,9 @@ const deleteContrato = async (req, res, next) => {
     res.status(200).json({ msg: "Contrato eliminado con éxito", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json({ msg: error, status: 500 });
+    res
+      .status(500)
+      .json({ msg: "No se pudo eliminar el contrato", status: 500 });
   }
 };
 
