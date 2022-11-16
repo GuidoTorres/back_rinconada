@@ -113,13 +113,16 @@ const postContrato = async (req, res, next) => {
     let teletran = parseInt(req.body?.teletran);
     let total = parseInt(volquete) * 4 + parseInt(teletran);
 
+    console.log(volquete);
     const ttransInfo = {
       volquete: volquete,
       total: total,
       saldo: total,
       contrato_id: post.id,
     };
-    const createtTrans = await teletrans.create(ttransInfo);
+    if (volquete !== "" && teletran !== "") {
+      const createtTrans = await teletrans.create(ttransInfo);
+    }
 
     res.status(200).json({ msg: "Contrato creado con éxito!", status: 200 });
     next();
@@ -192,11 +195,25 @@ const updateContrato = async (req, res, next) => {
   let id = req.params.id;
 
   try {
+
     const put = await contrato.update(req.body, {
       where: { id: id },
     });
 
-    console.log(put);
+    let volquete = parseInt(req.body?.volquete);
+    let teletran = parseInt(req.body?.teletran);
+    let total = parseInt(volquete) * 4 + parseInt(teletran);
+
+    console.log(volquete);
+    const ttransInfo = {
+      volquete: volquete,
+      total: total,
+      saldo: total,
+      contrato_id: post.id,
+    };
+    if (req.body.volquete !== "" && req.body.teletran !== "") {
+      const createtTrans = await teletrans.create(ttransInfo);
+    }
     res
       .status(200)
       .json({ msg: "Contrato actualizado con éxito", status: 200 });
