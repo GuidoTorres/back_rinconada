@@ -77,12 +77,19 @@ const postEvaluacion = async (req, res, next) => {
     antecedentes: req.body.antecedentes,
     emo: req.body.emo,
     trabajador_id: req.body.trabajador_id,
-    aprobado: req.body.aprobado
+    aprobado: req.body.aprobado,
+    control: req.body.control,
+    topico: req.body.topico,
+    seguridad: req.body. seguridad,
+    medio_ambiente: req.body.medio_ambiente,
+    recomendado_por: req.body.recomendado_por,
+    cooperativa: req.body.cooperativa,
+    condicion_cooperativa: req.body.condicion_cooperativa
   };
 
   try {
-    const post = await evaluacion.create({ msg: "Evaluación creada con éxito!", status: 200 });
-    res.status(200).json(post);
+    const post = await evaluacion.create(info);
+    res.status(200).json({ msg: "Evaluación creada con éxito!", status: 200 });
 
     next();
   } catch (error) {
