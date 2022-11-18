@@ -23,7 +23,7 @@ const getContratoById = async (req, res, next) => {
   // obtener contrato de trabajador con el id de trabajador
   try {
     const user = await trabajador.findAll({
-      where: { id: id },
+      where: { dni: id },
       include: [
         {
           model: evaluacion,
@@ -38,7 +38,6 @@ const getContratoById = async (req, res, next) => {
         },
       ],
     });
-
     const obj = user.map((item) => {
       return {
         id: item.id,
@@ -100,6 +99,7 @@ const postContrato = async (req, res, next) => {
     volquete: req.body.volquete,
     teletran: req.body.teletran,
     suspendido: false,
+    finalizado: false
   };
 
   try {
@@ -113,7 +113,6 @@ const postContrato = async (req, res, next) => {
     let teletran = parseInt(req.body?.teletran);
     let total = parseInt(volquete) * 4 + parseInt(teletran);
 
-    console.log(volquete);
     const ttransInfo = {
       volquete: volquete,
       total: total,
@@ -156,6 +155,7 @@ const postContratoAsociacion = async (req, res, next) => {
     volquete: req.body.volquete,
     teletran: req.body.teletran,
     suspendido: false,
+    finalizado: false
   };
 
   try {
@@ -195,7 +195,6 @@ const updateContrato = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-
     const put = await contrato.update(req.body, {
       where: { id: id },
     });
@@ -209,7 +208,7 @@ const updateContrato = async (req, res, next) => {
       volquete: volquete,
       total: total,
       saldo: total,
-      contrato_id: post.id,
+      contrato_id: id,
     };
     if (req.body.volquete !== "" && req.body.teletran !== "") {
       const createtTrans = await teletrans.create(ttransInfo);
@@ -219,6 +218,7 @@ const updateContrato = async (req, res, next) => {
       .json({ msg: "Contrato actualizado con éxito", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo actualizar el contrato.", status: 500 });

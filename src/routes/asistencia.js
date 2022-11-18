@@ -6,7 +6,7 @@ const asistencia = require("../controllers/asistencia");
 
 
 router.get("/", asistencia.getAsistencia)
-router.get("/trabajador", asistencia.getTrabajadorAsistencia)
+router.get("/trabajador/:id", asistencia.getTrabajadorAsistencia)
 router.post("/", asistencia.postAsistencia)
 router.post("/excel", multer(), asistencia.getExcelAsistencia)
 router.post("/trabajador", asistencia.postTrabajadorAsistencia)

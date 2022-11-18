@@ -71,13 +71,12 @@ const rolPuesto = sequelize.define(
 const trabajador = sequelize.define(
   "trabajador",
   {
-    id: {
+
+    dni: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      autoIncrement: true,
       allowNull: false,
     },
-    dni: DataTypes.INTEGER,
     codigo_trabajador: DataTypes.STRING,
     fecha_nacimiento: DataTypes.DATE,
     telefono: DataTypes.INTEGER,
@@ -162,7 +161,15 @@ const evaluacion = sequelize.define(
     medio_ambiente: DataTypes.STRING,
     recomendado_por: DataTypes.STRING,
     cooperativa: DataTypes.STRING,
-    condicion_cooperativa: DataTypes.STRING
+    condicion_cooperativa: DataTypes.STRING,
+    fiscalizador: DataTypes.STRING,
+    fiscalizador_aprobado: DataTypes.STRING,
+    topico_observacion: DataTypes.STRING,
+    control_observacion: DataTypes.STRING,
+    seguridad_observacion: DataTypes.STRING,
+    medio_ambiente_observacion: DataTypes.STRING,
+    recursos_humanos: DataTypes.STRING,
+    recursos_humanos_observacion: DataTypes.STRING,
   },
   {
     tableName: "evaluacion",
@@ -395,6 +402,33 @@ const socio = sequelize.define(
   }
 );
 
+const pago = sequelize.define(
+  "pago",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    conductor: DataTypes.STRING,
+    dni: DataTypes.STRING,
+    telefono: DataTypes.STRING,
+    placa: DataTypes.STRING,
+    teletrans: DataTypes.STRING,
+    lugar: DataTypes.STRING,
+    contrato_id: DataTypes.INTEGER
+
+  },
+  {
+    tableName: "pago",
+    timestamp: false,
+  }
+);
+
+
+
 gerencia.hasMany(area, {
   foreignKey: "gerencia_id",
   onDelete: "CASCADE",
@@ -533,6 +567,9 @@ trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id" });
 trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id" });
 trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
+contrato.hasOne(pago, {foreignKey:"contrato_id"}),
+pago.belongsTo(contrato, {foreignKey:"contrato_id"})
+
 module.exports = {
   trabajador,
   campamento,
@@ -550,5 +587,6 @@ module.exports = {
   asistencia,
   teletrans,
   trabajadorAsistencia,
-  socio
+  socio,
+  pago
 };

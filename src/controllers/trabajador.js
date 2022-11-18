@@ -8,7 +8,7 @@ const {
 const { Op } = require("sequelize");
 const { cloudinary } = require("../../config/cloudinary");
 const XLSX = require("xlsx");
-const sharp = require('sharp')
+const sharp = require("sharp");
 
 const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
@@ -18,7 +18,6 @@ const getTrabajador = async (req, res, next) => {
       include: [
         {
           model: evaluacion,
-
           include: [
             {
               model: contratoEvaluacion,
@@ -36,51 +35,84 @@ const getTrabajador = async (req, res, next) => {
     });
 
     const obj = get.map((obj) => {
+      let total = 0;
+      let final;
+      const notas = obj?.evaluacions.map((data) =>
+        data?.contrato_evaluacions?.map((item) =>
+          parseInt(item?.contrato?.nota_contrato)
+        )
+      );
+      const notaFinal = notas?.filter((item) => item !== null);
+
+      const nota = obj?.evaluacions.map((data) =>
+        data?.contrato_evaluacions?.map((item) =>
+          parseInt(item?.contrato?.nota_contrato)
+        )
+      );
+
+      if (notas.length === 1) {
+        final = notaFinal;
+      } else if (notas.length > 0 && notas.length > 1) {
+        final = nota.reduce((acc, value) => {
+          const result = Math.floor(
+            (parseInt(acc) + parseInt(value)) / notas.length
+          );
+
+          return result;
+        });
+      }
+
       return {
-        id: obj.id,
-        campamento: obj.evaluacions
-          .map((data) =>
-            data.contrato_evaluacions.map((item) => item?.contrato?.campamento)
-          )
-          .flat(),
-        nota: obj.evaluacions
-          .map((data) =>
-            data.contrato_evaluacions.map(
-              (item) => item?.contrato?.nota_contrato
+        id: obj?.id,
+        campamento: obj?.evaluacions
+          ?.map((data) =>
+            data?.contrato_evaluacions?.map(
+              (item) => item?.contrato?.campamento
             )
           )
-          .toString(),
-        deshabilitado: obj.deshabilitado,
-        dni: obj.dni,
-        nombre: obj.nombre,
-        apellido_paterno: obj.apellido_paterno,
-        apellido_materno: obj.apellido_materno,
-        codigo_trabajador: obj.codigo_trabajador,
-        fecha_nacimiento: obj.fecha_nacimiento,
-        telefono: obj.telefono,
-        email: obj.email,
-        estado_civil: obj.estado_civil,
-        genero: obj.genero,
-        direccion: obj.direccion,
-        foto: obj.foto,
-
-        contrato: obj.evaluacions
-          .map((item) => item.contrato_evaluacions.map((dat) => dat.contrato))
           .flat(),
-        imc: obj.evaluacions.map((item) => item.imc).toString(),
-        evaluacion_laboral: obj.evaluacions
-          .map((item) => item.evaluacion_laboral)
+        nota: final,
+        deshabilitado: obj?.deshabilitado,
+        dni: obj?.dni,
+        nombre: obj?.nombre,
+        apellido_paterno: obj?.apellido_paterno,
+        apellido_materno: obj?.apellido_materno,
+        codigo_trabajador: obj?.codigo_trabajador,
+        fecha_nacimiento: obj?.fecha_nacimiento,
+        telefono: obj?.telefono,
+        email: obj?.email,
+        estado_civil: obj?.estado_civil,
+        genero: obj?.genero,
+        direccion: obj?.direccion,
+        foto: obj?.foto,
+        estado: obj.evaluacions
+          ?.map((item) =>
+            item?.contrato_evaluacions
+              .map((dat) => [dat?.contrato]?.map((da) => da?.estado))
+              .flat()
+          )
+          .flat(),
+        contrato: obj?.evaluacions
+          .map((item) =>
+            item?.contrato_evaluacions?.map((dat) => dat?.contrato)
+          )
+          .flat(),
+        imc: obj?.evaluacions.map((item) => item?.imc).toString(),
+        evaluacion_laboral: obj?.evaluacions
+          .map((item) => item?.evaluacion_laboral)
           .toString(),
-        temperatura: obj.evaluacions.map((item) => item.temperatura).toString(),
-        pulso: obj.evaluacions.map((item) => item.pulso).toString(),
-        capacitacion_gema: obj.evaluacions
-          .map((item) => item.capacitacion_gema)
+        temperatura: obj?.evaluacions
+          .map((item) => item?.temperatura)
           .toString(),
-        capacitacion_sso: obj.evaluacions
-          .map((item) => item.capacitacion_sso)
+        pulso: obj?.evaluacions.map((item) => item?.pulso).toString(),
+        capacitacion_gema: obj?.evaluacions
+          ?.map((item) => item?.capacitacion_gema)
           .toString(),
-        evaluacion_id: obj.evaluacions.map((item) => item.id).toString(),
-        aprobado: obj.evaluacions.map((item) => item.aprobado).toString(),
+        capacitacion_sso: obj?.evaluacions
+          ?.map((item) => item?.capacitacion_sso)
+          .toString(),
+        evaluacion_id: obj?.evaluacions?.map((item) => item?.id).toString(),
+        aprobado: obj?.evaluacions?.map((item) => item?.aprobado).toString(),
       };
     });
     res.status(200).json({ data: obj });
@@ -107,10 +139,7 @@ const getTrabajadorById = async (req, res, next) => {
 const postTrabajador = async (req, res, next) => {
   let info;
 
-
-
   if (req.file) {
-
     const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
       upload_preset: "ml_default",
       height: 80,
@@ -154,7 +183,9 @@ const postTrabajador = async (req, res, next) => {
     });
     const filterRepeated = getTrabajador.filter((item) => item.dni == info.dni);
     if (filterRepeated.length > 0) {
-      res.status(200).json({ msg: "El trabajador ya esta registrado.", status: 403 });
+      res
+        .status(200)
+        .json({ msg: "El trabajador ya esta registrado.", status: 403 });
     } else {
       const nuevoTrabajador = await trabajador.create(info);
       res
@@ -230,8 +261,7 @@ const updateTrabajador = async (req, res, next) => {
       direccion: req.body.direccion,
       tipo_trabajador: req.body.tipo_trabajador,
       asociacion_id: req.body.asociacion_id || null,
-      deshabilitado:req.body.deshabilitado,
-
+      deshabilitado: req.body.deshabilitado,
       foto: uploadResponse.url,
     };
   } else {
@@ -249,14 +279,13 @@ const updateTrabajador = async (req, res, next) => {
       direccion: req.body.direccion,
       asociacion_id: req.body.asociacion_id || null,
       tipo_trabajador: req.body.tipo_trabajador,
-      deshabilitado:req.body.deshabilitado,
-
+      deshabilitado: req.body.deshabilitado,
     };
   }
 
   try {
     const putTrabajador = await trabajador.update(info, {
-      where: { id: id },
+      where: { dni: id },
     });
     res
       .status(200)
@@ -273,7 +302,7 @@ const updateTrabajador = async (req, res, next) => {
 const deleteTrabajador = async (req, res, next) => {
   let id = req.params.id;
   try {
-    let response = await trabajador.destroy({ where: { id: id } });
+    let response = await trabajador.destroy({ where: { dni: id } });
     res
       .status(200)
       .json({ msg: "Trabajador eliminado con éxito!", status: 200 });
