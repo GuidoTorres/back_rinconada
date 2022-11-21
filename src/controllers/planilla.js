@@ -325,6 +325,7 @@ const juntarTeletrans = async (req, res, next) => {
           apellido_materno: item?.apellido_materno,
           apellido_paterno: item?.apellido_paterno,
           telefono: item?.telefono,
+          dni: item?.dni,
           volquete: parseInt(
             item?.evaluacions[
               item?.evaluacions.length - 1
