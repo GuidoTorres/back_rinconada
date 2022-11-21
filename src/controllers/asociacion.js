@@ -162,19 +162,29 @@ const uploadFile = async (req, res, next) => {
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
 
-    const obj = dataExcel.map((item) => {
+    const result = dataExcel
+      .slice(1)
+      .map((v) =>
+        Object.entries(v).reduce(
+          (acc, [key, value]) =>
+            Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
+          {}
+        )
+      );
+
+    const obj = result.map((item) => {
       return {
-        dni: item.Dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: item.fecha_nacimiento,
-        telefono: item.telefono,
-        apellido_paterno: item.apellido_paterno,
-        apellido_materno: item.apellido_materno,
-        nombre: item.nombre,
-        email: item.Email,
-        estado_civil: item.estado_civil,
-        genero: item.Genero,
-        asociacion_id: id,
+        dni: parseInt(item.__EMPTY),
+        codigo_trabajador: item.Tabla_1,
+        fecha_nacimiento: item.__EMPTY_4,
+        telefono: item.__EMPTY_5,
+        apellido_paterno: item.__EMPTY_2,
+        apellido_materno: item.__EMPTY_3,
+        nombre: item.__EMPTY_1,
+        email: item.__EMPTY_6,
+        estado_civil: item.__EMPTY_7,
+        genero: item.__EMPTY_8,
+        asociacion_id: id
       };
     });
 
@@ -184,16 +194,18 @@ const uploadFile = async (req, res, next) => {
         !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
     );
 
-    const nuevoTrabajador = await trabajador.bulkCreate(filtered);
+    const dnis = filtered.map((item) => item.dni);
+    const filterDni = filtered.filter(
+      ({ dni }, index) => !dnis.includes(dni, index + 1)
+    );
 
-    const idsTrabajdores = nuevoTrabajador.map((item) => item.id);
-
+    const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
     res
       .status(200)
-      .send({ data: "Trabajadores creados con éxito", status: 200 });
+      .send({ data: "Trabajadores creados con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ data: "No se pudo registrar los trabajadores", status: 500 });
   }
 };
 

@@ -78,32 +78,15 @@ const getContratoAsociacionById = async (req, res, next) => {
 };
 
 const postContrato = async (req, res, next) => {
-  let info = {
-    fecha_inicio: req.body.fecha_inicio,
-    codigo_contrato: req.body.codigo_contrato,
-    tipo_contrato: req.body.tipo_contrato,
-    recomendado_por: req.body.recomendado_por,
-    cooperativa: req.body.cooperativa,
-    condicion_cooperativa: req.body.condicion_cooperativa,
-    periodo_trabajo: req.body.periodo_trabajo,
-    fecha_fin: req.body.fecha_fin,
-    gerencia: req.body.gerencia,
-    area: req.body.area,
-    jefe_directo: req.body.jefe_directo,
-    base: req.body.base,
-    termino_contrato: req.body.termino_contrato,
-    nota_contrato: req.body.nota_contrato,
-    puesto: req.body.puesto,
-    campamento_id: req.body.campamento_id,
-    estado: req.body.estado,
-    volquete: req.body.volquete,
-    teletran: req.body.teletran,
-    suspendido: false,
-    finalizado: false
-  };
 
   try {
-    const post = await contrato.create(info);
+    const post = await contrato.create(req.body);
+
+    let info = {
+      contrato_id: post.id,
+      evaluacion_id: req.body.evaluacion_id
+    }
+    console.log(info);
     const tablaIntermedia = await contratoEvaluacion.create({
       contrato_id: post.id,
       evaluacion_id: req.body.evaluacion_id,
@@ -115,6 +98,7 @@ const postContrato = async (req, res, next) => {
 
     const ttransInfo = {
       volquete: volquete,
+      teletrans: teletran,
       total: total,
       saldo: total,
       contrato_id: post.id,

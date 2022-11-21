@@ -64,13 +64,12 @@ const getTrabajador = async (req, res, next) => {
 
       return {
         id: obj?.id,
-        campamento: obj?.evaluacions
-          ?.map((data) =>
-            data?.contrato_evaluacions?.map(
-              (item) => item?.contrato?.campamento
-            )
-          )
-          .flat(),
+        campamento: obj?.evaluacions[
+          obj.evaluacions.length - 1
+        ]?.contrato_evaluacions
+          ?.map((item) => item?.contrato?.campamento?.nombre)
+          .toString(),
+
         nota: final,
         deshabilitado: obj?.deshabilitado,
         dni: obj?.dni,
@@ -97,22 +96,25 @@ const getTrabajador = async (req, res, next) => {
             item?.contrato_evaluacions?.map((dat) => dat?.contrato)
           )
           .flat(),
-        imc: obj?.evaluacions.map((item) => item?.imc).toString(),
-        evaluacion_laboral: obj?.evaluacions
-          .map((item) => item?.evaluacion_laboral)
+        evaluacion_id: obj?.evaluacions[obj.evaluacions.length - 1]?.id,
+        contrato_finalizado: obj?.evaluacions
+          .map(
+            (item) =>
+              item?.contrato_evaluacions[item.contrato_evaluacions.length - 1]
+                ?.contrato?.finalizado
+          )
           .toString(),
-        temperatura: obj?.evaluacions
-          .map((item) => item?.temperatura)
-          .toString(),
-        pulso: obj?.evaluacions.map((item) => item?.pulso).toString(),
-        capacitacion_gema: obj?.evaluacions
-          ?.map((item) => item?.capacitacion_gema)
-          .toString(),
-        capacitacion_sso: obj?.evaluacions
-          ?.map((item) => item?.capacitacion_sso)
-          .toString(),
-        evaluacion_id: obj?.evaluacions?.map((item) => item?.id).toString(),
-        aprobado: obj?.evaluacions?.map((item) => item?.aprobado).toString(),
+        evaluacion_finalizada:
+          obj?.evaluacions[obj.evaluacions.length - 1]?.finalizado,
+        fiscalizador:
+          obj?.evaluacions[obj.evaluacions.length - 1]?.fiscalizador_aprobado,
+        control: obj?.evaluacions[obj.evaluacions.length - 1]?.control,
+        topico: obj?.evaluacions[obj.evaluacions.length - 1]?.topico,
+        seguridad: obj?.evaluacions[obj.evaluacions.length - 1]?.seguridad,
+        medio_ambiente:
+          obj?.evaluacions[obj.evaluacions.length - 1]?.medio_ambiente,
+        recursos_humanos:
+          obj?.evaluacions[obj.evaluacions.length - 1]?.recursos_humanos,
       };
     });
     res.status(200).json({ data: obj });
@@ -207,34 +209,52 @@ const postMultipleTrabajador = async (req, res, next) => {
     const workbookSheets = workbook.SheetNames;
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+    const result = dataExcel
+      .slice(1)
+      .map((v) =>
+        Object.entries(v).reduce(
+          (acc, [key, value]) =>
+            Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
+          {}
+        )
+      );
 
-    const obj = dataExcel.map((item) => {
+    const obj = result.map((item) => {
       return {
-        dni: item.Dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: item.fecha_nacimiento,
-        telefono: item.telefono,
-        apellido_paterno: item.apellido_paterno,
-        apellido_materno: item.apellido_materno,
-        nombre: item.nombre,
-        email: item.Email,
-        estado_civil: item.estado_civil,
-        genero: item.Genero,
+        dni: parseInt(item.__EMPTY),
+        codigo_trabajador: item.Tabla_1,
+        fecha_nacimiento: item.__EMPTY_4,
+        telefono: item.__EMPTY_5,
+        apellido_paterno: item.__EMPTY_2,
+        apellido_materno: item.__EMPTY_3,
+        nombre: item.__EMPTY_1,
+        email: item.__EMPTY_6,
+        estado_civil: item.__EMPTY_7,
+        genero: item.__EMPTY_8,
       };
     });
+
     const getTrabajador = await trabajador.findAll();
     const filtered = obj.filter(
       ({ dni, codigo_trabajador }) =>
         !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
     );
 
-    const nuevoTrabajador = await trabajador.bulkCreate(filtered);
-    res.status(200).json({ data: "Trabajadores creados con éxito!" });
+    const dnis = filtered.map((item) => item.dni);
+    const filterDni = filtered.filter(
+      ({ dni }, index) => !dnis.includes(dni, index + 1)
+    );
+
+    const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
+    res
+      .status(200)
+      .json({ msg: "Trabajadores creados con éxito!", status: 200 });
 
     next();
   } catch (error) {
-    console.log(error);
-    res.status(500).json();
+    res
+      .status(500)
+      .json({ msg: "No se pudo registrar a los trabajadores", status: 500 });
   }
 };
 

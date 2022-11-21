@@ -170,6 +170,7 @@ const evaluacion = sequelize.define(
     medio_ambiente_observacion: DataTypes.STRING,
     recursos_humanos: DataTypes.STRING,
     recursos_humanos_observacion: DataTypes.STRING,
+    finalizado: DataTypes.BOOLEAN
   },
   {
     tableName: "evaluacion",
@@ -189,9 +190,6 @@ const contrato = sequelize.define(
     fecha_inicio: DataTypes.DATE,
     codigo_contrato: DataTypes.INTEGER,
     tipo_contrato: DataTypes.STRING,
-    recomendado_por: DataTypes.STRING,
-    cooperativa: DataTypes.STRING,
-    condicion_cooperativa: DataTypes.STRING,
     periodo_trabajo: DataTypes.STRING,
     fecha_fin: DataTypes.DATE,
     gerencia: DataTypes.STRING,
@@ -207,7 +205,8 @@ const contrato = sequelize.define(
     estado: DataTypes.BOOLEAN,
     volquete: DataTypes.STRING,
     teletran: DataTypes.STRING,
-    suspendido: DataTypes.BOOLEAN
+    suspendido: DataTypes.BOOLEAN,
+    finalizado: DataTypes.BOOLEAN
   },
   {
     tableName: "contrato",
@@ -335,6 +334,7 @@ const asistencia = sequelize.define(
     },
     fecha: DataTypes.STRING,
     campamento_id: DataTypes.INTEGER,
+    hora_ingreso: DataTypes.STRING
   },
   {
     tableName: "asistencia",
@@ -351,9 +351,11 @@ const teletrans = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
+    volquete: DataTypes.STRING,
     total: DataTypes.STRING,
     saldo: DataTypes.STRING,
     contrato_id: DataTypes.INTEGER,
+    teletrans: DataTypes.STRING
   },
   {
     tableName: "teletrans",
@@ -374,6 +376,8 @@ const trabajadorAsistencia = sequelize.define(
     trabajador_id: DataTypes.INTEGER,
     asistencia: DataTypes.STRING,
     observacion: DataTypes.STRING,
+    hora_ingreso: DataTypes.STRING,
+    tarde:DataTypes.STRING
   },
   {
     tableName: "trabajador_asistencia",

@@ -168,28 +168,35 @@ const getPlanilla = async (req, res, next) => {
           item?.trabajador?.apellido_materno,
         dni: item?.trabajador?.dni,
         telefono: item?.trabajador?.telefono,
-        asistencia: item?.trabajador.asistencia,
-        asociacion: item?.trabajador.asociacion_id,
+        asistencia: item?.trabajador?.asistencia,
+        asociacion: item?.trabajador?.asociacion_id,
         deshabilitado: item?.trabajador?.deshabilitado,
-        fecha_inicio: item?.contrato
-          .map((data) => data?.fecha_inicio)
-          .toLocaleString("es-MX", { timeZone: "UTC" }),
-        fecha_fin: item?.contrato
-          .map((data) => data?.fecha_fin)
-          .toLocaleString("es-MX", { timeZone: "UTC" }),
-        contrato: item?.contrato,
-        total: item?.contrato
-          ?.map((data) => data?.teletrans?.map((dat) => dat.total))
+        fecha_inicio: item?.contrato[
+          item.contrato.length - 1
+        ]?.fecha_inicio.toLocaleString("es-MX", { timeZone: "UTC" }),
+        fecha_fin: item?.contrato[
+          item.contrato.length - 1
+        ]?.fecha_fin.toLocaleString("es-MX", { timeZone: "UTC" }),
+        contrato: item?.contrato[item.contrato.length - 1],
+        volquete: item?.contrato[item.contrato.length - 1]?.volquete,
+        teletran: item?.contrato[item.contrato.length - 1]?.teletrans
+          .map((data) => data?.teletrans)
           .toString(),
-        saldo: item?.contrato
-          ?.map((data) => data?.teletrans?.map((dat) => dat.saldo))
+        total: item?.contrato?.teletrans,
+        saldo: item?.contrato[item.contrato.length - 1]?.teletrans
+          .map((data) => data.saldo[data.saldo.length - 1])
+          .slice(-1)
           .toString(),
-        estado: item?.contrato?.map((data) => data?.estado).toString(),
+        estado: item?.contrato[item.contrato.length - 1]?.estado,
       };
     });
 
     const filterTrabajador = finalTrabajador.filter(
-      (item) => item?.contrato?.length !== 0
+      (item) =>
+        item?.contrato?.length !== 0 &&
+        item?.contrato !== null &&
+        item?.contrato &&
+        item?.contrato?.finalizado === false
     );
 
     const prueba = mapAsociacion.concat(filterTrabajador);
@@ -282,9 +289,94 @@ const getTareoAsociacion = async (req, res, next) => {
   }
 };
 
+const juntarTeletrans = async (req, res, next) => {
+  try {
+    const getTrabajador = await trabajador.findAll({
+      where: { asociacion_id: { [Op.is]: null } },
+      include: [
+        {
+          model: trabajadorAsistencia,
+          attributes: {
+            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
+          },
+        },
+        {
+          model: evaluacion,
+          include: [
+            {
+              model: contratoEvaluacion,
+              include: [
+                {
+                  model: contrato,
+                  attributes: { exclude: ["contrato_id"] },
+                  include: [{ model: teletrans }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const filter = getTrabajador
+      .map((item) => {
+        return {
+          nombre: item?.nombre,
+          apellido_materno: item?.apellido_materno,
+          apellido_paterno: item?.apellido_paterno,
+          telefono: item?.telefono,
+          volquete: parseInt(
+            item?.evaluacions[
+              item?.evaluacions.length - 1
+            ]?.contrato_evaluacions.map((data) =>
+              data?.contrato?.teletrans.map((dat) => dat?.volquete)
+            )
+          ),
+          teletrans: parseInt(
+            item?.evaluacions[
+              item?.evaluacions.length - 1
+            ]?.contrato_evaluacions?.map((data) =>
+              data?.contrato?.teletrans.map((dat) => dat?.teletrans)
+            )
+          ),
+          saldo: parseInt(
+            item?.evaluacions[
+              item?.evaluacions.length - 1
+            ]?.contrato_evaluacions?.map((data) =>
+              data?.contrato?.teletrans?.map((dat) => dat?.saldo)
+            )
+          ),
+          dias_laborados: item?.trabajador_asistencia.filter(
+            (data) => data?.asistencia === "Asistio"
+          ).length,
+          contrato:
+            item?.evaluacions[item.evaluacions.length - 1]
+              ?.contrato_evaluacions,
+        };
+      })
+      .flat();
+
+    const filterTrabajador = filter.filter(
+      (item) => item?.contrato?.length > 0 
+    );
+
+    const filterTeletrans = filterTrabajador.filter(
+      (item) => parseInt(item.saldo) % 4 !== 0
+    );
+
+
+    res.status(200).json({ data: filterTeletrans });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
 module.exports = {
   getPlanilla,
   campamentoPlanilla,
   getTareoTrabajador,
   getTareoAsociacion,
+  juntarTeletrans,
 };

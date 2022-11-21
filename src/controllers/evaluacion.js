@@ -38,6 +38,7 @@ const getEvaluacionById = async (req, res, next) => {
         trabajador_id: item?.trabajador?.id,
         fecha_evaluacion: item?.fecha_evaluacion,
         evaluacion_laboral: item?.evaluacion_laboral,
+        finalizado: item?.finalizado,
         antecedentes: item?.antecedentes,
         capacitacion_gema: item?.capacitacion_gema,
         capacitacion_sso: item?.capacitacion_sso,
@@ -71,7 +72,8 @@ const getEvaluacionById = async (req, res, next) => {
         medio_ambiente_observacion: item?.medio_ambiente_observacion,
         recursos_humanos: item?.recursos_humanos,
         recursos_humanos_observacion: item?.recursos_humanos_observacion,
-        estado_contrato: item?.contrato_evaluacions?.map(data => data?.contrato?.estado)
+        estado_contrato: item?.contrato_evaluacions?.map(data => data?.contrato?.estado).toString(),
+        nota_contrato: item?.contrato_evaluacions?.map(data => data?.contrato?.nota_contrato).toString()
       };
     });
     res.status(200).json({ data: obj });
@@ -115,6 +117,7 @@ const postEvaluacion = async (req, res, next) => {
     medio_ambiente_observacion: req.body.medio_ambiente_observacion,
     recursos_humanos: req.body.recursos_humanos,
     recursos_humanos_observacion: req.body.recursos_humanos_observacion,
+    finalizado: req.body.finalizado
   };
 
   try {
