@@ -71,7 +71,6 @@ const rolPuesto = sequelize.define(
 const trabajador = sequelize.define(
   "trabajador",
   {
-
     dni: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -170,7 +169,7 @@ const evaluacion = sequelize.define(
     medio_ambiente_observacion: DataTypes.STRING,
     recursos_humanos: DataTypes.STRING,
     recursos_humanos_observacion: DataTypes.STRING,
-    finalizado: DataTypes.BOOLEAN
+    finalizado: DataTypes.BOOLEAN,
   },
   {
     tableName: "evaluacion",
@@ -206,7 +205,7 @@ const contrato = sequelize.define(
     volquete: DataTypes.STRING,
     teletran: DataTypes.STRING,
     suspendido: DataTypes.BOOLEAN,
-    finalizado: DataTypes.BOOLEAN
+    finalizado: DataTypes.BOOLEAN,
   },
   {
     tableName: "contrato",
@@ -297,7 +296,7 @@ const asociacion = sequelize.define(
     },
     nombre: DataTypes.STRING,
     codigo: DataTypes.STRING,
-    tipo: DataTypes.STRING
+    tipo: DataTypes.STRING,
   },
   {
     tableName: "asociacion",
@@ -334,7 +333,7 @@ const asistencia = sequelize.define(
     },
     fecha: DataTypes.STRING,
     campamento_id: DataTypes.INTEGER,
-    hora_ingreso: DataTypes.STRING
+    hora_ingreso: DataTypes.STRING,
   },
   {
     tableName: "asistencia",
@@ -355,7 +354,7 @@ const teletrans = sequelize.define(
     total: DataTypes.STRING,
     saldo: DataTypes.STRING,
     contrato_id: DataTypes.INTEGER,
-    teletrans: DataTypes.STRING
+    teletrans: DataTypes.STRING,
   },
   {
     tableName: "teletrans",
@@ -377,7 +376,7 @@ const trabajadorAsistencia = sequelize.define(
     asistencia: DataTypes.STRING,
     observacion: DataTypes.STRING,
     hora_ingreso: DataTypes.STRING,
-    tarde:DataTypes.STRING
+    tarde: DataTypes.STRING,
   },
   {
     tableName: "trabajador_asistencia",
@@ -422,8 +421,7 @@ const pago = sequelize.define(
     placa: DataTypes.STRING,
     teletrans: DataTypes.STRING,
     lugar: DataTypes.STRING,
-    contrato_id: DataTypes.INTEGER
-
+    contrato_id: DataTypes.INTEGER,
   },
   {
     tableName: "pago",
@@ -431,8 +429,105 @@ const pago = sequelize.define(
   }
 );
 
+const proveedor = sequelize.define(
+  "proveedor",
 
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    nombre: DataTypes.STRING,
+    dni: DataTypes.STRING,
+    direccion: DataTypes.STRING,
+    telefono: DataTypes.STRING,
+    descripcion: DataTypes.STRING
+  },
+  {
+    tableName: "proveedor",
+    timestamp: false,
+  }
+);
 
+const sucursal = sequelize.define(
+  "sucursal",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    nombre: DataTypes.STRING,
+    codigo: DataTypes.STRING,
+    descripcion: DataTypes.STRING,
+    saldo_inicial: DataTypes.STRING,
+  },
+  {
+    tableName: "sucursal",
+    timestamp: false,
+  }
+);
+
+const ingresos_egresos = sequelize.define(
+  "ingresos_egresos",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    fecha: DataTypes.STRING,
+    movimiento: DataTypes.STRING,
+    forma_pago: DataTypes.STRING,
+    encargado: DataTypes.STRING,
+    area: DataTypes.STRING,
+    cantidad: DataTypes.STRING,
+    medida: DataTypes.STRING,
+    descripcion: DataTypes.STRING,
+    monto: DataTypes.STRING,
+    proveedor: DataTypes.STRING,
+    comprobante: DataTypes.STRING,
+    sucursal_id: DataTypes.INTEGER,
+    saldo_inicial: DataTypes.STRING,
+    ingresos: DataTypes.STRING,
+    egresos: DataTypes.STRING,
+    saldo_final: DataTypes.STRING,
+    dni: DataTypes.STRING,
+    sucursal_transferencia: DataTypes.STRING
+  },
+  {
+    tableName: "ingresos_egresos",
+    timestamp: false,
+  }
+);
+
+const saldo = sequelize.define(
+  "saldo",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    saldo_inicial: DataTypes.STRING,
+    ingresos: DataTypes.STRING,
+    egresos: DataTypes.STRING,
+    saldo_final: DataTypes.STRING,
+    sucursal_id: DataTypes.INTEGER,
+  },
+  {
+    tableName: "saldo",
+    timestamp: false,
+  }
+);
 gerencia.hasMany(area, {
   foreignKey: "gerencia_id",
   onDelete: "CASCADE",
@@ -571,8 +666,14 @@ trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id" });
 trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id" });
 trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-contrato.hasOne(pago, {foreignKey:"contrato_id"}),
-pago.belongsTo(contrato, {foreignKey:"contrato_id"})
+contrato.hasOne(pago, { foreignKey: "contrato_id" }),
+pago.belongsTo(contrato, { foreignKey: "contrato_id" });
+
+sucursal.hasMany(ingresos_egresos, { foreignKey: "sucursal_id" });
+ingresos_egresos.belongsTo(sucursal, { foreignKey: "sucursal_id" });
+
+sucursal.hasMany(saldo, { foreignKey: "sucursal_id" });
+saldo.belongsTo(sucursal, { foreignKey: "sucursal_id" });
 
 module.exports = {
   trabajador,
@@ -592,5 +693,9 @@ module.exports = {
   teletrans,
   trabajadorAsistencia,
   socio,
-  pago
+  pago,
+  proveedor,
+  sucursal,
+  ingresos_egresos,
+  saldo
 };

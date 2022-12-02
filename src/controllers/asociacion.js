@@ -27,18 +27,19 @@ const getAsociacion = async (req, res, next) => {
 
     const orderData = all.map((item) => {
       return {
-        id: item.id,
-        nombre: item.nombre,
-        codigo: item.codigo,
-        tipo: item.tipo,
-        contrato: item.contratos.length !== 0 ? item.contratos : "",
-        campamento: item.contratos
-          .map((dat) => dat.campamento.nombre)
+        id: item?.id,
+        nombre: item?.nombre,
+        codigo: item?.codigo,
+        tipo: item?.tipo,
+        contrato: item?.contratos?.length !== 0 ? item.contratos : "",
+        campamento: item?.contratos
+          .map((dat) => dat?.campamento?.nombre)
           .toString(),
         trabajador: item.trabajadors.length !== 0 ? item.trabajadors : "",
-        evaluacion_id: item.trabajadors
-          .map((data) => data.evaluacions.map((dat) => dat.id))
-          .toString(),
+        evaluacion_id: item?.trabajadors
+          ?.map((data) => data?.evaluacions?.map((dat) => dat.id))
+          .flat(),
+        evaluacions: item?.trabajadors?.map((data) => data?.evaluacions[data.evaluacions.length -1]).flat(),
       };
     });
 
@@ -184,7 +185,7 @@ const uploadFile = async (req, res, next) => {
         email: item.__EMPTY_6,
         estado_civil: item.__EMPTY_7,
         genero: item.__EMPTY_8,
-        asociacion_id: id
+        asociacion_id: id,
       };
     });
 
@@ -205,7 +206,9 @@ const uploadFile = async (req, res, next) => {
       .send({ data: "Trabajadores creados con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json({ data: "No se pudo registrar los trabajadores", status: 500 });
+    res
+      .status(500)
+      .json({ data: "No se pudo registrar los trabajadores", status: 500 });
   }
 };
 

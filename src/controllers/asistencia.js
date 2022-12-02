@@ -191,20 +191,20 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         },
         {
           model: evaluacion,
-          include: [
-            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+          include: [{model:contratoEvaluacion},
+            // { model: contrato, attributes: { exclude: ["contrato_id"] } },
           ],
         },
       ],
     });
     const filterDeshabilitado = get.filter(
-      (item) => item.deshabilitado === false || item.deshabilitado === null
+      (item) => item.deshabilitado !== true
     );
-    const filter = filterDeshabilitado.filter(
+    const filterIfEvaluacion = filterDeshabilitado.filter(
       (item) => item.evaluacions.length !== 0
     );
 
-    const jsonFinal = filter.map((item) => {
+    const jsonFinal = filterIfEvaluacion.map((item) => {
       return {
         dni: item.dni,
         codigo_trabajador: item.codigo_trabajador,
@@ -220,13 +220,14 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         trabajador_asistencia: item.trabajador_asistencia.filter(
           (item) => item.asistencia_id == id
         ),
-        contrato: item.evaluacions.map((data) => data.contratos).flat(),
+        contrato: item?.evaluacions[item.evaluacions.length -1]?.contratos,
+        contrato_evaluacion: item?.evaluacions[item.evaluacions.length -1]?.contrato_evaluacions
       };
     });
 
-    const filterFinal = jsonFinal.filter((item) => item.contrato.length > 0);
+    // const filterFinal = jsonFinal.filter((item) => item.contrato.length > 0);
 
-    res.status(200).json({ data: filterFinal });
+    res.status(200).json({ data: jsonFinal });
     next();
   } catch (error) {
     console.log(error);

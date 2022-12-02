@@ -1,25 +1,48 @@
-const { pago, contrato } = require("../../config/db");
+const { Sequelize } = require("sequelize");
+const { pago, contrato, teletrans, evaluacion } = require("../../config/db");
 
 const postPago = async (req, res, next) => {
   let info = {
-    conductor: req.body.map((item) => item.conductor).toString(),
-    dni: req.body.map((item) => item.dni).toString(),
-    telefono: req.body.map((item) => item.telefono).toString(),
-    placa: req.body.map((item) => item.placa).toString(),
-    teletrans: parseInt(req.body.map((item) => item.teletrans)),
-    lugar: req.body.map((item) => item.lugar).toString(),
-    contrato_id: parseInt(req.body.map((item) => item.contrato_id)),
+    conductor: req.body[req.body.length - 1]?.conductor,
+    dni: req.body[req.body.length - 1]?.dni,
+    telefono: req.body[req.body.length - 1]?.telefono,
+    placa: req.body[req.body.length - 1]?.placa,
+    teletrans: parseInt(req.body[req.body.length - 1]?.teletrans),
+    lugar: req.body[req.body.length - 1]?.lugar,
+    contrato_id: parseInt(req.body[req.body.length - 1]?.contrato_id),
   };
-  console.log(info);
+  console.log(req.body[req.body.length - 1]?.evaluacion_id);
   let estadoContrato = {
-    estado: true,
+    finalizado: true,
   };
   try {
-    const create = await pago.create(info);
-    const updateContrato = await contrato.update(estadoContrato, {
-      where: { id: info.contrato_id },
+    const saldo = await teletrans.findAll({
+      raw: true,
+      where: { contrato_id: info.contrato_id },
     });
-    console.log(create);
+    saldoResultado =
+      parseInt(saldo[saldo.length - 1].saldo) - parseInt(info.teletrans);
+
+    let newSaldo = {
+      saldo: saldoResultado,
+    };
+    if (saldoResultado === 0) {
+      const create = await pago.create(info);
+      const updateTeletrans = await teletrans.update(newSaldo, {
+        where: { contrato_id: info.contrato_id },
+      });
+      const updateContrato = await contrato.update(estadoContrato, {
+        where: { id: info.contrato_id },
+      });
+      const updateEvaluacion = await evaluacion.update(estadoContrato, {
+        where: { id: req.body[req.body.length - 1]?.evaluacion_id },
+      });
+    } else {
+      const create = await pago.create(info);
+      const updateTeletrans = await teletrans.update(newSaldo, {
+        where: { contrato_id: info.contrato_id },
+      });
+    }
     res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
     next();
   } catch (error) {

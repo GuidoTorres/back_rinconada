@@ -78,14 +78,13 @@ const getContratoAsociacionById = async (req, res, next) => {
 };
 
 const postContrato = async (req, res, next) => {
-
   try {
     const post = await contrato.create(req.body);
 
     let info = {
       contrato_id: post.id,
-      evaluacion_id: req.body.evaluacion_id
-    }
+      evaluacion_id: req.body.evaluacion_id,
+    };
     console.log(info);
     const tablaIntermedia = await contratoEvaluacion.create({
       contrato_id: post.id,
@@ -139,38 +138,42 @@ const postContratoAsociacion = async (req, res, next) => {
     volquete: req.body.volquete,
     teletran: req.body.teletran,
     suspendido: false,
-    finalizado: false
+    finalizado: false,
   };
-
   try {
     if (req.body.evaluacion_id.length > 0) {
       const post = await contrato.create(info);
-      const createEvaluacionContrato = req.body.evaluacion_id.map((item) => {
-        return {
+      if (post) {
+        console.log("pokemon");
+        const createEvaluacionContrato = req.body.evaluacion_id.map((item) => {
+          return {
+            contrato_id: post.id,
+            evaluacion_id: item,
+          };
+        });
+        const tablaIntermedia = await contratoEvaluacion.bulkCreate(
+          createEvaluacionContrato
+        );
+
+        let volquete = parseInt(req.body?.volquete);
+        let teletran = parseInt(req.body?.teletran);
+        let total = parseInt(volquete) * 4 + parseInt(teletran);
+
+        const ttransInfo = {
+          volquete: volquete,
+          total: total,
+          saldo: total,
           contrato_id: post.id,
-          evaluacion_id: item,
         };
-      });
-      const tablaIntermedia = await contratoEvaluacion.bulkCreate(
-        createEvaluacionContrato
-      );
-
-      let volquete = parseInt(req.body?.volquete);
-      let teletran = parseInt(req.body?.teletran);
-      let total = parseInt(volquete) * 4 + parseInt(teletran);
-
-      const ttransInfo = {
-        volquete: volquete,
-        total: total,
-        saldo: total,
-        contrato_id: post.id,
-      };
-      const createtTrans = await teletrans.create(ttransInfo);
-      res.status(200).json({ msg: "Contrato creado con éxito!", status: 200 });
+        const createtTrans = await teletrans.create(ttransInfo);
+        res
+          .status(200)
+          .json({ msg: "Contrato creado con éxito!", status: 200 });
+        next();
+      }
     }
-
-    next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo crear el contrato.", status: 500 });
   }
 };
@@ -192,11 +195,13 @@ const updateContrato = async (req, res, next) => {
       volquete: volquete,
       total: total,
       saldo: total,
+      teletrans: teletran,
       contrato_id: id,
     };
-    if (req.body.volquete !== "" && req.body.teletran !== "") {
-      const createtTrans = await teletrans.create(ttransInfo);
-    }
+      const createtTrans = await teletrans.update(ttransInfo, {
+        where:{contrato_id:id}
+      });
+
     res
       .status(200)
       .json({ msg: "Contrato actualizado con éxito", status: 200 });

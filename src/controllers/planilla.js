@@ -62,28 +62,35 @@ const getPlanilla = async (req, res, next) => {
       (item) => item?.contratos?.length !== 0
     );
     const mapAsociacion = filterAsociacion.map((item, i) => {
-      //contar los dias entre fechas
-      // let ttrans = item.contratos.map((data) =>
-      //   parseInt(date.subtract(data.fecha_fin, data.fecha_inicio).toDays())
-      // );
-
       return {
         id: item?.id,
         nombre: item?.nombre,
         codigo: item?.codigo,
-        fecha_inicio: item?.contratos?.map((data) =>
-          data?.fecha_inicio?.toLocaleString().slice(0, 10)
-        ),
-        fecha_fin: item?.contratos?.map((data) =>
-          data?.fecha_fin?.toLocaleString().slice(0, 10)
-        ),
-        contrato: item?.contratos,
-        total: item?.contratos
-          ?.map((data) => data?.teletrans?.map((dat) => dat.total))
+        fecha_inicio: item?.contratos
+          ?.map((data) => data?.fecha_inicio?.toLocaleString().slice(0, 10))
           .toString(),
-        saldo: item?.contratos
-          ?.map((data) => data?.teletrans?.map((dat) => dat.saldo))
+        fecha_fin: item?.contratos
+          ?.map((data) => data?.fecha_fin?.toLocaleString().slice(0, 10))
           .toString(),
+        contrato: item?.contratos[item.contratos.length - 1],
+        volquete: item?.contratos[item.contratos.length - 1]?.volquete,
+        teletran: parseInt(
+          item?.contratos[item.contratos.length - 1]?.teletrans.map(
+            (item) => item?.teletrans
+          )
+        ),
+        total: parseInt(
+          item?.contratos[item.contratos.length - 1]?.teletrans.map(
+            (item) => item?.total
+          )
+        ),
+        saldo: parseInt(
+          item?.contratos[item.contratos.length - 1]?.teletrans.map(
+            (item) => item?.saldo
+          )
+        ),
+
+        estado: item?.contratos[item.contratos.length - 1]?.teletrans,
       };
     });
 
@@ -145,8 +152,10 @@ const getPlanilla = async (req, res, next) => {
           aprobado: item?.evaluacions?.map((data) => data?.aprobado).toString(),
         },
         contrato: item?.evaluacions
-          .map((data) =>
-            data?.contrato_evaluacions?.map((dat) => dat?.contrato)
+          .map(
+            (data) =>
+              data?.contrato_evaluacions[data.contrato_evaluacions.length - 1]
+                ?.contrato
           )
           .flat(),
         // teletrans: item.evaluacions
@@ -171,22 +180,31 @@ const getPlanilla = async (req, res, next) => {
         asistencia: item?.trabajador?.asistencia,
         asociacion: item?.trabajador?.asociacion_id,
         deshabilitado: item?.trabajador?.deshabilitado,
-        fecha_inicio: item?.contrato[
-          item.contrato.length - 1
-        ]?.fecha_inicio.toLocaleString("es-MX", { timeZone: "UTC" }),
-        fecha_fin: item?.contrato[
-          item.contrato.length - 1
-        ]?.fecha_fin.toLocaleString("es-MX", { timeZone: "UTC" }),
+        evaluacion_id: item?.evaluaciones?.id,
+        fecha_inicio: item?.contrato[item.contrato.length - 1]?.fecha_inicio
+          .toLocaleString()
+          .slice(0, 10),
+        fecha_fin: item?.contrato[item.contrato.length - 1]?.fecha_fin
+          .toLocaleString()
+          .slice(0, 10),
         contrato: item?.contrato[item.contrato.length - 1],
-        volquete: item?.contrato[item.contrato.length - 1]?.volquete,
-        teletran: item?.contrato[item.contrato.length - 1]?.teletrans
-          .map((data) => data?.teletrans)
-          .toString(),
-        total: item?.contrato?.teletrans,
-        saldo: item?.contrato[item.contrato.length - 1]?.teletrans
-          .map((data) => data.saldo[data.saldo.length - 1])
-          .slice(-1)
-          .toString(),
+        volquete: parseInt(item?.contrato[item.contrato.length - 1]?.volquete),
+        teletran: parseInt(
+          item?.contrato[item.contrato.length - 1]?.teletrans.map(
+            (data) => data?.teletrans
+          )
+        ),
+        total: parseInt(
+          item?.contrato[item.contrato.length - 1]?.teletrans.map(
+            (item) => item?.total
+          )
+        ),
+        saldo: parseInt(
+          item?.contrato[item.contrato.length - 1]?.teletrans.map(
+            (item) => item?.saldo
+          )
+        ),
+
         estado: item?.contrato[item.contrato.length - 1]?.estado,
       };
     });
@@ -199,8 +217,8 @@ const getPlanilla = async (req, res, next) => {
         item?.contrato?.finalizado === false
     );
 
-    const prueba = mapAsociacion.concat(filterTrabajador);
-    res.status(200).json({ data: prueba });
+    const final = mapAsociacion.concat(filterTrabajador);
+    res.status(200).json({ data: final });
     next();
   } catch (error) {
     console.log(error);
@@ -264,24 +282,45 @@ const getTareoAsociacion = async (req, res, next) => {
       ],
     });
 
-    const finalJson = getAsociacionTareo.map((item) => {
-      return {
-        dni: item.dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: item.fecha_nacimiento,
-        telefono: item.telefono,
-        apellido_materno: item.apellido_materno,
-        apellido_paterno: item.apellido_paterno,
-        nombre: item.nombre,
-        email: item.email,
-        trabajador_asistencia: item.trabajador_asistencia,
-        fechas: item.trabajador_asistencia.map((data) => {
-          return { dia: data.asistencium.fecha };
-        }),
-      };
-    });
+    const getAsistencia = await asistencia.findAll();
 
-    res.status(200).json({ data: finalJson });
+    let fechas = [];
+
+    const formatFechas = getAsociacionTareo
+      .map((item) => {
+        return {
+          fecha: item.trabajador_asistencia
+            .map((data) => {
+              if (!fechas.includes(data.asistencium.fecha)) {
+                fechas.push(data.asistencium.fecha);
+              }
+              return fechas.shift();
+            })
+            .sort(function (a, b) {
+              return a > b ? 1 : a < b ? -1 : 0;
+            }),
+        };
+      })
+      .shift();
+
+      
+      const finalJson = getAsociacionTareo.map((item) => {
+        return {
+          dni: item.dni,
+          codigo_trabajador: item.codigo_trabajador,
+          fecha_nacimiento: item.fecha_nacimiento,
+          telefono: item.telefono,
+          apellido_materno: item.apellido_materno,
+          apellido_paterno: item.apellido_paterno,
+          nombre: item.nombre,
+          email: item.email,
+          trabajador_asistencia: item.trabajador_asistencia,
+        };
+      });
+      
+      const concat = finalJson.concat(formatFechas)
+      console.log(concat);
+    res.status(200).json({ data: concat });
     next();
   } catch (error) {
     console.log(error);
@@ -358,13 +397,12 @@ const juntarTeletrans = async (req, res, next) => {
       .flat();
 
     const filterTrabajador = filter.filter(
-      (item) => item?.contrato?.length > 0 
+      (item) => item?.contrato?.length > 0
     );
 
     const filterTeletrans = filterTrabajador.filter(
       (item) => parseInt(item.saldo) % 4 !== 0
     );
-
 
     res.status(200).json({ data: filterTeletrans });
     next();

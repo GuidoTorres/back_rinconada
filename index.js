@@ -17,6 +17,12 @@ const planillaRouter = require("./src/routes/planilla");
 const asistenciaRouter = require("./src/routes/asistencia");
 const socioRouter = require("./src/routes/socio");
 const pagoRouter = require("./src/routes/pagos");
+const proveedorRouter = require("./src/routes/proveedor");
+const sucursalRouter = require("./src/routes/sucursal");
+const saldoRouter = require("./src/routes/saldo");
+const finanzaRouter = require("./src/routes/ingresoEgreso");
+
+
 
 const app = express();
 
@@ -41,6 +47,12 @@ app.use("/api/v1/planilla", planillaRouter);
 app.use("/api/v1/asistencia", asistenciaRouter);
 app.use("/api/v1/socio", socioRouter);
 app.use("/api/v1/pago", pagoRouter);
+app.use("/api/v1/proveedor", proveedorRouter);
+app.use("/api/v1/sucursal", sucursalRouter);
+app.use("/api/v1/saldo", saldoRouter);
+app.use("/api/v1/finanzas", finanzaRouter);
+
+
 
 app.listen(PORT, () => {
   console.log("server funcionando en puerto", PORT);

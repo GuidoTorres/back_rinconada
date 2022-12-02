@@ -125,6 +125,8 @@ const getTrabajador = async (req, res, next) => {
   }
 };
 
+
+
 const getTrabajadorById = async (req, res, next) => {
   let id = req.params.id;
   try {
