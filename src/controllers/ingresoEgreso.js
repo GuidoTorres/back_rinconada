@@ -623,7 +623,7 @@ const convertJsonToExcel = async (req, res, next) => {
           item.area,
           item.encargado,
           item.movimiento,
-          item.area,
+          "Tesoreria",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
