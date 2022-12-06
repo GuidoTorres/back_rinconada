@@ -331,10 +331,10 @@ const deleteIngresoEgreso = async (req, res, next) => {
       newSaldoIngreso = {
         ingresos:
           parseInt(getSaldo[getSaldo.length - 1]?.ingresos) -
-          parseInt(getSaldo[getSaldo.length - 1]?.ingresos),
+          parseInt(getSaldo[getSaldo.length - 1]?.monto),
         saldo_final:
           parseInt(getSaldo[getSaldo.length - 1]?.saldo_final) -
-          parseInt(getSaldo[getSaldo.length - 1]?.ingresos),
+          parseInt(getSaldo[getSaldo.length - 1]?.monto),
       };
       let destroy = await ingresos_egresos.destroy({ where: { id: id } });
       const updateSaldo = await saldo.update(newSaldoIngreso, {
@@ -352,11 +352,11 @@ const deleteIngresoEgreso = async (req, res, next) => {
     if (movimiento === "Egreso") {
       newSaldoEgreso = {
         egresos:
-          parseInt(getSaldo[getSaldo.length - 1]?.egresos) -
-          parseInt(getSaldo[getSaldo.length - 1]?.egresos),
+          parseInt(getSaldo[getSaldo.length - 1]?.egresos) +
+          parseInt(getSaldo[getSaldo.length - 1]?.monto),
         saldo_final:
           parseInt(getSaldo[getSaldo.length - 1]?.saldo_final) +
-          parseInt(getSaldo[getSaldo.length - 1]?.egresos),
+          parseInt(getSaldo[getSaldo.length - 1]?.monto),
       };
 
       let destroy = await ingresos_egresos.destroy({ where: { id: id } });
@@ -493,12 +493,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -511,12 +512,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -529,12 +531,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -546,12 +549,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -564,12 +568,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -582,12 +587,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -600,12 +606,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
-          item.movimiento,
           item.area,
+          item.movimiento,
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -618,12 +625,13 @@ const convertJsonToExcel = async (req, res, next) => {
         return [
           item.fecha,
           item.comprobante,
+          item.nro_comprobante,
           item.proveedor,
           item.descripcion,
           item.area,
-          item.encargado,
+          item.area,
           item.movimiento,
-          "Tesoreria",
+          "Tesorería",
           item.ingresos ? item.monto : "",
           item.egresos ? item.monto : "",
           item.saldo_final,
@@ -633,6 +641,7 @@ const convertJsonToExcel = async (req, res, next) => {
     const workSheetColumnsName = [
       "FECHA",
       "COMPROBANTE",
+      "NÚMERO",
       "PROVEEDOR",
       "CONCEPTO",
       "CAJA",

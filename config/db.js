@@ -499,7 +499,8 @@ const ingresos_egresos = sequelize.define(
     egresos: DataTypes.STRING,
     saldo_final: DataTypes.STRING,
     dni: DataTypes.STRING,
-    sucursal_transferencia: DataTypes.STRING
+    sucursal_transferencia: DataTypes.STRING,
+    nro_comprobante: DataTypes.STRING
   },
   {
     tableName: "ingresos_egresos",
