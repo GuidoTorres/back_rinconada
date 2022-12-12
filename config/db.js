@@ -3,18 +3,18 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "heroku_30cfe8f0814e57f",
-  username: "bcbf9d2c2227ee",
-  password: "011e52da",
-  host: "us-cdbr-east-06.cleardb.net",
-  dialect: "mysql",
-  port: 3306,
-  // database: "rinconada",
-  // username: "root",
-  // password: "Tupapi00",
-  // host: "localhost",
+  // database: "heroku_30cfe8f0814e57f",
+  // username: "bcbf9d2c2227ee",
+  // password: "011e52da",
+  // host: "us-cdbr-east-06.cleardb.net",
   // dialect: "mysql",
   // port: 3306,
+  database: "heroku_30cfe8f0814e57f",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
+  dialect: "mysql",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
 });
 
@@ -89,6 +89,7 @@ const trabajador = sequelize.define(
     asociacion_id: DataTypes.INTEGER,
     deshabilitado: DataTypes.BOOLEAN,
     foto: DataTypes.STRING,
+    eliminar: DataTypes.BOOLEAN
   },
   {
     tableName: "trabajador",
@@ -170,6 +171,7 @@ const evaluacion = sequelize.define(
     recursos_humanos: DataTypes.STRING,
     recursos_humanos_observacion: DataTypes.STRING,
     finalizado: DataTypes.BOOLEAN,
+    eliminar: DataTypes.BOOLEAN
   },
   {
     tableName: "evaluacion",
@@ -206,6 +208,7 @@ const contrato = sequelize.define(
     teletran: DataTypes.STRING,
     suspendido: DataTypes.BOOLEAN,
     finalizado: DataTypes.BOOLEAN,
+    eliminar: DataTypes.BOOLEAN
   },
   {
     tableName: "contrato",
@@ -529,6 +532,53 @@ const saldo = sequelize.define(
     timestamp: false,
   }
 );
+
+const almacen = sequelize.define(
+  "almacen",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    nombre: DataTypes.STRING,
+    codigo: DataTypes.STRING,
+    descripcion: DataTypes.STRING,
+  },
+  {
+    tableName: "almacen",
+    timestamp: false,
+  }
+);
+
+const producto = sequelize.define(
+  "producto",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    codigo: DataTypes.STRING,
+    codigo_interno: DataTypes.STRING,
+    codigo_barras: DataTypes.STRING,
+    descripcion: DataTypes.STRING,
+    categoria: DataTypes.STRING,
+    img: DataTypes.STRING,
+    almacen_id: DataTypes.INTEGER,
+    nombre: DataTypes.STRING,
+    stock: DataTypes.STRING
+  },
+  {
+    tableName: "producto",
+    timestamp: false,
+  }
+);
+
 gerencia.hasMany(area, {
   foreignKey: "gerencia_id",
   onDelete: "CASCADE",
@@ -676,6 +726,9 @@ ingresos_egresos.belongsTo(sucursal, { foreignKey: "sucursal_id" });
 sucursal.hasMany(saldo, { foreignKey: "sucursal_id" });
 saldo.belongsTo(sucursal, { foreignKey: "sucursal_id" });
 
+almacen.hasMany(producto, {foreignKey:"almacen_id"})
+producto.belongsTo(almacen, {foreignKey:"almacen_id"})
+
 module.exports = {
   trabajador,
   campamento,
@@ -698,5 +751,7 @@ module.exports = {
   proveedor,
   sucursal,
   ingresos_egresos,
-  saldo
+  saldo,
+  almacen,
+  producto
 };

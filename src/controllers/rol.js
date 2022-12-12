@@ -58,13 +58,12 @@ const postRol = async (req, res, next) => {
   try {
     const createRol = await rolPuesto.create(info);
     console.log(createRol);
-    res.status(200).json({ data: createRol });
+    res.status(200).json({ msg: "Rol creado con éxito!", status:200 });
 
     next();
   } catch (error) {
-    console.log(error);
 
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo crear", status:500 });
   }
 };
 
@@ -73,10 +72,10 @@ const updateRol = async (req, res, next) => {
 
   try {
     let upRol = await rolPuesto.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Rol actualizado con exito" });
+    res.status(200).json({ msg: "Rol actualizado con éxito!", status:200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo actualizar.", status:500 });
   }
 };
 
@@ -84,10 +83,10 @@ const deleteRol = async (req, res, next) => {
   let id = req.params.id;
   try {
     let delRol = await rolPuesto.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Rol eliminado con exito" });
+    res.status(200).json({ msg: "Rol eliminado con éxito!", status:200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo eliminar.", status:500 });
   }
 };
 

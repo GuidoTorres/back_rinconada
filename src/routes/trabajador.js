@@ -10,4 +10,5 @@ router.post("/bulk",  multer(),trabajador.postMultipleTrabajador);
 router.post("/",  images.uploadFile(),trabajador.postTrabajador);
 router.put("/:id", images.uploadFile(),trabajador.updateTrabajador);
 router.delete("/:id", trabajador.deleteTrabajador);
+router.put("/softdelete/:id", trabajador.softDeleteTrabajador);
 module.exports = router;

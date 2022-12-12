@@ -61,7 +61,7 @@ const deleteEmpresa = async (req, res, next) => {
   let id = req.params.id;
   try {
     let camp = await empresa.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Empresa eliminado con exito" });
+    res.status(200).json({ msg: "Empresa eliminada con exito" });
     next();
   } catch (error) {
     res.status(500).json(error);

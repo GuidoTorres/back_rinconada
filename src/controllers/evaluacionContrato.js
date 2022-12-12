@@ -14,6 +14,7 @@ const getEvaluacionContrato = async (req, res, next) => {
         { model: contrato, include: [{ model: campamento }] },
       ],
     });
+    console.log("getEvaluacionContrato");
     res.status(200).json({ data: get });
     next();
   } catch (error) {
@@ -29,6 +30,8 @@ const getContratoById = async (req, res, next) => {
     const get = await contratoEvaluacion.findAll({
       include: [{ model: evaluacion, where: { id: id } }],
     });
+    console.log("getContratoById");
+
     res.status(200).json({ data: get });
     next();
   } catch (error) {
@@ -45,6 +48,9 @@ const getContratoEvaluacionById = async (req, res, next) => {
         { model: contrato, include: [{ model: campamento }] },
       ],
     });
+
+    console.log("getEvaluacionContratoByID");
+
     res.status(200).json({ data: get });
     next();
   } catch (error) {

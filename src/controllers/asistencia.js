@@ -42,6 +42,7 @@ const getExcelAsistencia = async (req, res, next) => {
   try {
     const workbook = XLSX.readFile("./upload/asistencia.xlsx");
     const workbookSheets = workbook.SheetNames;
+    console.log(workbookSheets);
     const sheet = workbookSheets[3];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
 

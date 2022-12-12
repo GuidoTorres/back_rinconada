@@ -14,7 +14,13 @@ const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
   try {
     const get = await trabajador.findAll({
-      where: { asociacion_id: { [Op.is]: null } },
+      where: {
+        [Op.and]: [
+          { asociacion_id: { [Op.is]: null } },
+          { deshabilitado: { [Op.not]: true } },
+          { eliminar: { [Op.not]: true } },
+        ],
+      },
       include: [
         {
           model: evaluacion,
@@ -125,8 +131,6 @@ const getTrabajador = async (req, res, next) => {
   }
 };
 
-
-
 const getTrabajadorById = async (req, res, next) => {
   let id = req.params.id;
   try {
@@ -186,17 +190,33 @@ const postTrabajador = async (req, res, next) => {
       raw: true,
     });
     const filterRepeated = getTrabajador.filter((item) => item.dni == info.dni);
-    if (filterRepeated.length > 0) {
+    const filterEliminado = getTrabajador.filter(
+      (item) => item.dni == info.dni && item.eliminar === 1
+    );
+
+    if (filterEliminado.length > 0) {
+      let actualizar = {
+        eliminar: false,
+      };
+      const nuevoTrabajador = await trabajador.update(actualizar, {
+        where: { dni: info.dni },
+      });
+      res
+        .status(200)
+        .json({ msg: "Trabajador creado con exito!", status: 200 });
+      next();
+    } else if (filterRepeated.length > 0) {
       res
         .status(200)
         .json({ msg: "El trabajador ya esta registrado.", status: 403 });
+      next();
     } else {
       const nuevoTrabajador = await trabajador.create(info);
       res
         .status(200)
         .json({ msg: "Trabajador creado con exito!", status: 200 });
+      next();
     }
-    next();
   } catch (error) {
     console.log(error);
     res
@@ -220,7 +240,6 @@ const postMultipleTrabajador = async (req, res, next) => {
           {}
         )
       );
-
     const obj = result.map((item) => {
       return {
         dni: parseInt(item.__EMPTY),
@@ -254,6 +273,7 @@ const postMultipleTrabajador = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo registrar a los trabajadores", status: 500 });
@@ -339,12 +359,14 @@ const deleteTrabajador = async (req, res, next) => {
 const softDeleteTrabajador = async (req, res, next) => {
   let id = req.params.id;
   try {
-    let response = await trabajador.destroy({ where: { id: id } });
+    let response = await trabajador.update(req.body, { where: { dni: id } });
+    console.log(id);
     res
       .status(200)
       .json({ msg: "Trabajador eliminado con éxito", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: error, error: "No se pudo eliminar al trabajador" });
@@ -358,4 +380,5 @@ module.exports = {
   deleteTrabajador,
   getTrabajadorById,
   postMultipleTrabajador,
+  softDeleteTrabajador,
 };

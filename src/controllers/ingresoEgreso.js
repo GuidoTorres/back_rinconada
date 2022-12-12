@@ -66,11 +66,11 @@ const postIngresoEgreso = async (req, res, next) => {
         egresos:
           getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto),
         saldo_final:
-        getSaldo[getSaldo.length - 1]?.saldo_final === 0
-        ? getSaldo[getSaldo.length - 1]?.saldo_inicial -
-          parseInt(req.body.monto)
-        : getSaldo[getSaldo.length - 1]?.saldo_final -
-          parseInt(req.body.monto),
+          getSaldo[getSaldo.length - 1]?.saldo_final === 0
+            ? getSaldo[getSaldo.length - 1]?.saldo_inicial -
+              parseInt(req.body.monto)
+            : getSaldo[getSaldo.length - 1]?.saldo_final -
+              parseInt(req.body.monto),
       };
 
       let objIngreso = {
@@ -94,11 +94,11 @@ const postIngresoEgreso = async (req, res, next) => {
           parseInt(req.body.monto),
         egresos: "",
         saldo_final:
-        getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final === 0
-        ? getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial +
-          parseInt(req.body.monto)
-        : getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final +
-          parseInt(req.body.monto),
+          getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final === 0
+            ? getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial +
+              parseInt(req.body.monto)
+            : getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final +
+              parseInt(req.body.monto),
       };
       let newSaldoEgreso = {
         saldo_inicial: getSaldo[getSaldo.length - 1]?.saldo_inicial,
@@ -325,16 +325,15 @@ const deleteIngresoEgreso = async (req, res, next) => {
     let getSaldo = await saldo.findAll({
       where: { sucursal_id: getIngresos[getIngresos.length - 1]?.sucursal_id },
     });
-
     let movimiento = getIngresos[getIngresos.length - 1]?.movimiento;
     if (movimiento === "Ingreso") {
       newSaldoIngreso = {
         ingresos:
           parseInt(getSaldo[getSaldo.length - 1]?.ingresos) -
-          parseInt(getSaldo[getSaldo.length - 1]?.monto),
+          parseInt(getIngresos[getIngresos.length - 1]?.monto),
         saldo_final:
           parseInt(getSaldo[getSaldo.length - 1]?.saldo_final) -
-          parseInt(getSaldo[getSaldo.length - 1]?.monto),
+          parseInt(getIngresos[getIngresos.length - 1]?.monto),
       };
       let destroy = await ingresos_egresos.destroy({ where: { id: id } });
       const updateSaldo = await saldo.update(newSaldoIngreso, {
@@ -352,14 +351,47 @@ const deleteIngresoEgreso = async (req, res, next) => {
     if (movimiento === "Egreso") {
       newSaldoEgreso = {
         egresos:
-          parseInt(getSaldo[getSaldo.length - 1]?.egresos) +
-          parseInt(getSaldo[getSaldo.length - 1]?.monto),
+          parseInt(getSaldo[getSaldo.length - 1]?.egresos) -
+          parseInt(getIngresos[getIngresos.length - 1]?.monto),
         saldo_final:
           parseInt(getSaldo[getSaldo.length - 1]?.saldo_final) +
-          parseInt(getSaldo[getSaldo.length - 1]?.monto),
+          parseInt(getIngresos[getIngresos.length - 1]?.monto),
+      };
+      let destroy = await ingresos_egresos.destroy({ where: { id: id } });
+      const updateSaldo = await saldo.update(newSaldoEgreso, {
+        where: {
+          sucursal_id: getIngresos[getIngresos.length - 1]?.sucursal_id,
+        },
+      });
+      res.status(200).json({
+        msg: "Movimiento eliminado con éxito!",
+        status: 200,
+      });
+      next();
+    }
+
+    if (
+      movimiento === "Egreso" &&
+      getIngresos[getIngresos.length - 1]?.sucursal_transferencia
+    ) {
+      newSaldoEgreso = {
+        egresos:
+          parseInt(getSaldo[getSaldo.length - 1]?.egresos) +
+          parseInt(getIngresos[getIngresos.length - 1]?.monto),
+
+        saldo_final:
+          parseInt(getSaldo[getSaldo.length - 1]?.saldo_final) +
+          parseInt(getIngresos[getIngresos.length - 1]?.monto),
       };
 
       let destroy = await ingresos_egresos.destroy({ where: { id: id } });
+      let destroyTranferencia = await ingresos_egresos.destroy({
+        where: {
+          sucursal_transferencia:
+            getIngresos[getIngresos.length - 1]?.sucursal_transferencia,
+        },
+      });
+
       const updateSaldo = await saldo.update(newSaldoEgreso, {
         where: {
           sucursal_id: getIngresos[getIngresos.length - 1]?.sucursal_id,

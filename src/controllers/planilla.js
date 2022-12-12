@@ -16,7 +16,12 @@ const { Op } = require("sequelize");
 const getPlanilla = async (req, res, next) => {
   try {
     const traba = await trabajador.findAll({
-      where: { asociacion_id: { [Op.is]: null } },
+      where: {
+        [Op.and]: [
+          { asociacion_id: { [Op.is]: null } },
+          { deshabilitado: { [Op.not]: true } },
+        ],
+      },
       include: [
         {
           model: trabajadorAsistencia,
@@ -303,23 +308,22 @@ const getTareoAsociacion = async (req, res, next) => {
       })
       .shift();
 
-      
-      const finalJson = getAsociacionTareo.map((item) => {
-        return {
-          dni: item.dni,
-          codigo_trabajador: item.codigo_trabajador,
-          fecha_nacimiento: item.fecha_nacimiento,
-          telefono: item.telefono,
-          apellido_materno: item.apellido_materno,
-          apellido_paterno: item.apellido_paterno,
-          nombre: item.nombre,
-          email: item.email,
-          trabajador_asistencia: item.trabajador_asistencia,
-        };
-      });
-      
-      const concat = finalJson.concat(formatFechas)
-      console.log(concat);
+    const finalJson = getAsociacionTareo.map((item) => {
+      return {
+        dni: item.dni,
+        codigo_trabajador: item.codigo_trabajador,
+        fecha_nacimiento: item.fecha_nacimiento,
+        telefono: item.telefono,
+        apellido_materno: item.apellido_materno,
+        apellido_paterno: item.apellido_paterno,
+        nombre: item.nombre,
+        email: item.email,
+        trabajador_asistencia: item.trabajador_asistencia,
+      };
+    });
+
+    const concat = finalJson.concat(formatFechas);
+    console.log(concat);
     res.status(200).json({ data: concat });
     next();
   } catch (error) {

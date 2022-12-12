@@ -21,6 +21,8 @@ const proveedorRouter = require("./src/routes/proveedor");
 const sucursalRouter = require("./src/routes/sucursal");
 const saldoRouter = require("./src/routes/saldo");
 const finanzaRouter = require("./src/routes/ingresoEgreso");
+const almacenRouter = require("./src/routes/almacen");
+const productoRouter = require("./src/routes/producto");
 
 
 
@@ -51,6 +53,10 @@ app.use("/api/v1/proveedor", proveedorRouter);
 app.use("/api/v1/sucursal", sucursalRouter);
 app.use("/api/v1/saldo", saldoRouter);
 app.use("/api/v1/finanzas", finanzaRouter);
+app.use("/api/v1/almacen", almacenRouter);
+app.use("/api/v1/producto", productoRouter);
+
+
 
 
 
