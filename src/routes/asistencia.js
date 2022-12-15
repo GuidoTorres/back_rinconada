@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const multer = require("../middleware/multer")
+const multer = require("../middleware/multerAsistencia")
 
 const asistencia = require("../controllers/asistencia");
 

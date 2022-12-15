@@ -3,18 +3,18 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "heroku_30cfe8f0814e57f",
-  username: "bcbf9d2c2227ee",
-  password: "011e52da",
-  host: "us-cdbr-east-06.cleardb.net",
-  dialect: "mysql",
-  port: 3306,
   // database: "heroku_30cfe8f0814e57f",
-  // username: "root",
-  // password: "Tupapi00",
-  // host: "localhost",
+  // username: "bcbf9d2c2227ee",
+  // password: "011e52da",
+  // host: "us-cdbr-east-06.cleardb.net",
   // dialect: "mysql",
   // port: 3306,
+  database: "heroku_30cfe8f0814e57f",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
+  dialect: "mysql",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
 });
 
@@ -579,6 +579,30 @@ const producto = sequelize.define(
   }
 );
 
+const entrada_salida = sequelize.define(
+  "entrada_salida",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    codigo: DataTypes.STRING,
+    motivo: DataTypes.STRING,
+    fecha: DataTypes.STRING,
+    encargado: DataTypes.STRING,
+    codigo_compra: DataTypes.STRING,
+    tipo: DataTypes.STRING,
+    almacen_id: DataTypes.INTEGER,
+  },
+  {
+    tableName: "entrada_salida",
+    timestamp: false,
+  }
+);
+
 gerencia.hasMany(area, {
   foreignKey: "gerencia_id",
   onDelete: "CASCADE",
@@ -729,6 +753,9 @@ saldo.belongsTo(sucursal, { foreignKey: "sucursal_id" });
 almacen.hasMany(producto, {foreignKey:"almacen_id"})
 producto.belongsTo(almacen, {foreignKey:"almacen_id"})
 
+almacen.hasMany(entrada_salida, {foreignKey: "alamcen_id"})
+entrada_salida.belongsTo(almacen, {foreignKey: "almacen_id"})
+
 module.exports = {
   trabajador,
   campamento,
@@ -753,5 +780,6 @@ module.exports = {
   ingresos_egresos,
   saldo,
   almacen,
-  producto
+  producto,
+  entrada_salida
 };

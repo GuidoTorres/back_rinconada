@@ -71,12 +71,16 @@ const getPlanilla = async (req, res, next) => {
         id: item?.id,
         nombre: item?.nombre,
         codigo: item?.codigo,
-        fecha_inicio: item?.contratos
-          ?.map((data) => data?.fecha_inicio?.toLocaleString().slice(0, 10))
-          .toString(),
-        fecha_fin: item?.contratos
-          ?.map((data) => data?.fecha_fin?.toLocaleString().slice(0, 10))
-          .toString(),
+        fecha_inicio: item?.contratos?.map((data) =>
+          data?.fecha_inicio?.toLocaleDateString("en-GB", {
+            timeZone: "UTC",
+          })
+        ),
+        fecha_fin: item?.contratos?.map((data) =>
+          data?.fecha_fin?.toLocaleDateString("en-GB", {
+            timeZone: "UTC",
+          })
+        ),
         contrato: item?.contratos[item.contratos.length - 1],
         volquete: item?.contratos[item.contratos.length - 1]?.volquete,
         teletran: parseInt(
@@ -186,12 +190,16 @@ const getPlanilla = async (req, res, next) => {
         asociacion: item?.trabajador?.asociacion_id,
         deshabilitado: item?.trabajador?.deshabilitado,
         evaluacion_id: item?.evaluaciones?.id,
-        fecha_inicio: item?.contrato[item.contrato.length - 1]?.fecha_inicio
-          .toLocaleString()
-          .slice(0, 10),
-        fecha_fin: item?.contrato[item.contrato.length - 1]?.fecha_fin
-          .toLocaleString()
-          .slice(0, 10),
+        fecha_inicio: item?.contrato[
+          item.contrato.length - 1
+        ]?.fecha_inicio.toLocaleDateString("en-GB", {
+          timeZone: "UTC",
+        }),
+        fecha_fin: item?.contrato[
+          item.contrato.length - 1
+        ]?.fecha_fin.toLocaleDateString("en-GB", {
+          timeZone: "UTC",
+        }),
         contrato: item?.contrato[item.contrato.length - 1],
         volquete: parseInt(item?.contrato[item.contrato.length - 1]?.volquete),
         teletran: parseInt(
@@ -287,27 +295,47 @@ const getTareoAsociacion = async (req, res, next) => {
       ],
     });
 
-    const getAsistencia = await asistencia.findAll();
+    const getContrato = await asociacion.findAll({
+      where: { id: id },
+      include: [
+        {
+          model: contrato,
+          attributes: {
+            exclude: ["contrato_id"],
+          },
+        },
+      ],
+    });
+
+    const fecha_inicio = getContrato
+      .map((item) => item.contratos[item.contratos.length - 1].fecha_inicio)
+      .flat()
+      .toLocaleString("sv-SE", {
+        timeZone: "UTC",
+      });
+
+    const fecha_fin = getContrato
+      .map((item) => item.contratos[item.contratos.length - 1].fecha_fin)
+      .flat()
+      .toLocaleString("sv-SE", {
+        timeZone: "UTC",
+      });
+
 
     let fechas = [];
 
-    const formatFechas = getAsociacionTareo
-      .map((item) => {
-        return {
-          fecha: item.trabajador_asistencia
-            .map((data) => {
-              if (!fechas.includes(data.asistencium.fecha)) {
-                fechas.push(data.asistencium.fecha);
-              }
-              return fechas.shift();
-            })
-            .sort(function (a, b) {
-              return a > b ? 1 : a < b ? -1 : 0;
-            }),
-        };
-      })
-      .shift();
+    const formatFechas = getAsociacionTareo.map((item) => {
+      return {
+        fecha: item.trabajador_asistencia.map((data) =>
+          fechas.push(data.asistencium.fecha)
+        ),
+      };
+    });
 
+    const fecha_final = [...new Set(fechas)];
+    const fecha1 = {
+      fecha: fecha_final,
+    };
     const finalJson = getAsociacionTareo.map((item) => {
       return {
         dni: item.dni,
@@ -322,8 +350,7 @@ const getTareoAsociacion = async (req, res, next) => {
       };
     });
 
-    const concat = finalJson.concat(formatFechas);
-    console.log(concat);
+    const concat = finalJson.concat(fecha1);
     res.status(200).json({ data: concat });
     next();
   } catch (error) {

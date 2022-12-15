@@ -5,7 +5,7 @@ const {
   evaluacion,
   contratoEvaluacion,
 } = require("../../config/db");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const { cloudinary } = require("../../config/cloudinary");
 const XLSX = require("xlsx");
 const sharp = require("sharp");
@@ -21,12 +21,14 @@ const getTrabajador = async (req, res, next) => {
           { eliminar: { [Op.not]: true } },
         ],
       },
+      order: [[Sequelize.literal("codigo_trabajador"), "ASC"]],
       include: [
         {
           model: evaluacion,
           include: [
             {
               model: contratoEvaluacion,
+
               include: [
                 {
                   model: contrato,
@@ -257,11 +259,17 @@ const postMultipleTrabajador = async (req, res, next) => {
 
     const getTrabajador = await trabajador.findAll();
     const filtered = obj.filter(
-      ({ dni, codigo_trabajador }) =>
-        !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
+      ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
     );
 
-    const dnis = filtered.map((item) => item.dni);
+    const filteredCod = obj.filter(
+      ({ codigo_trabajador }) =>
+        !getTrabajador.some((x) => x.codigo_trabajador == codigo_trabajador)
+    );
+
+    const dnis = filteredCod.map((item) => item.dni);
+    const cod_trabajador = filtered.map((item) => item.codigo_trabajador);
+
     const filterDni = filtered.filter(
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
