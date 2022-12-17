@@ -75,12 +75,12 @@ const getPlanilla = async (req, res, next) => {
           data?.fecha_inicio?.toLocaleDateString("en-GB", {
             timeZone: "UTC",
           })
-        ),
+        ).toString(),
         fecha_fin: item?.contratos?.map((data) =>
           data?.fecha_fin?.toLocaleDateString("en-GB", {
             timeZone: "UTC",
           })
-        ),
+        ).toString(),
         contrato: item?.contratos[item.contratos.length - 1],
         volquete: item?.contratos[item.contratos.length - 1]?.volquete,
         teletran: parseInt(
@@ -423,6 +423,8 @@ const juntarTeletrans = async (req, res, next) => {
           contrato:
             item?.evaluacions[item.evaluacions.length - 1]
               ?.contrato_evaluacions,
+          contrato_id:item?.evaluacions[item.evaluacions.length - 1]
+          ?.contrato_evaluacions.map(item => item.contrato_id).toString()
         };
       })
       .flat();

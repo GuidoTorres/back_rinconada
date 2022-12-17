@@ -11,7 +11,6 @@ const postPago = async (req, res, next) => {
     lugar: req.body[req.body.length - 1]?.lugar,
     contrato_id: parseInt(req.body[req.body.length - 1]?.contrato_id),
   };
-  console.log(req.body[req.body.length - 1]?.evaluacion_id);
   let estadoContrato = {
     finalizado: true,
   };
@@ -38,10 +37,10 @@ const postPago = async (req, res, next) => {
         where: { id: req.body[req.body.length - 1]?.evaluacion_id },
       });
     } else {
-      const create = await pago.create(info);
-      const updateTeletrans = await teletrans.update(newSaldo, {
-        where: { contrato_id: info.contrato_id },
-      });
+      // const create = await pago.create(info);
+      // const updateTeletrans = await teletrans.update(newSaldo, {
+      //   where: { contrato_id: info.contrato_id },
+      // });
     }
     res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
     next();
@@ -52,8 +51,57 @@ const postPago = async (req, res, next) => {
 };
 
 const postMultiplePagos = async (req, res, next) => {
+  let info = {
+    conductor: req.body.conductor,
+    dni: req.body.dni,
+    telefono: req.body.telefono,
+    placa: req.body.placa,
+    teletrans: parseInt(req.body.teletrans),
+    lugar: req.body.lugar,
+  };
+  let estadoContrato = {
+    finalizado: true,
+  };
   try {
-    const create = await pago.bulkCreate(req.body);
+    const saldo = await teletrans.findAll({
+      raw: true,
+      where: { contrato_id: req.body.contrato_id },
+    });
+
+    saldoResultado = saldo.map(
+      (item) => {parseInt(item.saldo) - parseInt(info.teletrans)}
+    );
+    dividirTeletrans = parseInt(info.teletrans)/ saldo.length
+    saldoResultado = saldo.map((item) => {
+      return {
+        id: item.id,
+        volquete: item.volquete,
+        total: item.total,
+        saldo: parseInt(item.saldo) - ((parseInt(info.teletrans))/dividirTeletrans),
+
+      };
+    });
+
+    if (saldoResultado === 0) {
+      const create = await pago.create(info);
+      const updateTeletrans = await teletrans.update(saldoResultado, {
+        where: { contrato_id: info.contrato_id },
+      });
+      const updateContrato = await contrato.update(estadoContrato, {
+        where: { id: info.contrato_id },
+      });
+      const updateEvaluacion = await evaluacion.update(estadoContrato, {
+        where: { id: req.body[req.body.length - 1]?.evaluacion_id },
+      });
+    } else {
+      // const create = await pago.create(info);
+
+      const update = saldoResultado.map((item,i) => saldoResultado[i])
+      // const updateTeletrans = await teletrans.update(saldoResultado, {
+      //   where: { contrato_id: info.contrato_id },
+      // });
+      console.log(update);
+    }
     res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
     next();
   } catch (error) {

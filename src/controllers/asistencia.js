@@ -57,22 +57,23 @@ const getExcelAsistencia = async (req, res, next) => {
 
     const fechaActual = new Date();
     const fecha = date.format(fechaActual, "YYYY-MM-DD");
-    const fechaBd = fechaActual.toLocaleDateString("en-GB", {
-      timeZone: "UTC",
-    });
+    const fechaBd = fechaActual.toLocaleDateString("es-PE");
+
+    console.log(fecha);
+    console.log(fechaBd);
 
     //para darle un formato usable a la data del excel
     const jsonFormat = result.slice(3).map((item, i) => {
       return {
         dni: item.Reporte_de_Excepciones,
         nombre: item.__EMPTY,
-        fecha: new Date(item.__EMPTY_2).toLocaleDateString("en-GB", {
-          timeZone: "UTC",
-        }),
+        fecha: new Date(item.__EMPTY_2).toLocaleDateString("es-PE"),
         entrada: item.__EMPTY_3 === undefined ? "" : item.__EMPTY_3,
         salida: item.__EMPTY_4 === undefined ? "" : item.__EMPTY_4,
       };
     });
+
+    console.log(jsonFormat);
 
     //obtengo solo las asistencias del dia actual que se encuentran en el excel
     const asistenciaDiaActual = jsonFormat.filter(
