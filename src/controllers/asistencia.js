@@ -73,10 +73,8 @@ const getExcelAsistencia = async (req, res, next) => {
       };
     });
 
-    console.log(jsonFormat);
-
     //obtengo solo las asistencias del dia actual que se encuentran en el excel
-    const asistenciaDiaActual = jsonFormat.filter(
+    const asistenciaExcelDiaActual = jsonFormat.filter(
       //aqui va la fecha para filtra fecha del excel
       (item) => item.fecha === fechaBd
     );
@@ -117,19 +115,27 @@ const getExcelAsistencia = async (req, res, next) => {
       item.evaluacions.filter((data) => data.contratos.length !== 0)
     );
 
-    const getAsistencias = await trabajadorAsistencia.findAll({
+    const getAsistenciaId = await asistencia.findAll({
+      raw: true,
+      where: { fecha: fechaBd },
+    });
+
+    const idFechaAsistencia = parseInt(getAsistenciaId.map((item) => item.id));
+
+    //para obtener trabajadores que tengan asistencia el dia actual
+    const trabajadorTieneAsistencia = await trabajadorAsistencia.findAll({
       attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-      where: { trabajador_id: filtereDni },
+      where: { trabajador_id: filtereDni, asistencia_id: idFechaAsistencia },
     });
 
     let hora_bd = idAsistencia.map((item) => item.hora_ingreso).toString();
     //json con formato para guardar en la db de todos los trabajadores del excel
-    const final = asistenciaDiaActual.map((item) => {
+    const asistenciasFechaActualExcel = asistenciaExcelDiaActual.map((item) => {
       const tarde =
         new Date(fecha + " " + hora_bd).getTime() -
         new Date(fecha + " " + item.entrada).getTime();
       return {
-        asistencia_id: parseInt(idAsistencia.map((data) => data.id)),
+        asistencia_id: idFechaAsistencia,
         trabajador_id: parseInt(item.dni),
         asistencia: item.entrada ? "Asistio" : "Falto",
         hora_ingreso: item.entrada,
@@ -137,35 +143,29 @@ const getExcelAsistencia = async (req, res, next) => {
       };
     });
 
-    const update = final.filter(
-      (item1) =>
-        !getAsistencias.some(
-          (item2) =>
-            item1.trabajador_id === item2.trabajador_id &&
-            item1.asistencia_id === item2.asistencia_id
-        )
-    );
+    const updateDnis =
+      trabajadorTieneAsistencia.length > 0 &&
+      trabajadorTieneAsistencia.map((item) => item.trabajador_id);
 
-    console.log(update);
-
-    const updateResponse = final.filter((item1) =>
-      getAsistencias.some(
-        (item2) => item1.trabajador_id === item2.trabajador_id
+    const updateAsistencia = asistenciasFechaActualExcel.filter((item1) =>
+      trabajadorTieneAsistencia.some(
+        (item2) => item1.trabajador_id === item2.dni
       )
     );
 
-    const updateDni =
-      updateResponse.length > 0 &&
-      updateResponse.map((item) => item.trabajador_id);
-
     // asistencia de solo trabajadores que existen en la bd si no tienen asistencia(crear)
-    const create = update.filter((item1) =>
+    const update = updateAsistencia.filter((item1) =>
       filterContrato.some((item2) => item1.trabajador_id === item2.dni)
     );
 
-    if (updateResponse.length > 0) {
-      const asistenciaTrabajadores = await trabajadorAsistencia.update(create, {
-        where: { trabajador_id: updateDni },
+    // asistencia de solo trabajadores que existen en la bd si no tienen asistencia(crear)
+    const create = asistenciasFechaActualExcel.filter((item1) =>
+      filterContrato.some((item2) => item1.trabajador_id === item2.dni)
+    );
+
+    if (update.length > 0) {
+      const asistenciaTrabajadores = await trabajadorAsistencia.update(update, {
+        where: { trabajador_id: updateDnis },
       });
     }
 
@@ -178,6 +178,7 @@ const getExcelAsistencia = async (req, res, next) => {
     res.status(200).json({
       msg: "Se registraron las asistencias exitosamente!",
       status: 200,
+
     });
 
     next();

@@ -1,4 +1,9 @@
-const { almacen, producto } = require("../../config/db");
+const {
+  almacen,
+  producto,
+  transferencia,
+  almacen_transferencia,
+} = require("../../config/db");
 
 const getAlmacen = async (req, res, next) => {
   try {
@@ -74,11 +79,80 @@ const getProductsByAlmacen = async (req, res, next) => {
   }
 };
 
+const almacenTrasferencia = async (req, res, next) => {
+  let transferenciaFormat = {
+    fecha: req.body[0].fecha,
+  };
+
+
+  let updateProductoOrigen = req.body.map((item) => {
+    return {
+      id: item.producto_origen,
+      stock:
+        item.stock_origen !== null
+          ? parseInt(item.stock_origen) - parseInt(item.cantidad)
+          : parseInt(item.cantidad),
+    };
+  });
+  let updateProductoDestino = req.body.map((item) => {
+    return {
+      id: item.producto_destino,
+      stock:
+        item.stock_destino !== null
+          ? parseInt(item.stock_destino) + parseInt(item.cantidad)
+          : parseInt(item.cantidad),
+    };
+  });
+
+  try {
+    const postTransferencia = await transferencia.create(transferenciaFormat);
+
+    let transferenciaAlmacen = req.body.map((item) => {
+      return {
+        producto_id: item.producto_origen,
+        almacen_origen: item.almacen_origen,
+        almacen_destino: item.almacen_destino,
+        cantidad: item.cantidad,
+        transferencia_id: postTransferencia.id,
+      };
+    });
+
+    const postTransferenciaAlmacen = await almacen_transferencia.bulkCreate(
+      transferenciaAlmacen
+    );
+
+    let concat = updateProductoOrigen.concat(updateProductoDestino);
+
+    const updateMultiple = await Promise.all(
+      concat.map(
+        async (item) =>
+          await producto.update(
+            { stock: item.stock },
+            {
+              where: { id: item.id },
+            }
+          )
+      )
+    );
+    res
+    .status(200)
+    .json({ msg: "Transferencia realizada con éxito!", status: 200 });
+  next();
+
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo realizar la transferencia.", status: 500 });
+  }
+};
+
 module.exports = {
   getAlmacen,
   getAlmacenById,
   postAlmacen,
   updateAlmacen,
   deleteAlmacen,
-  getProductsByAlmacen
+  getProductsByAlmacen,
+  almacenTrasferencia,
 };

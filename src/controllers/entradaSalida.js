@@ -1,8 +1,22 @@
-const { entrada_salida } = require("../../config/db");
+const {
+  entrada_salida,
+  producto,
+  producto_entrada_salida,
+} = require("../../config/db");
+
+const getEntradaSalida = async (req, res, next) => {
+  try {
+    const all = await entrada_salida.findAll();
+    res.status(200).json({ data: all });
+    next();
+  } catch (error) {
+    res.status(500).json();
+  }
+};
 
 const getEntradaByAlmacen = async (req, res, next) => {
   let id = req.params.id;
-  let tipo = req.params.tipo;
+  let tipo = req.query.tipo;
 
   try {
     const get = await entrada_salida.findAll({
@@ -10,33 +24,76 @@ const getEntradaByAlmacen = async (req, res, next) => {
         tipo: tipo,
         almacen_id: id,
       },
+      attributes: { exclude: ["almacen_id", "alamcen_id", "producto_id"] },
+      include: [{ model: producto_entrada_salida, include:[{model: producto}] }],
     });
+    console.log(get);
     res.status(200).json({ data: get });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };
 
 const postEntradaSalida = async (req, res, next) => {
-  let info = {
-    codigo: req.body.codigo,
-    motivo: req.body.motivo,
-    fecha: req.body.fecha,
-    encargado: req.body.encargado,
-    codigo_compra: req.body.codigo_compra,
-    tipo: req.body.tipo,
-    almacen_id: req.body.almacen_id,
-  };
+  let data = req.body.map((item) => {
+    return {
+      codigo: item.codigo,
+      motivo: item.motivo,
+      fecha: item.fecha,
+      encargado: item.encargado,
+      codigo_compra: item.codigo_compra,
+      tipo: item.tipo,
+      almacen_id: item.almacen_id,
+      boleta: item.boleta,
+      codigo_requerimiento: item.codigo_requerimiento,
+    };
+  });
+
+  let updateStock = req.body.map((item) => {
+    return {
+      id: item.producto_id,
+      stock: item.cantidad,
+    };
+  });
 
   try {
-    const post = await entrada_salida.create(info);
-    res
-      .status(200)
-      .json({ msg: `${req.body.tipo} creada con éxito!`, status: 200 });
+    const post = await entrada_salida.create(data[data.length - 1]);
+
+    const ProductoEntrada = req.body.map((item) => {
+      return {
+        entrada_salida_id: post.id,
+        producto_id: item.producto_id,
+        categoria: item.categoria,
+        cantidad: item.cantidad,
+      };
+    });
+
+    const updateMultiple = await Promise.all(
+      updateStock.map(
+        async (item) =>
+          await producto.update(
+            { stock: item.stock },
+            {
+              where: { id: item.id },
+            }
+          )
+      )
+    );
+
+    const createProductoEntrada = await producto_entrada_salida.bulkCreate(
+      ProductoEntrada
+    );
+
+    res.status(200).json({
+      msg: `${data[data.length - 1]?.tipo} creada con éxito!`,
+      status: 200,
+    });
 
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: `No se pudo crear la ${req.body.tipo}.`, status: 500 });
@@ -67,6 +124,7 @@ const deleteEntradaSalida = async (req, res, next) => {
 };
 
 module.exports = {
+  getEntradaSalida,
   getEntradaByAlmacen,
   postEntradaSalida,
   updateEntradaSalida,

@@ -25,12 +25,14 @@ const getProductoById = async (req, res, next) => {
 };
 
 const postProducto = async (req, res, next) => {
+  console.log(req.body);
   try {
     const post = await producto.create(req.body);
     res.status(200).json({ msg: "Producto creado con éxito!", status: 200 });
 
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo crear el producto.", status: 500 });
   }
 };

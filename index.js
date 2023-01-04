@@ -23,6 +23,12 @@ const saldoRouter = require("./src/routes/saldo");
 const finanzaRouter = require("./src/routes/ingresoEgreso");
 const almacenRouter = require("./src/routes/almacen");
 const productoRouter = require("./src/routes/producto");
+const entradaRouter = require("./src/routes/entradaSalida");
+const requerimientoRouter = require("./src/routes/requerimiento");
+const unidadRouter = require("./src/routes/unidad")
+const pedidoRouter = require("./src/routes/pedido")
+const transferenciaRouter = require("./src/routes/transferencia")
+
 
 
 
@@ -55,6 +61,14 @@ app.use("/api/v1/saldo", saldoRouter);
 app.use("/api/v1/finanzas", finanzaRouter);
 app.use("/api/v1/almacen", almacenRouter);
 app.use("/api/v1/producto", productoRouter);
+app.use("/api/v1/entrada", entradaRouter);
+app.use("/api/v1/requerimiento", requerimientoRouter);
+app.use("/api/v1/unidad", unidadRouter);
+app.use("/api/v1/pedido", pedidoRouter);
+app.use("/api/v1/transferencia", transferenciaRouter);
+
+
+
 
 
 

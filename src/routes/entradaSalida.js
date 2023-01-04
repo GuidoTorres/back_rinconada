@@ -1,12 +1,12 @@
 const router = require("express").Router();
-const entradaSalida = require("../controllers/entradaSalida")
+const entrada = require("../controllers/entradaSalida")
 
 
+router.get("/", entrada.getEntradaSalida)
 
-router.get("/", entradaSalida.getEntradaByAlmacen)
-router.get("/:id", almacen.getAlmacenById)
-router.post("/", almacen.postAlmacen)
-router.put("/:id", almacen.updateAlmacen)
-router.delete("/:id", almacen.deleteAlmacen)
-router.get("/producto/:id", almacen.getProductsByAlmacen)
+router.get("/:id", entrada.getEntradaByAlmacen)
+// router.get("/:id", rol.getRolById)
+router.post("/", entrada.postEntradaSalida)
+// router.put("/:id", rol.updateRol)
+// router.delete("/:id", rol.deleteRol)
 module.exports = router
