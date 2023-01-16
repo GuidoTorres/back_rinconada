@@ -1,48 +1,81 @@
 const {
   transferencia,
-  almacen_transferencia,
   almacen,
   producto,
+  transferencia_producto,
 } = require("../../config/db");
 
-const getTransferencia = async (req, res, next) => {
+const getTransferenciaRealizada = async (req, res, next) => {
+  let id = req.params.id;
   try {
-    const all = await transferencia.findAll({
+    const get = await transferencia.findAll({
+      where: { almacen_id: id },
       include: [
+        {model:almacen, as:"origen"},{model:almacen, as:"destino"},
         {
-          model: almacen_transferencia,
-          include: [{ model: almacen }, { model: producto }],
+          model: transferencia_producto,
+          include: [
+            { model: producto, attributes: { exclude: ["categoria_id"] } },
+          ],
         },
       ],
     });
 
-    const getAlmacen = await almacen.findAll();
-
-    const formatData = all.map((item) => {
-      return {
-        id: item.id,
-        fecha: item.fecha,
-        transferencia: item.almacen_transferencia.map((data) => {
-          return {
-            cantidad: data.cantidad,
-            almacen_origen: (getAlmacen.filter((item2) =>
-            data.almacen_origen == item2.id ? item2.nombre : ""
-          ).map(dat=> dat.nombre)).toString(),
-            producto: data.producto.nombre,
-            almacen_destino: (getAlmacen.filter((item2) =>
-              data.almacen_destino == item2.id ? item2.nombre : ""
-            ).map(dat=> dat.nombre)).toString(),
-          };
-        }),
-
-        // producto: item.producto.nombre,
-      };
-    });
-    res.status(200).json({ data: formatData });
+    res.status(200).json({ data: get });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };
 
-module.exports = { getTransferencia };
+const getTransferenciaRecibida = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    const get = await transferencia.findAll({
+      where: { almacen_destino: id },
+      include: [
+        {model:almacen, as:"origen"},{model:almacen, as:"destino"},
+        {
+          model: transferencia_producto,
+          include: [
+            { model: producto, attributes: { exclude: ["categoria_id"] } },
+          ],
+        },
+      ],
+    });
+
+    res.status(200).json({ data: get });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
+
+const updateTransferencia = async(req,res,next) => {
+  let id = req.params.id;
+
+  console.log(req.body);
+
+  try {
+
+    const update = await transferencia.update(req.body,{
+      where:{id:id}
+    })
+
+
+    res.status(200).json({msg:"Actualizado con éxito.", status:200})
+    next()
+  } catch (error) {
+    console.log(error);
+    res.status(200).json({msg:"No se pudo actualizar.", status:500})
+
+  }
+
+}
+
+
+
+module.exports = { getTransferenciaRealizada, getTransferenciaRecibida, updateTransferencia };

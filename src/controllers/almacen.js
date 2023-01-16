@@ -3,6 +3,9 @@ const {
   producto,
   transferencia,
   almacen_transferencia,
+  transferencia_producto,
+  unidad,
+  categoria,
 } = require("../../config/db");
 
 const getAlmacen = async (req, res, next) => {
@@ -71,8 +74,34 @@ const getProductsByAlmacen = async (req, res, next) => {
   try {
     let get = await producto.findAll({
       where: { almacen_id: id },
+      attributes: { exclude: ["categoria_id"] },
+      include:[{model:unidad}, {model:categoria}]
     });
-    res.status(200).json({ data: get });
+    const formatData = get.map(item => {
+
+      return{
+
+        id: item.id,
+        codigo: item.codigo,
+        codigo_interno: item.codigo_interno,
+        codigo_barras: item.codigo_barras,
+        descripcion: item.descripcion,
+        foto: item.foto,
+        almacen_id: item.almacen_id,
+        nombre: item.nombre,
+        stock: item.stock,
+        unidad_id: item.unidad_id,
+        precio: item.precio,
+        fecha: item.fecha,
+        observacion: item.observacion,
+        costo_total: item.costo_total,
+        categoria_id: item.categorium.id,
+        categoria: item.categorium.descripcion
+
+      }
+
+    })
+    res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     res.status(500).json(error);
@@ -82,8 +111,13 @@ const getProductsByAlmacen = async (req, res, next) => {
 const almacenTrasferencia = async (req, res, next) => {
   let transferenciaFormat = {
     fecha: req.body[0].fecha,
-  };
+    almacen_id: req.body[0].almacen_origen,
+    almacen_origen: req.body[0].almacen_origen,
+    almacen_destino: req.body[0].almacen_destino,
+    estado_origen: false,
+    estado_destino: false
 
+  };
 
   let updateProductoOrigen = req.body.map((item) => {
     return {
@@ -94,13 +128,14 @@ const almacenTrasferencia = async (req, res, next) => {
           : parseInt(item.cantidad),
     };
   });
+
   let updateProductoDestino = req.body.map((item) => {
     return {
       id: item.producto_destino,
       stock:
-        item.stock_destino !== null
-          ? parseInt(item.stock_destino) + parseInt(item.cantidad)
-          : parseInt(item.cantidad),
+      item.stock_destino !== null
+      ? parseInt(item.stock_destino) + parseInt(item.cantidad)
+      : parseInt(item.cantidad),
     };
   });
 
@@ -110,18 +145,17 @@ const almacenTrasferencia = async (req, res, next) => {
     let transferenciaAlmacen = req.body.map((item) => {
       return {
         producto_id: item.producto_origen,
-        almacen_origen: item.almacen_origen,
-        almacen_destino: item.almacen_destino,
         cantidad: item.cantidad,
         transferencia_id: postTransferencia.id,
       };
     });
 
-    const postTransferenciaAlmacen = await almacen_transferencia.bulkCreate(
+    const postTransferenciaAlmacen = await transferencia_producto.bulkCreate(
       transferenciaAlmacen
     );
 
     let concat = updateProductoOrigen.concat(updateProductoDestino);
+
 
     const updateMultiple = await Promise.all(
       concat.map(
@@ -135,10 +169,9 @@ const almacenTrasferencia = async (req, res, next) => {
       )
     );
     res
-    .status(200)
-    .json({ msg: "Transferencia realizada con éxito!", status: 200 });
-  next();
-
+      .status(200)
+      .json({ msg: "Transferencia realizada con éxito!", status: 200 });
+    next();
   } catch (error) {
     console.log(error);
     res

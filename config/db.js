@@ -567,12 +567,12 @@ const producto = sequelize.define(
     codigo_interno: DataTypes.STRING,
     codigo_barras: DataTypes.STRING,
     descripcion: DataTypes.STRING,
-    categoria: DataTypes.STRING,
-    img: DataTypes.STRING,
+    categoria_id: DataTypes.INTEGER,
+    foto: DataTypes.STRING,
     almacen_id: DataTypes.INTEGER,
     nombre: DataTypes.STRING,
     stock: DataTypes.STRING,
-    unidad: DataTypes.STRING,
+    unidad_id: DataTypes.INTEGER,
     precio: DataTypes.STRING,
     fecha: DataTypes.STRING,
     observacion: DataTypes.STRING,
@@ -624,6 +624,7 @@ const producto_entrada_salida = sequelize.define(
     producto_id: DataTypes.INTEGER,
     categoria: DataTypes.STRING,
     cantidad: DataTypes.STRING,
+    costo: DataTypes.STRING,
   },
   {
     tableName: "producto_entrada_salida",
@@ -649,7 +650,11 @@ const requerimiento = sequelize.define(
     proyecto: DataTypes.STRING,
     codigo_requerimiento: DataTypes.STRING,
     almacen_id: DataTypes.INTEGER,
-    estado: DataTypes.STRING
+    estado: DataTypes.STRING,
+    aprobacion_jefe: DataTypes.BOOLEAN,
+    aprobacion_gerente: DataTypes.BOOLEAN,
+    aprobacion_superintendente: DataTypes.BOOLEAN,
+    completado: DataTypes.BOOLEAN,
   },
   {
     tableName: "requerimiento",
@@ -698,7 +703,6 @@ const unidad = sequelize.define(
 
 const pedido = sequelize.define(
   "pedido",
-
   {
     id: {
       type: DataTypes.INTEGER,
@@ -708,6 +712,10 @@ const pedido = sequelize.define(
     },
     fecha: DataTypes.STRING,
     estado: DataTypes.STRING,
+    area: DataTypes.STRING,
+    celular: DataTypes.STRING,
+    proyecto: DataTypes.STRING,
+    solicitante: DataTypes.STRING,
   },
   {
     tableName: "pedido",
@@ -745,6 +753,11 @@ const transferencia = sequelize.define(
       allowNull: false,
     },
     fecha: DataTypes.STRING,
+    almacen_id: DataTypes.INTEGER,
+    almacen_origen: DataTypes.STRING,
+    almacen_destino: DataTypes.STRING,
+    estado_origen: DataTypes.BOOLEAN,
+    estado_destino: DataTypes.BOOLEAN,
   },
   {
     tableName: "transferencia",
@@ -752,8 +765,8 @@ const transferencia = sequelize.define(
   }
 );
 
-const almacen_transferencia = sequelize.define(
-  "almacen_transferencia",
+const transferencia_producto = sequelize.define(
+  "transferencia_producto",
 
   {
     id: {
@@ -763,13 +776,30 @@ const almacen_transferencia = sequelize.define(
       allowNull: false,
     },
     transferencia_id: DataTypes.INTEGER,
-    almacen_origen: DataTypes.INTEGER,
-    almacen_destino : DataTypes.INTEGER,
     producto_id: DataTypes.INTEGER,
-    cantidad: DataTypes.STRING
+    cantidad: DataTypes.STRING,
   },
   {
-    tableName: "almacen_transferencia",
+    tableName: "transferencia_producto",
+    timestamp: false,
+  }
+);
+
+const categoria = sequelize.define(
+  "categoria",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    abreviatura: DataTypes.INTEGER,
+    descripcion: DataTypes.INTEGER,
+  },
+  {
+    tableName: "categoria",
     timestamp: false,
   }
 );
@@ -949,24 +979,41 @@ requerimiento_producto.belongsTo(requerimiento, {
 producto.hasMany(requerimiento_producto, { foreignKey: "producto_id" });
 requerimiento_producto.belongsTo(producto, { foreignKey: "producto_id" });
 
+requerimiento.hasMany(requerimiento_pedido, { foreignKey: "requerimiento_id" });
+requerimiento_pedido.belongsTo(requerimiento, {
+  foreignKey: "requerimiento_id",
+});
 
-requerimiento.hasMany(requerimiento_pedido, {foreignKey: "requerimiento_id"})
-requerimiento_pedido.belongsTo(requerimiento,{foreignKey: "requerimiento_id"})
+pedido.hasMany(requerimiento_pedido, { foreignKey: "pedido_id" });
+requerimiento_pedido.belongsTo(pedido, { foreignKey: "pedido_id" });
 
-pedido.hasMany(requerimiento_pedido, {foreignKey: "pedido_id"})
-requerimiento_pedido.belongsTo(pedido, {foreignKey: "pedido_id"})
+categoria.hasMany(producto, { foreignKey: "categoria_id" });
+producto.belongsTo(categoria, { foreignKey: "categoria_id" });
 
-almacen.hasMany(almacen_transferencia, {foreignKey: "almacen_origen"})
-almacen_transferencia.belongsTo(almacen, {foreignKey: "almacen_origen"})
+transferencia.hasMany(transferencia_producto, {
+  foreignKey: "transferencia_id",
+});
+transferencia_producto.belongsTo(transferencia, {
+  foreignKey: "transferencia_id",
+});
 
-almacen.hasMany(almacen_transferencia, {foreignKey: "almacen_destino"})
-almacen_transferencia.belongsTo(almacen, {foreignKey: "almacen_destino"})
+almacen.hasMany(transferencia, {foreignKey: "almacen_id"})
+transferencia.belongsTo(almacen, {foreignKey: "almacen_id"})
 
-producto.hasMany(almacen_transferencia, {foreignKey: "producto_id"})
-almacen_transferencia.belongsTo(producto, {foreignKey: "producto_id"})
+almacen.hasMany(transferencia, {foreignKey: "almacen_id"})
+transferencia.belongsTo(almacen, {as:"origen", foreignKey: "almacen_origen"})
 
-transferencia.hasMany(almacen_transferencia, {foreignKey: "transferencia_id"})
-almacen_transferencia.belongsTo(transferencia, {foreignKey: "transferencia_id"})
+almacen.hasMany(transferencia, {foreignKey: "almacen_id"})
+transferencia.belongsTo(almacen, {as:"destino",foreignKey: "almacen_destino"})
+
+producto.hasMany(transferencia_producto, { foreignKey: "producto_id" });
+transferencia_producto.belongsTo(producto, { foreignKey: "producto_id" });
+
+unidad.hasMany(producto, {foreignKey: "unidad_id"})
+producto.belongsTo(unidad, {foreignKey: "unidad_id"})
+
+categoria.hasMany(producto, {foreignKey: "categoria_id"})
+producto.belongsTo(categoria, {foreignKey: "categoria_id"})
 
 module.exports = {
   trabajador,
@@ -999,5 +1046,9 @@ module.exports = {
   requerimiento_producto,
 
   unidad,
-  pedido, requerimiento_pedido, transferencia, almacen_transferencia
+  pedido,
+  requerimiento_pedido,
+  transferencia,
+  categoria,
+  transferencia_producto,
 };

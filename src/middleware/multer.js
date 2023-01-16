@@ -5,7 +5,7 @@ const uploadFile = () => {
     destination: "./upload",
 
     filename: function (req, res, cb) {
-      cb(null, res.originalname);
+      cb(null, Date.now() + path.extname(res.originalname));
       //poner nombres diferentes a cada imagen
       // cb(null, Date.now() + path.extname(res.originalname));
     },

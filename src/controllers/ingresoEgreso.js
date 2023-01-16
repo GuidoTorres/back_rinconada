@@ -369,7 +369,6 @@ const deleteIngresoEgreso = async (req, res, next) => {
       });
       next();
     }
-
     if (
       movimiento === "Egreso" &&
       getIngresos[getIngresos.length - 1]?.sucursal_transferencia

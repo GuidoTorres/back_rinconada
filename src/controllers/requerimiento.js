@@ -1,11 +1,16 @@
-const { requerimiento, requerimiento_producto } = require("../../config/db");
+const { requerimiento, requerimiento_producto, producto } = require("../../config/db");
 
 const getRequerimiento = async (req, res, next) => {
   try {
-    const get = await requerimiento.findAll();
+    const get = await requerimiento.findAll({
+
+      include:[{model:requerimiento_producto, include:[{model:producto, attributes: {exclude:["categoria_id"]}}]}],
+      
+    });
     res.status(200).json({ data: get });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };
@@ -20,6 +25,7 @@ const getRequerimientoById = async (req, res, next) => {
     res.status(200).json({ data: getById });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: error });
   }
 };
@@ -37,7 +43,6 @@ const postARequerimiento = async (req, res, next) => {
       almacen_id: item.almacen_id,
     };
   });
-
 
   try {
     const post = await requerimiento.create(data[data.length - 1]);
@@ -69,6 +74,25 @@ const updateRequerimiento = async (req, res, next) => {
 
   try {
     let update = await requerimiento.update(req.body, { where: { id: id } });
+    const updateEstado = await requerimiento.findOne({
+      where: { id: id },
+    });
+
+    if (
+      updateEstado.aprobacion_jefe &&
+      updateEstado.aprobacion_gerente &&
+      updateEstado.aprobacion_superintendente
+    ) {
+      let update = await requerimiento.update(
+        { estado: 1 },
+        { where: { id: id } }
+      );
+    } else {
+      let update = await requerimiento.update(
+        { estado: 0 },
+        { where: { id: id } }
+      );
+    }
     res
       .status(200)
       .json({ msg: "Requerimiento actualizado con éxito!", status: 200 });

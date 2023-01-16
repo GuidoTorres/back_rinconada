@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require('path');
 const trabajadorRouter = require("./src/routes/trabajador");
 const usuarioRouter = require("./src/routes/usuario");
 const campamentoRouter = require("./src/routes/campamento");
@@ -25,12 +26,10 @@ const almacenRouter = require("./src/routes/almacen");
 const productoRouter = require("./src/routes/producto");
 const entradaRouter = require("./src/routes/entradaSalida");
 const requerimientoRouter = require("./src/routes/requerimiento");
-const unidadRouter = require("./src/routes/unidad")
-const pedidoRouter = require("./src/routes/pedido")
-const transferenciaRouter = require("./src/routes/transferencia")
-
-
-
+const unidadRouter = require("./src/routes/unidad");
+const pedidoRouter = require("./src/routes/pedido");
+const transferenciaRouter = require("./src/routes/transferencia");
+const categoriaRouter = require("./src/routes/categoria");
 
 const app = express();
 
@@ -38,7 +37,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.use(express.static("images"));
+
+app.use(express.static(path.join(__dirname, "/upload")))
+console.log(__dirname);
+
 app.use("/api/v1/trabajador", trabajadorRouter);
 app.use("/api/v1/usuario", usuarioRouter);
 app.use("/api/v1/campamento", campamentoRouter);
@@ -66,11 +68,7 @@ app.use("/api/v1/requerimiento", requerimientoRouter);
 app.use("/api/v1/unidad", unidadRouter);
 app.use("/api/v1/pedido", pedidoRouter);
 app.use("/api/v1/transferencia", transferenciaRouter);
-
-
-
-
-
+app.use("/api/v1/categoria", categoriaRouter);
 
 
 

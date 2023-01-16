@@ -7,6 +7,6 @@ router.get("/", entrada.getEntradaSalida)
 router.get("/:id", entrada.getEntradaByAlmacen)
 // router.get("/:id", rol.getRolById)
 router.post("/", entrada.postEntradaSalida)
-// router.put("/:id", rol.updateRol)
-// router.delete("/:id", rol.deleteRol)
+router.put("/:id", entrada.updateEntradaSalida)
+router.delete("/:id", entrada.deleteEntradaSalida)
 module.exports = router

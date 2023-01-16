@@ -3,9 +3,8 @@ const transferencia = require("../controllers/transferencia")
 
 
 
-router.get("/", transferencia.getTransferencia)
-// router.get("/:id", rol.getRolById)
-// router.post("/", rol.postRol)
-// router.put("/:id", rol.updateRol)
+router.get("/realizada/:id", transferencia.getTransferenciaRealizada)
+router.get("/recibida/:id", transferencia.getTransferenciaRecibida)
+router.put("/:id", transferencia.updateTransferencia)
 // router.delete("/:id", rol.deleteRol)
 module.exports = router

@@ -4,6 +4,7 @@ const {
   contrato,
   evaluacion,
   contratoEvaluacion,
+  area,
 } = require("../../config/db");
 const { Op, Sequelize } = require("sequelize");
 const { cloudinary } = require("../../config/cloudinary");
@@ -32,6 +33,7 @@ const getTrabajador = async (req, res, next) => {
               include: [
                 {
                   model: contrato,
+                  include: [{ model: area }],
                   attributes: { exclude: ["contrato_id"] },
                   include: [{ model: campamento }],
                 },
@@ -79,6 +81,9 @@ const getTrabajador = async (req, res, next) => {
           .toString(),
 
         nota: final,
+        area: parseInt(obj?.evaluacions
+          .map((item) => item?.contrato_evaluacions[item.contrato_evaluacions.length-1].contrato.area)
+          .flat()),
         deshabilitado: obj?.deshabilitado,
         dni: obj?.dni,
         nombre: obj?.nombre,
