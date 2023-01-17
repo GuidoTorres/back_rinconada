@@ -603,6 +603,7 @@ const entrada_salida = sequelize.define(
     almacen_id: DataTypes.INTEGER,
     boleta: DataTypes.STRING,
     codigo_requerimiento: DataTypes.STRING,
+    area_id: DataTypes.INTEGER
   },
   {
     tableName: "entrada_salida",
@@ -756,8 +757,8 @@ const transferencia = sequelize.define(
     almacen_id: DataTypes.INTEGER,
     almacen_origen: DataTypes.STRING,
     almacen_destino: DataTypes.STRING,
-    estado_origen: DataTypes.BOOLEAN,
-    estado_destino: DataTypes.BOOLEAN,
+    estado_origen: DataTypes.STRING,
+    estado_destino: DataTypes.STRING,
   },
   {
     tableName: "transferencia",
@@ -776,8 +777,13 @@ const transferencia_producto = sequelize.define(
       allowNull: false,
     },
     transferencia_id: DataTypes.INTEGER,
+    producto_origen: DataTypes.INTEGER,
+    producto_destino: DataTypes.INTEGER,
     producto_id: DataTypes.INTEGER,
+
     cantidad: DataTypes.STRING,
+    stock_origen: DataTypes.STRING,
+    stock_destino: DataTypes.STRING
   },
   {
     tableName: "transferencia_producto",
@@ -1014,6 +1020,9 @@ producto.belongsTo(unidad, {foreignKey: "unidad_id"})
 
 categoria.hasMany(producto, {foreignKey: "categoria_id"})
 producto.belongsTo(categoria, {foreignKey: "categoria_id"})
+
+area.hasMany(entrada_salida, {foreignKey: "area_id"})
+entrada_salida.belongsTo(area, {foreignKey: "area_id"})
 
 module.exports = {
   trabajador,

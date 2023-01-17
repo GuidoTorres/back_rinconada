@@ -1,13 +1,48 @@
-const { requerimiento, requerimiento_producto, producto } = require("../../config/db");
+const {
+  requerimiento,
+  requerimiento_producto,
+  producto,
+  area,
+} = require("../../config/db");
 
 const getRequerimiento = async (req, res, next) => {
   try {
-    const get = await requerimiento.findAll({
 
-      include:[{model:requerimiento_producto, include:[{model:producto, attributes: {exclude:["categoria_id"]}}]}],
-      
+    const getArea = await area.findAll()
+    const get = await requerimiento.findAll({
+      include: [
+        {
+          model: requerimiento_producto,
+          include: [
+            { model: producto, attributes: { exclude: ["categoria_id"] } },
+          ],
+        },
+      ],
     });
-    res.status(200).json({ data: get });
+
+    const formatData = get.map(item => {
+
+      return{
+
+        id: item.id,
+        fecha_pedido: item.fecha_pedido,
+        fecha_entrega: item.fecha_entrega,
+        solicitante: item.solicitante,
+        area: (getArea.filter(dat => dat.id == item.area).map(item => item.nombre)).toString(),
+        celular: item.celular,
+        proyecto: item.proyecto,
+        codigo_requerimiento: item.codigo_requerimiento,
+        almacen_id: item.almacen_id,
+        estado: item.estado,
+        aprobacion_jefe: item.aprobacion_jefe,
+        aprobacion_gerente: item.aprobacion_gerente,
+        aprobacion_superintendente: item.aprobacion_superintendente,
+        completado: item.completado,
+        requerimiento_productos: item.requerimiento_productos
+
+      }
+    })
+    res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -102,6 +137,46 @@ const updateRequerimiento = async (req, res, next) => {
   }
 };
 
+const updateRequerimientoProducto = async (req, res, next) => {
+  let id = req.params.id;
+
+  let updateCantidad = req.body.map((item) => {
+    return {
+      id: item.codigo_producto,
+      cantidad: item.cantidad,
+    };
+  });
+
+
+  try {
+    // let update = await requerimiento.update(req.body, { where: { id: id } });
+
+    // let updateProducto = await requerimiento_producto.update(updateCantidad, {
+    //   where: { producto_id: updateIds },
+    // });
+
+    const updateMultiple = await Promise.all(
+      updateCantidad.map(
+        async (item) =>
+          await requerimiento_producto.update(
+            { cantidad: item.cantidad },
+            {
+              where: { producto_id: item.id, requerimiento_id: id },
+            }
+          )
+      )
+    );
+
+
+    res
+      .status(200)
+      .json({ msg: "Requerimiento actualizado con éxito!", status: 200 });
+    next();
+  } catch (error) {
+    res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
+  }
+};
+
 const deleteRequerimiento = async (req, res, next) => {
   let id = req.params.id;
   try {
@@ -121,4 +196,5 @@ module.exports = {
   postARequerimiento,
   updateRequerimiento,
   deleteRequerimiento,
+  updateRequerimientoProducto,
 };

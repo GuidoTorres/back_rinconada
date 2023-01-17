@@ -4,6 +4,7 @@ const {
   requerimiento,
   requerimiento_producto,
   producto,
+  area,
 } = require("../../config/db");
 const {
   generarPdfRequerimiento,
@@ -27,6 +28,7 @@ const getPedidoId = async(req, res, next ) => {
 
 const getPedido = async (req, res, next) => {
   try {
+    const getArea = await area.findAll()
     const get = await pedido.findAll({
       include: [
         {
@@ -51,7 +53,11 @@ const getPedido = async (req, res, next) => {
         id: item.id,
         fecha: item.fecha,
         estado: item.estado,
-        area: item.requerimiento_pedidos.map((data) => data.requerimiento.area),
+        area: (getArea.filter(dat => dat.id == item.area).map(item => item.nombre)).toString(),
+        celular: item.celular,
+        proyecto: item.proyecto,
+        solicitante: item.solicitante,
+        requerimiento_pedidos: item.requerimiento_pedidos
         // producto: _.groupBy([
         //   ...new Set(
         //     item.requerimiento_pedidos

@@ -81,22 +81,23 @@ const getProductsByAlmacen = async (req, res, next) => {
 
       return{
 
-        id: item.id,
-        codigo: item.codigo,
-        codigo_interno: item.codigo_interno,
-        codigo_barras: item.codigo_barras,
-        descripcion: item.descripcion,
-        foto: item.foto,
-        almacen_id: item.almacen_id,
-        nombre: item.nombre,
-        stock: item.stock,
-        unidad_id: item.unidad_id,
-        precio: item.precio,
-        fecha: item.fecha,
-        observacion: item.observacion,
-        costo_total: item.costo_total,
-        categoria_id: item.categorium.id,
-        categoria: item.categorium.descripcion
+        id: item?.id,
+        codigo: item?.codigo,
+        codigo_interno: item?.codigo_interno,
+        codigo_barras: item?.codigo_barras,
+        descripcion: item?.descripcion,
+        foto: item?.foto,
+        almacen_id: item?.almacen_id,
+        nombre: item?.nombre,
+        stock: item?.stock,
+        unidad_id: item?.unidad?.id,
+        unidad:item?.unidad?.nombre,
+        precio: item?.precio,
+        fecha: item?.fecha,
+        observacion: item?.observacion,
+        costo_total: item?.costo_total,
+        categoria_id: item?.categorium?.id,
+        categoria: item?.categorium?.descripcion
 
       }
 
@@ -104,6 +105,7 @@ const getProductsByAlmacen = async (req, res, next) => {
     res.status(200).json({ data: formatData });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };
@@ -114,30 +116,12 @@ const almacenTrasferencia = async (req, res, next) => {
     almacen_id: req.body[0].almacen_origen,
     almacen_origen: req.body[0].almacen_origen,
     almacen_destino: req.body[0].almacen_destino,
-    estado_origen: false,
-    estado_destino: false
+    estado_origen: "Pendiente",
+    estado_destino: "Pendiente"
 
   };
 
-  let updateProductoOrigen = req.body.map((item) => {
-    return {
-      id: item.producto_origen,
-      stock:
-        item.stock_origen !== null
-          ? parseInt(item.stock_origen) - parseInt(item.cantidad)
-          : parseInt(item.cantidad),
-    };
-  });
-
-  let updateProductoDestino = req.body.map((item) => {
-    return {
-      id: item.producto_destino,
-      stock:
-      item.stock_destino !== null
-      ? parseInt(item.stock_destino) + parseInt(item.cantidad)
-      : parseInt(item.cantidad),
-    };
-  });
+  console.log(req.body);
 
   try {
     const postTransferencia = await transferencia.create(transferenciaFormat);
@@ -145,8 +129,12 @@ const almacenTrasferencia = async (req, res, next) => {
     let transferenciaAlmacen = req.body.map((item) => {
       return {
         producto_id: item.producto_origen,
+        producto_origen: item.producto_origen,
         cantidad: item.cantidad,
         transferencia_id: postTransferencia.id,
+        producto_destino: item.producto_destino,
+        stock_origen: item.stock_origen,
+        stock_destino: item.stock_destino
       };
     });
 
@@ -154,20 +142,7 @@ const almacenTrasferencia = async (req, res, next) => {
       transferenciaAlmacen
     );
 
-    let concat = updateProductoOrigen.concat(updateProductoDestino);
 
-
-    const updateMultiple = await Promise.all(
-      concat.map(
-        async (item) =>
-          await producto.update(
-            { stock: item.stock },
-            {
-              where: { id: item.id },
-            }
-          )
-      )
-    );
     res
       .status(200)
       .json({ msg: "Transferencia realizada con éxito!", status: 200 });

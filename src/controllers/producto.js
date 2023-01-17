@@ -11,22 +11,22 @@ const getProducto = async (req, res, next) => {
 
       return{
 
-        id: item.id,
-        codigo: item.codigo,
-        codigo_interno: item.codigo_interno,
-        codigo_barras: item.codigo_barras,
-        descripcion: item.descripcion,
-        foto: item.foto,
-        almacen_id: item.almacen_id,
-        nombre: item.nombre,
-        stock: item.stock,
-        unidad_id: item.unidad_id,
-        precio: item.precio,
-        fecha: item.fecha,
-        observacion: item.observacion,
-        costo_total: item.costo_total,
-        categoria_id: item.categorium.id,
-        categoria: item.categorium.descripcion
+        id: item?.id,
+        codigo: item?.codigo,
+        codigo_interno: item?.codigo_interno,
+        codigo_barras: item?.codigo_barras,
+        descripcion: item?.descripcion,
+        foto: item?.foto,
+        almacen_id: item?.almacen_id,
+        nombre: item?.nombre,
+        stock: item?.stock,
+        unidad_id: item?.unidad_id,
+        precio: item?.precio,
+        fecha: item?.fecha,
+        observacion: item?.observacion,
+        costo_total: item?.costo_total,
+        categoria_id: item?.categorium?.id,
+        categoria: item?.categorium?.descripcion
 
       }
 
@@ -87,13 +87,33 @@ const postProducto = async (req, res, next) => {
 const updateProducto = async (req, res, next) => {
   let id = req.params.id;
 
+  let info = {
+    almacen_id: req.body.almacen_id,
+    categoria_id: req.body.categoria_id,
+    codigo: req.body.codigo,
+    codigo_barras: req.body.codigo_barras,
+    codigo_interno: req.body.codigo_interno,
+    costo_total: req.body.costo_total,
+    descripcion: req.body.descripcion,
+    fecha: req.body.fecha,
+    nombre: req.body.nombre,
+    observacion: req.body.observacion,
+    precio: req.body.precio,
+    stock: req.body.stock,
+    unidad_id: req.body.unidad_id,
+    foto: req?.file?.filename ? "https://rinconada.fly.dev/" + req.file.filename : ""
+
+  }
+
+
   try {
-    let update = await producto.update(req.body, { where: { id: id } });
+    let update = await producto.update(info, { where: { id: id } });
     res
       .status(200)
       .json({ msg: "Producto actualizado con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo actualizar el producto.", status: 500 });
