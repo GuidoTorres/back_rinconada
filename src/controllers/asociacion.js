@@ -20,6 +20,7 @@ const getAsociacion = async (req, res, next) => {
         },
         {
           model: trabajador,
+          attributes: { exclude: ["usuarioId"] },
           include: [{ model: evaluacion }],
         },
       ],
@@ -39,7 +40,9 @@ const getAsociacion = async (req, res, next) => {
         evaluacion_id: item?.trabajadors
           ?.map((data) => data?.evaluacions?.map((dat) => dat.id))
           .flat(),
-        evaluacions: item?.trabajadors?.map((data) => data?.evaluacions[data.evaluacions.length -1]).flat(),
+        evaluacions: item?.trabajadors
+          ?.map((data) => data?.evaluacions[data.evaluacions.length - 1])
+          .flat(),
       };
     });
 

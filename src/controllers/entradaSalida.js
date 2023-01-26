@@ -213,6 +213,8 @@ const entradaSalidaEstadistica = async (req, res, next) => {
       };
     });
 
+    console.log(formatData);
+
     let reduce = formatData.reduce((value, current) => {
       let temp = value.find((o) => o.id == current.id);
       if (!temp) {

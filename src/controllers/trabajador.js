@@ -10,6 +10,7 @@ const { Op, Sequelize } = require("sequelize");
 const { cloudinary } = require("../../config/cloudinary");
 const XLSX = require("xlsx");
 const sharp = require("sharp");
+const dayjs = require('dayjs')
 
 const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
@@ -22,112 +23,40 @@ const getTrabajador = async (req, res, next) => {
           { eliminar: { [Op.not]: true } },
         ],
       },
+      attributes: { exclude: ["usuarioId"] },
       order: [[Sequelize.literal("codigo_trabajador"), "ASC"]],
       include: [
         {
           model: evaluacion,
-          include: [
-            {
-              model: contratoEvaluacion,
-
-              include: [
-                {
-                  model: contrato,
-                  include: [{ model: area }],
-                  attributes: { exclude: ["contrato_id"] },
-                  include: [{ model: campamento }],
-                },
-              ],
-            },
-          ],
+        },
+        {
+          model: contrato,
+          include: [{ model: area }],
+          attributes: { exclude: ["contrato_id"] },
+          include: [{ model: campamento }],
         },
       ],
     });
 
-    const obj = get.map((obj) => {
-      let total = 0;
-      let final;
-      const notas = obj?.evaluacions.map((data) =>
-        data?.contrato_evaluacions?.map((item) =>
-          parseInt(item?.contrato?.nota_contrato)
-        )
-      );
-      const notaFinal = notas?.filter((item) => item !== null);
-
-      const nota = obj?.evaluacions.map((data) =>
-        data?.contrato_evaluacions?.map((item) =>
-          parseInt(item?.contrato?.nota_contrato)
-        )
-      );
-
-      if (notas.length === 1) {
-        final = notaFinal;
-      } else if (notas.length > 0 && notas.length > 1) {
-        final = nota.reduce((acc, value) => {
-          const result = Math.floor(
-            (parseInt(acc) + parseInt(value)) / notas.length
-          );
-
-          return result;
-        });
-      }
-
+    const obj = get.map((item) => {
       return {
-        id: obj?.id,
-        campamento: obj?.evaluacions[
-          obj.evaluacions.length - 1
-        ]?.contrato_evaluacions
-          ?.map((item) => item?.contrato?.campamento?.nombre)
-          .toString(),
-
-        nota: final,
-        area: parseInt(obj?.evaluacions
-          .map((item) => item?.contrato_evaluacions[item.contrato_evaluacions.length-1].contrato.area)
-          .flat()),
-        deshabilitado: obj?.deshabilitado,
-        dni: obj?.dni,
-        nombre: obj?.nombre,
-        apellido_paterno: obj?.apellido_paterno,
-        apellido_materno: obj?.apellido_materno,
-        codigo_trabajador: obj?.codigo_trabajador,
-        fecha_nacimiento: obj?.fecha_nacimiento,
-        telefono: obj?.telefono,
-        email: obj?.email,
-        estado_civil: obj?.estado_civil,
-        genero: obj?.genero,
-        direccion: obj?.direccion,
-        foto: obj?.foto,
-        estado: obj.evaluacions
-          ?.map((item) =>
-            item?.contrato_evaluacions
-              .map((dat) => [dat?.contrato]?.map((da) => da?.estado))
-              .flat()
-          )
-          .flat(),
-        contrato: obj?.evaluacions
-          .map((item) =>
-            item?.contrato_evaluacions?.map((dat) => dat?.contrato)
-          )
-          .flat(),
-        evaluacion_id: obj?.evaluacions[obj.evaluacions.length - 1]?.id,
-        contrato_finalizado: obj?.evaluacions
-          .map(
-            (item) =>
-              item?.contrato_evaluacions[item.contrato_evaluacions.length - 1]
-                ?.contrato?.finalizado
-          )
-          .toString(),
-        evaluacion_finalizada:
-          obj?.evaluacions[obj.evaluacions.length - 1]?.finalizado,
-        fiscalizador:
-          obj?.evaluacions[obj.evaluacions.length - 1]?.fiscalizador_aprobado,
-        control: obj?.evaluacions[obj.evaluacions.length - 1]?.control,
-        topico: obj?.evaluacions[obj.evaluacions.length - 1]?.topico,
-        seguridad: obj?.evaluacions[obj.evaluacions.length - 1]?.seguridad,
-        medio_ambiente:
-          obj?.evaluacions[obj.evaluacions.length - 1]?.medio_ambiente,
-        recursos_humanos:
-          obj?.evaluacions[obj.evaluacions.length - 1]?.recursos_humanos,
+        dni: item.dni,
+        codigo_trabajador: item.codigo_trabajador,
+        fecha_nacimiento: dayjs(item?.fecha_nacimiento).toDate(),
+        telefono: item.telefono,
+        nombre: item.nombre,
+        apellido_paterno: item.apellido_paterno,
+        apellido_materno: item.apellido_materno,
+        email: item.email,
+        estado_civil: item.estado_civil,
+        genero: item.genero,
+        direccion: item.direccion,
+        asociacion_id: item.asociacion_id,
+        deshabilitado: item.deshabilitado,
+        foto: item.foto,
+        eliminar: item.eliminar,
+        evaluacion: item.evaluacions,
+        contrato: item.contrato,
       };
     });
     res.status(200).json({ data: obj });
@@ -141,7 +70,9 @@ const getTrabajador = async (req, res, next) => {
 const getTrabajadorById = async (req, res, next) => {
   let id = req.params.id;
   try {
-    const get = await trabajador.findAll({});
+    const get = await trabajador.findAll({
+      attributes: { exclude: ["usuarioId"] },
+    });
 
     res.status(200).json({ data: get });
     next();
@@ -195,6 +126,7 @@ const postTrabajador = async (req, res, next) => {
   try {
     const getTrabajador = await trabajador.findAll({
       raw: true,
+      attributes: { exclude: ["usuarioId"] },
     });
     const filterRepeated = getTrabajador.filter((item) => item.dni == info.dni);
     const filterEliminado = getTrabajador.filter(
@@ -210,7 +142,7 @@ const postTrabajador = async (req, res, next) => {
       });
       res
         .status(200)
-        .json({ msg: "Trabajador creado con exito!", status: 200 });
+        .json({ msg: "Trabajador registrado con éxito!", status: 200 });
       next();
     } else if (filterRepeated.length > 0) {
       res
@@ -221,7 +153,7 @@ const postTrabajador = async (req, res, next) => {
       const nuevoTrabajador = await trabajador.create(info);
       res
         .status(200)
-        .json({ msg: "Trabajador creado con exito!", status: 200 });
+        .json({ msg: "Trabajador registrado con éxito!", status: 200 });
       next();
     }
   } catch (error) {

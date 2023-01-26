@@ -88,19 +88,19 @@ const updateProducto = async (req, res, next) => {
   let id = req.params.id;
 
   let info = {
-    almacen_id: req.body.almacen_id,
-    categoria_id: req.body.categoria_id,
-    codigo: req.body.codigo,
-    codigo_barras: req.body.codigo_barras,
-    codigo_interno: req.body.codigo_interno,
-    costo_total: req.body.costo_total,
-    descripcion: req.body.descripcion,
-    fecha: req.body.fecha,
+    almacen_id: req.body.almacen_id || "",
+    categoria_id: req.body.categoria_id || null,
+    codigo: req.body.codigo || "",
+    codigo_barras: req.body.codigo_barras || "",
+    codigo_interno: req.body.codigo_interno || "",
+    costo_total: req.body.costo_total || "",
+    descripcion: req.body.descripcion || "",
+    fecha: req.body.fecha || "",
     nombre: req.body.nombre,
-    observacion: req.body.observacion,
-    precio: req.body.precio,
-    stock: req.body.stock,
-    unidad_id: req.body.unidad_id,
+    observacion: req.body.observacion || "",
+    precio: req.body.precio || "",
+    stock: req.body.stock || "",
+    unidad_id: req.body.unidad_id || null,
     foto: req?.file?.filename ? "https://rinconada.fly.dev/" + req.file.filename : ""
 
   }

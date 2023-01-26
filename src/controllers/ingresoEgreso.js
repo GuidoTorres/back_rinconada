@@ -742,10 +742,13 @@ const convertJsonToExcel = async (req, res, next) => {
 
 const getTrabajadorFinanza = async (req, res, next) => {
   try {
-    const get = await trabajador.findAll();
+    const get = await trabajador.findAll({
+      attributes:{exclude:["usuarioId"]}
+    });
     res.status(200).json({ data: get });
     next();
   } catch (error) {
+    console.log("===============================");
     console.log(error);
     res.status(500).json(error);
   }

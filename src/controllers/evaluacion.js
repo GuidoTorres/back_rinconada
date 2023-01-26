@@ -4,6 +4,8 @@ const {
   contrato,
   contratoEvaluacion,
 } = require("../../config/db");
+const dayjs = require('dayjs')
+
 
 const getEvaluacion = async (req, res, next) => {
   try {
@@ -22,21 +24,20 @@ const getEvaluacionById = async (req, res, next) => {
     const user = await evaluacion.findAll({
       where: { trabajador_id: id },
       include: [
-        { model: trabajador },
         {
-          model: contratoEvaluacion,
+          model: trabajador,
+          attributes: { exclude: ["usuarioId"] },
           include: [
             { model: contrato, attributes: { exclude: ["contrato_id"] } },
           ],
         },
       ],
-
     });
     const obj = user.map((item) => {
       return {
         evaluacion_id: item?.id,
         trabajador_id: item?.trabajador?.id,
-        fecha_evaluacion: item?.fecha_evaluacion,
+        fecha_evaluacion: dayjs(item?.fecha_evaluacion).format("DD-MM-YYYY"),
         evaluacion_laboral: item?.evaluacion_laboral,
         finalizado: item?.finalizado,
         antecedentes: item?.antecedentes,
@@ -72,8 +73,12 @@ const getEvaluacionById = async (req, res, next) => {
         medio_ambiente_observacion: item?.medio_ambiente_observacion,
         recursos_humanos: item?.recursos_humanos,
         recursos_humanos_observacion: item?.recursos_humanos_observacion,
-        estado_contrato: item?.contrato_evaluacions?.map(data => data?.contrato?.estado).toString(),
-        nota_contrato: item?.contrato_evaluacions?.map(data => data?.contrato?.nota_contrato).toString()
+        estado_contrato: item?.contrato_evaluacions
+          ?.map((data) => data?.contrato?.estado)
+          .toString(),
+        nota_contrato: item?.contrato_evaluacions
+          ?.map((data) => data?.contrato?.nota_contrato)
+          .toString(),
       };
     });
     res.status(200).json({ data: obj });
@@ -117,7 +122,7 @@ const postEvaluacion = async (req, res, next) => {
     medio_ambiente_observacion: req.body.medio_ambiente_observacion,
     recursos_humanos: req.body.recursos_humanos,
     recursos_humanos_observacion: req.body.recursos_humanos_observacion,
-    finalizado: req.body.finalizado
+    finalizado: req.body.finalizado,
   };
 
   try {

@@ -24,34 +24,23 @@ const getContratoById = async (req, res, next) => {
   try {
     const user = await trabajador.findAll({
       where: { dni: id },
-      include: [
-        {
-          model: evaluacion,
-          include: [
-            {
-              model: contratoEvaluacion,
-              include: [
-                { model: contrato, attributes: { exclude: ["contrato_id"] } },
-              ],
-            },
-          ],
-        },
-      ],
+      attributes: { exclude: [ "usuarioId"] },
+      include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
     });
-    const obj = user.map((item) => {
-      return {
-        id: item.id,
-        contrato: item.evaluacions
-          .map((data) => data.contrato_evaluacions)
-          .flat(),
-      };
-    });
+    // const obj = user.map((item) => {
+    //   return {
+    //     id: item.id,
+    //     contrato: item.evaluacions
+    //       .map((data) => data.contrato_evaluacions)
+    //       .flat(),
+    //   };
+    // });
 
-    const obj2 = obj
-      .map((item) => item.contrato.map((data) => data.contrato))
-      .flat();
+    // const obj2 = obj
+    //   .map((item) => item.contrato.map((data) => data.contrato))
+    //   .flat();
 
-    res.status(200).json({ data: obj2 });
+    res.status(200).json({ data: user });
 
     next();
   } catch (error) {
@@ -198,9 +187,9 @@ const updateContrato = async (req, res, next) => {
       teletrans: teletran,
       contrato_id: id,
     };
-      const createtTrans = await teletrans.update(ttransInfo, {
-        where:{contrato_id:id}
-      });
+    const createtTrans = await teletrans.update(ttransInfo, {
+      where: { contrato_id: id },
+    });
 
     res
       .status(200)

@@ -3,18 +3,18 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "heroku_30cfe8f0814e57f",
-  username: "bcbf9d2c2227ee",
-  password: "011e52da",
-  host: "us-cdbr-east-06.cleardb.net",
-  dialect: "mysql",
-  port: 3306,
   // database: "heroku_30cfe8f0814e57f",
-  // username: "root",
-  // password: "Tupapi00",
-  // host: "localhost",
+  // username: "bcbf9d2c2227ee",
+  // password: "011e52da",
+  // host: "us-cdbr-east-06.cleardb.net",
   // dialect: "mysql",
   // port: 3306,
+  database: "heroku_30cfe8f0814e57f",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
+  dialect: "mysql",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
 });
 
@@ -38,32 +38,16 @@ const usuario = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    nombre: { type: DataTypes.STRING },
-    contrasenia: { type: DataTypes.STRING },
-    usuario: { type: DataTypes.STRING },
-    estado: { type: DataTypes.BOOLEAN },
+    nombre: DataTypes.STRING,
+    contrasenia: DataTypes.STRING,
+    usuario: DataTypes.STRING,
+    estado: DataTypes.BOOLEAN,
+    rol_id: DataTypes.INTEGER,
+    cargo_id: DataTypes.INTEGER,
+    trabajador_dni: DataTypes.INTEGER,
   },
   {
     tableName: "usuario",
-    timestamp: false,
-  }
-);
-
-const rolPuesto = sequelize.define(
-  "rol_puesto",
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false,
-    },
-    usuario_id: { type: DataTypes.INTEGER, allowNull: false },
-    cargo_id: { type: DataTypes.INTEGER, allowNull: false },
-    rol_id: { type: DataTypes.INTEGER, allowNull: false },
-  },
-  {
-    tableName: "rol_puesto",
     timestamp: false,
   }
 );
@@ -107,6 +91,7 @@ const rol = sequelize.define(
       allowNull: false,
     },
     nombre: DataTypes.STRING,
+    descripcion: DataTypes.STRING
   },
   {
     tableName: "rol",
@@ -209,6 +194,7 @@ const contrato = sequelize.define(
     suspendido: DataTypes.BOOLEAN,
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
+    trabajador_id: DataTypes.INTEGER,
   },
   {
     tableName: "contrato",
@@ -303,24 +289,6 @@ const asociacion = sequelize.define(
   },
   {
     tableName: "asociacion",
-    timestamp: false,
-  }
-);
-
-const contratoEvaluacion = sequelize.define(
-  "contrato_evaluacion",
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false,
-    },
-    contrato_id: DataTypes.INTEGER,
-    evaluacion_id: DataTypes.INTEGER,
-  },
-  {
-    tableName: "contrato_evaluacion",
     timestamp: false,
   }
 );
@@ -603,7 +571,7 @@ const entrada_salida = sequelize.define(
     almacen_id: DataTypes.INTEGER,
     boleta: DataTypes.STRING,
     codigo_requerimiento: DataTypes.STRING,
-    area_id: DataTypes.INTEGER
+    area_id: DataTypes.INTEGER,
   },
   {
     tableName: "entrada_salida",
@@ -783,7 +751,7 @@ const transferencia_producto = sequelize.define(
 
     cantidad: DataTypes.STRING,
     stock_origen: DataTypes.STRING,
-    stock_destino: DataTypes.STRING
+    stock_destino: DataTypes.STRING,
   },
   {
     tableName: "transferencia_producto",
@@ -810,6 +778,48 @@ const categoria = sequelize.define(
   }
 );
 
+const permisos = sequelize.define(
+  "permisos",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    administracion: DataTypes.BOOLEAN,
+    administracion_usuario: DataTypes.BOOLEAN,
+    administracion_campamento: DataTypes.BOOLEAN,
+    administracion_rol: DataTypes.BOOLEAN,
+    personal: DataTypes.BOOLEAN,
+    personal_trabajador: DataTypes.BOOLEAN,
+    personal_grupal: DataTypes.BOOLEAN,
+    personal_empresa: DataTypes.BOOLEAN,
+    personal_socio: DataTypes.BOOLEAN,
+    planillas: DataTypes.BOOLEAN,
+    planillas_asistencia: DataTypes.BOOLEAN,
+    planillas_control: DataTypes.BOOLEAN,
+    logistica: DataTypes.BOOLEAN,
+    logistica_inventario: DataTypes.BOOLEAN,
+    logistica_almacen: DataTypes.BOOLEAN,
+    logistica_requerimiento: DataTypes.BOOLEAN,
+    logistica_aprobacion: DataTypes.BOOLEAN,
+    logistica_transferencia: DataTypes.BOOLEAN,
+    logistica_categoria: DataTypes.BOOLEAN,
+    logistica_estadistica: DataTypes.BOOLEAN,
+    finanzas: DataTypes.BOOLEAN,
+    finanzas_ingreso: DataTypes.BOOLEAN,
+    finanzas_proveedor: DataTypes.BOOLEAN,
+    finanzas_sucursal: DataTypes.BOOLEAN,
+    rol_id: DataTypes.INTEGER,
+  },
+  {
+    tableName: "permisos",
+    timestamp: false,
+  }
+);
+
 gerencia.hasMany(area, {
   foreignKey: "gerencia_id",
   onDelete: "CASCADE",
@@ -832,45 +842,15 @@ cargo.belongsTo(area, {
   hooks: true,
 });
 
-usuario.hasMany(rolPuesto, {
-  foreignKey: "usuario_id",
-  onDelete: "CASCADE",
-  hooks: true,
-});
-rolPuesto.belongsTo(usuario, {
-  foreignKey: "usuario_id",
-  onDelete: "CASCADE",
-  hooks: true,
-});
+rol.hasMany(usuario, { foreignKey: "rol_id" });
+usuario.belongsTo(rol, { foreignKey: "rol_id" });
 
-cargo.hasMany(rolPuesto, {
-  foreignKey: "cargo_id",
-  onDelete: "CASCADE",
-  hooks: true,
-});
-rolPuesto.belongsTo(cargo, {
-  foreignKey: "cargo_id",
-  onDelete: "CASCADE",
-  hooks: true,
-});
-
-rol.hasMany(rolPuesto, {
-  foreignKey: "rol_id",
-  onDelete: "CASCADE",
-  hooks: true,
-});
-rolPuesto.belongsTo(rol, {
-  foreignKey: "rol_id",
-  onDelete: "CASCADE",
-  hooks: true,
-});
-
-usuario.belongsToMany(trabajador, {
+usuario.hasOne(trabajador, {
   through: "trabajador_usuario",
   onDelete: "CASCADE",
   hooks: true,
 });
-trabajador.belongsToMany(usuario, {
+trabajador.belongsTo(usuario, {
   through: "trabajador_usuario",
   onDelete: "CASCADE",
   hooks: true,
@@ -913,22 +893,8 @@ trabajador.belongsTo(asociacion, {
 trabajador.hasMany(evaluacion, { foreignKey: "trabajador_id" });
 evaluacion.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-// contrato evaluacion
-contrato.belongsToMany(evaluacion, {
-  through: contratoEvaluacion,
-  foreignKey: "contrato_id",
-});
-evaluacion.belongsToMany(contrato, {
-  through: contratoEvaluacion,
-  foreignKey: "contrato_id",
-});
-
-contrato.hasMany(contratoEvaluacion, { foreignKey: "contrato_id" });
-contratoEvaluacion.belongsTo(contrato, { foreignKey: "contrato_id" });
-evaluacion.hasMany(contratoEvaluacion, { foreignKey: "evaluacion_id" });
-contratoEvaluacion.belongsTo(evaluacion, { foreignKey: "evaluacion_id" });
-
-//asociacion contrato
+trabajador.hasMany(contrato, { foreignKey: "trabajador_id" });
+contrato.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
 asociacion.hasMany(contrato, { foreignKey: "asociacion_id" });
 contrato.belongsTo(asociacion, { foreignKey: "asociacion_id" });
@@ -1003,26 +969,35 @@ transferencia_producto.belongsTo(transferencia, {
   foreignKey: "transferencia_id",
 });
 
-almacen.hasMany(transferencia, {foreignKey: "almacen_id"})
-transferencia.belongsTo(almacen, {foreignKey: "almacen_id"})
+almacen.hasMany(transferencia, { foreignKey: "almacen_id" });
+transferencia.belongsTo(almacen, { foreignKey: "almacen_id" });
 
-almacen.hasMany(transferencia, {foreignKey: "almacen_id"})
-transferencia.belongsTo(almacen, {as:"origen", foreignKey: "almacen_origen"})
+almacen.hasMany(transferencia, { foreignKey: "almacen_id" });
+transferencia.belongsTo(almacen, {
+  as: "origen",
+  foreignKey: "almacen_origen",
+});
 
-almacen.hasMany(transferencia, {foreignKey: "almacen_id"})
-transferencia.belongsTo(almacen, {as:"destino",foreignKey: "almacen_destino"})
+almacen.hasMany(transferencia, { foreignKey: "almacen_id" });
+transferencia.belongsTo(almacen, {
+  as: "destino",
+  foreignKey: "almacen_destino",
+});
 
 producto.hasMany(transferencia_producto, { foreignKey: "producto_id" });
 transferencia_producto.belongsTo(producto, { foreignKey: "producto_id" });
 
-unidad.hasMany(producto, {foreignKey: "unidad_id"})
-producto.belongsTo(unidad, {foreignKey: "unidad_id"})
+unidad.hasMany(producto, { foreignKey: "unidad_id" });
+producto.belongsTo(unidad, { foreignKey: "unidad_id" });
 
-categoria.hasMany(producto, {foreignKey: "categoria_id"})
-producto.belongsTo(categoria, {foreignKey: "categoria_id"})
+categoria.hasMany(producto, { foreignKey: "categoria_id" });
+producto.belongsTo(categoria, { foreignKey: "categoria_id" });
 
-area.hasMany(entrada_salida, {foreignKey: "area_id"})
-entrada_salida.belongsTo(area, {foreignKey: "area_id"})
+area.hasMany(entrada_salida, { foreignKey: "area_id" });
+entrada_salida.belongsTo(area, { foreignKey: "area_id" });
+
+rol.hasMany(permisos, { foreignKey: "rol_id" });
+permisos.belongsTo(rol, { foreignKey: "rol_id" });
 
 module.exports = {
   trabajador,
@@ -1034,10 +1009,8 @@ module.exports = {
   gerencia,
   rol,
   area,
-  rolPuesto,
   empresa,
   asociacion,
-  contratoEvaluacion,
   asistencia,
   teletrans,
   trabajadorAsistencia,
@@ -1060,4 +1033,5 @@ module.exports = {
   transferencia,
   categoria,
   transferencia_producto,
+  permisos,
 };
