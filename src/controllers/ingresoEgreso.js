@@ -62,15 +62,15 @@ const postIngresoEgreso = async (req, res, next) => {
         sucursal_transferencia: req.body.sucursal_transferencia,
         dni: req.body.dni,
         saldo_inicial: getSaldo[getSaldo.length - 1?.saldo_inicial],
-        ingresos: "",
+        ingresos: null,
         egresos:
-          getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.egresos) + parseFloat(req.body.monto),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
-            ? getSaldo[getSaldo.length - 1]?.saldo_inicial -
-              parseInt(req.body.monto)
-            : getSaldo[getSaldo.length - 1]?.saldo_final -
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldo[getSaldo.length - 1]?.saldo_final) -
+              parseFloat(req.body.monto),
       };
 
       let objIngreso = {
@@ -90,38 +90,38 @@ const postIngresoEgreso = async (req, res, next) => {
         dni: req.body.dni,
         saldo_inicial: getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial,
         ingresos:
-          getSaldoEgreso[getSaldoEgreso.length - 1]?.ingresos +
+          parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.ingresos) +
           parseInt(req.body.monto),
-        egresos: "",
+        egresos: null,
         saldo_final:
           getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final === 0
-            ? getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial +
-              parseInt(req.body.monto)
-            : getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final +
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial) +
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final) +
+              parseFloat(req.body.monto),
       };
       let newSaldoEgreso = {
-        saldo_inicial: getSaldo[getSaldo.length - 1]?.saldo_inicial,
+        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
         egresos:
-          getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.egresos) + parseFloat(req.body.monto),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
-            ? getSaldo[getSaldo.length - 1]?.saldo_inicial -
-              parseInt(req.body.monto)
-            : getSaldo[getSaldo.length - 1]?.saldo_final -
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldo[getSaldo.length - 1]?.saldo_final) -
+              parseFloat(req.body.monto),
       };
       let newSaldoIngreso = {
-        saldo_inicial: getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial,
+        saldo_inicial: parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial),
         ingresos:
-          getSaldoEgreso[getSaldoEgreso.length - 1]?.ingresos +
-          parseInt(req.body.monto),
+          parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.ingresos) +
+          parseFloat(req.body.monto),
         saldo_final:
           getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final === 0
-            ? getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial +
-              parseInt(req.body.monto)
-            : getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final +
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial) +
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final) +
+              parseFloat(req.body.monto),
       };
 
       const postEgreso = await ingresos_egresos.create(objEgreso);
@@ -143,15 +143,15 @@ const postIngresoEgreso = async (req, res, next) => {
 
     if (req.body.movimiento === "Ingreso" && !req.body.sucursal_transferencia) {
       newSaldo = {
-        saldo_inicial: getSaldo[getSaldo.length - 1]?.saldo_inicial,
+        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
         ingresos:
-          getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto)),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
-            ? getSaldo[getSaldo.length - 1]?.saldo_inicial +
-              parseInt(req.body.monto)
-            : getSaldo[getSaldo.length - 1]?.saldo_final +
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) +
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldo[getSaldo.length - 1]?.saldo_final) +
+              parseFloat(req.body.monto),
       };
       info = {
         sucursal_id: req.body.sucursal_id,
@@ -167,16 +167,16 @@ const postIngresoEgreso = async (req, res, next) => {
         proveedor: req.body.proveedor,
         comprobante: req.body.comprobante,
         dni: req.body.dni,
-        saldo_inicial: getSaldo[getSaldo.length - 1?.saldo_inicial],
+        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1?.saldo_inicial]),
         ingresos:
-          getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto),
-        egresos: "",
+         parseFloat (getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto)),
+        egresos: null,
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
-            ? getSaldo[getSaldo.length - 1]?.saldo_inicial +
-              parseInt(req.body.monto)
-            : getSaldo[getSaldo.length - 1]?.saldo_final +
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) +
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldo[getSaldo.length - 1]?.saldo_final) +
+              parseFloat(req.body.monto),
       };
       const post = await ingresos_egresos.create(info);
       const updateSaldo = await saldo.update(newSaldo, {
@@ -193,15 +193,15 @@ const postIngresoEgreso = async (req, res, next) => {
       !req.body.sucursal_transferencia
     ) {
       newSaldo = {
-        saldo_inicial: getSaldo[getSaldo.length - 1]?.saldo_inicial,
+        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
         egresos:
-          getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto)),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
-            ? getSaldo[getSaldo.length - 1]?.saldo_inicial -
-              parseInt(req.body.monto)
-            : getSaldo[getSaldo.length - 1]?.saldo_final -
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldo[getSaldo.length - 1]?.saldo_final) -
+              parseFloat(req.body.monto),
       };
       info = {
         sucursal_id: req.body.sucursal_id,
@@ -217,16 +217,16 @@ const postIngresoEgreso = async (req, res, next) => {
         proveedor: req.body.proveedor,
         comprobante: req.body.comprobante,
         dni: req.body.dni,
-        saldo_inicial: getSaldo[getSaldo.length - 1]?.saldo_inicial,
-        ingresos: "",
+        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
+        ingresos: null,
         egresos:
-          getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto)),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
-            ? getSaldo[getSaldo.length - 1]?.saldo_inicial -
-              parseInt(req.body.monto)
-            : getSaldo[getSaldo.length - 1]?.saldo_final -
-              parseInt(req.body.monto),
+            ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
+              parseFloat(req.body.monto)
+            : parseFloat(getSaldo[getSaldo.length - 1]?.saldo_final) -
+              parseFloat(req.body.monto),
       };
 
       const post = await ingresos_egresos.create(info);

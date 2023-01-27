@@ -49,7 +49,7 @@ const updateSucursal = async (req, res, next) => {
   try {
     let update = await sucursal.update(req.body, { where: { id: id } });
     let info = {
-      saldo_inicial: req.body.saldo_inicial,
+      saldo_inicial: parseFloat(req.body.saldo_inicial).toFixed(2),
     };
     let updateSaldo = await saldo.update(info, { where: { sucursal_id: id } });
     res

@@ -44,196 +44,70 @@ const getPlanilla = async (req, res, next) => {
       ],
     });
 
-    // const asoci = await asociacion.findAll({
-    //   include: [
-    //     {
-    //       model: contrato,
-    //       attributes: { exclude: ["contrato_id"] },
-    //       include: [
-    //         { model: teletrans },
-    //         { model: campamento, include: [{ model: asistencia }] },
-    //       ],
-    //     },
-    //   ],
-    // });
+    const asoci = await asociacion.findAll({
+      include: [
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          include: [
+            { model: teletrans },
+            { model: campamento, include: [{ model: asistencia }] },
+          ],
+        },
+      ],
+    });
 
-    // const filterAsociacion = asoci?.filter(
-    //   (item) => item?.contratos?.length !== 0
-    // );
+    const filterAsociacion = asoci?.filter(
+      (item) => item?.contratos?.length !== 0
+    );
     const filterTrabajador = traba?.filter(
       (item) => item?.contratos?.length !== 0
     );
-    // const mapAsociacion = filterAsociacion.map((item, i) => {
-    //   return {
-    //     id: item?.id,
-    //     nombre: item?.nombre,
-    //     codigo: item?.codigo,
-    //     fecha_inicio: item?.contratos
-    //       ?.map((data) =>
-    //         data?.fecha_inicio?.toLocaleDateString("en-GB", {
-    //           timeZone: "UTC",
-    //         })
-    //       )
-    //       .toString(),
-    //     fecha_fin: item?.contratos
-    //       ?.map((data) =>
-    //         data?.fecha_fin?.toLocaleDateString("en-GB", {
-    //           timeZone: "UTC",
-    //         })
-    //       )
-    //       .toString(),
-    //     contrato: item?.contratos[item.contratos.length - 1],
-    //     volquete: item?.contratos[item.contratos.length - 1]?.volquete,
-    //     teletran: parseInt(
-    //       item?.contratos[item.contratos.length - 1]?.teletrans.map(
-    //         (item) => item?.teletrans
-    //       )
-    //     ),
-    //     total: parseInt(
-    //       item?.contratos[item.contratos.length - 1]?.teletrans.map(
-    //         (item) => item?.total
-    //       )
-    //     ),
-    //     saldo: parseInt(
-    //       item?.contratos[item.contratos.length - 1]?.teletrans.map(
-    //         (item) => item?.saldo
-    //       )
-    //     ),
+    const mapAsociacion = filterAsociacion.map((item, i) => {
+      return {
+        id: item?.id,
+        nombre: item?.nombre,
+        codigo: item?.codigo,
+        fecha_inicio: item?.contratos
+          ?.map((data) =>
+            data?.fecha_inicio?.toLocaleDateString("en-GB", {
+              timeZone: "UTC",
+            })
+          )
+          .toString(),
+        fecha_fin: item?.contratos
+          ?.map((data) =>
+            data?.fecha_fin?.toLocaleDateString("en-GB", {
+              timeZone: "UTC",
+            })
+          )
+          .toString(),
+        contrato: item?.contratos[item.contratos.length - 1],
+        volquete: item?.contratos[item.contratos.length - 1]?.volquete,
+        teletran: parseInt(
+          item?.contratos[item.contratos.length - 1]?.teletrans.map(
+            (item) => item?.teletrans
+          )
+        ),
+        total: parseInt(
+          item?.contratos[item.contratos.length - 1]?.teletrans.map(
+            (item) => item?.total
+          )
+        ),
+        saldo: parseInt(
+          item?.contratos[item.contratos.length - 1]?.teletrans.map(
+            (item) => item?.saldo
+          )
+        ),
 
-    //     estado: item?.contratos[item.contratos.length - 1]?.teletrans,
-    //   };
-    // });
+        estado: item?.contratos[item.contratos.length - 1]?.teletrans,
+      };
+    });
 
-    // const formatTrabajador = traba.map((item) => {
-    //   return {
-    //     trabajador: {
-    //       id: item?.id,
-    //       dni: item?.dni,
-    //       codigo_trabajador: item?.codigo_trabajador,
-    //       fecha_nacimiento: item?.fecha_nacimiento,
-    //       telefono: item?.telefono,
-    //       apellido_paterno: item?.apellido_paterno,
-    //       apellido_materno: item?.apellido_materno,
-    //       nombre: item?.nombre,
-    //       email: item?.email,
-    //       estado_civil: item?.estado_civil,
-    //       genero: item?.genero,
-    //       direccion: item?.direccion,
-    //       asociacion_id: item?.asociacion_id,
-    //       deshabilitado: item?.deshabilitado,
-    //       asistencia: item?.trabajador_asistencia?.filter(
-    //         (item) => item?.asistencia === "Asistio"
-    //       ).length,
-    //     },
-    //     evaluaciones: {
-    //       id: item?.evaluacions?.map((data) => data?.id).toString(),
-    //       fecha_evaluacion: item?.evaluacions?.map(
-    //         (data) => data?.fecha_evaluacion
-    //       ),
-    //       puesto: item?.evaluacions.map((data) => data?.puesto).toString(),
-    //       capacitacion_sso: item?.evaluacions
-    //         .map((data) => data?.capacitacion_sso)
-    //         .toString(),
-    //       capacitacion_gema: item?.evaluacions
-    //         ?.map((data) => data?.capacitacion_gema)
-    //         .toString(),
-    //       evaluacion_laboral: item.evaluacions
-    //         ?.map((data) => data.evaluacion_laboral)
-    //         .toString(),
-    //       presion_arterial: item?.evaluacions
-    //         ?.map((data) => data?.presion_arterial)
-    //         .toString(),
-    //       temperatura: item?.evaluacions
-    //         ?.map((data) => data?.temperatura)
-    //         .toString(),
-    //       saturacion: item?.evaluacions
-    //         ?.map((data) => data?.saturacion)
-    //         .toString(),
-    //       imc: item?.evaluacions?.map((data) => data?.imc).toString(),
-    //       pulso: item?.evaluacions?.map((data) => data?.pulso).toString(),
-    //       diabetes: item?.evaluacions.map((data) => data?.diabetes).toString(),
-    //       antecedentes: item?.evaluacions
-    //         .map((data) => data?.antecedentes)
-    //         .toString(),
-    //       emo: item?.evaluacions?.map((data) => data?.emo).toString(),
-    //       trabajador_id: item?.evaluacions
-    //         ?.map((data) => data?.trabajador_id)
-    //         .toString(),
-    //       aprobado: item?.evaluacions?.map((data) => data?.aprobado).toString(),
-    //     },
-    //     contrato: item?.evaluacions
-    //       .map(
-    //         (data) =>
-    //           data?.contrato_evaluacions[data.contrato_evaluacions.length - 1]
-    //             ?.contrato
-    //       )
-    //       .flat(),
-    //     // teletrans: item.evaluacions
-    //     //   .map((data) =>
-    //     //     data.contrato_evaluacions.map((dat) => dat.contrato.teletran)
-    //     //   )
-    //     //   .flat(),
-    //   };
-    // });
 
-    // const finalTrabajador = formatTrabajador.map((item) => {
-    //   return {
-    //     id: item?.trabajador?.id,
-    //     nombre:
-    //       item?.trabajador?.nombre +
-    //       " " +
-    //       item?.trabajador?.apellido_paterno +
-    //       " " +
-    //       item?.trabajador?.apellido_materno,
-    //     dni: item?.trabajador?.dni,
-    //     telefono: item?.trabajador?.telefono,
-    //     asistencia: item?.trabajador?.asistencia,
-    //     asociacion: item?.trabajador?.asociacion_id,
-    //     deshabilitado: item?.trabajador?.deshabilitado,
-    //     evaluacion_id: item?.evaluaciones?.id,
-    //     fecha_inicio: item?.contrato[
-    //       item.contrato.length - 1
-    //     ]?.fecha_inicio.toLocaleDateString("en-GB", {
-    //       timeZone: "UTC",
-    //     }),
-    //     fecha_fin: item?.contrato[
-    //       item.contrato.length - 1
-    //     ]?.fecha_fin.toLocaleDateString("en-GB", {
-    //       timeZone: "UTC",
-    //     }),
-    //     contrato: item?.contrato[item.contrato.length - 1],
-    //     volquete: parseInt(item?.contrato[item.contrato.length - 1]?.volquete),
-    //     teletran: parseInt(
-    //       item?.contrato[item.contrato.length - 1]?.teletrans.map(
-    //         (data) => data?.teletrans
-    //       )
-    //     ),
-    //     total: parseInt(
-    //       item?.contrato[item.contrato.length - 1]?.teletrans.map(
-    //         (item) => item?.total
-    //       )
-    //     ),
-    //     saldo: parseInt(
-    //       item?.contrato[item.contrato.length - 1]?.teletrans.map(
-    //         (item) => item?.saldo
-    //       )
-    //     ),
+    const final = mapAsociacion.concat(filterTrabajador);
 
-    //     estado: item?.contrato[item.contrato.length - 1]?.estado,
-    //   };
-    // });
-
-    // const filterTrabajador = finalTrabajador.filter(
-    //   (item) =>
-    //     item?.contrato?.length !== 0 &&
-    //     item?.contrato !== null &&
-    //     item?.contrato &&
-    //     item?.contrato?.finalizado === false
-    // );
-
-    // const final = mapAsociacion.concat(filterTrabajador);
-
-    res.status(200).json({ data: filterTrabajador });
+    res.status(200).json({ data: final });
     next();
   } catch (error) {
     console.log(error);
