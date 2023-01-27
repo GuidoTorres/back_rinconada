@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const asociacion = require("../controllers/asociacion");
-const uploadFile = require("../middleware/multer")
+const uploadFile = require("../middleware/multerAsociacion")
 
 router.get("/", asociacion.getAsociacion);
 router.post("/", asociacion.postAsociacion);

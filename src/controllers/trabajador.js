@@ -10,7 +10,7 @@ const { Op, Sequelize } = require("sequelize");
 const { cloudinary } = require("../../config/cloudinary");
 const XLSX = require("xlsx");
 const sharp = require("sharp");
-const dayjs = require('dayjs')
+const dayjs = require("dayjs");
 
 const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
@@ -179,22 +179,28 @@ const postMultipleTrabajador = async (req, res, next) => {
           {}
         )
       );
+
     const obj = result.map((item) => {
       return {
-        dni: parseInt(item.__EMPTY),
-        codigo_trabajador: item.Tabla_1,
-        fecha_nacimiento: item.__EMPTY_4,
-        telefono: item.__EMPTY_5,
-        apellido_paterno: item.__EMPTY_2,
-        apellido_materno: item.__EMPTY_3,
-        nombre: item.__EMPTY_1,
-        email: item.__EMPTY_6,
-        estado_civil: item.__EMPTY_7,
-        genero: item.__EMPTY_8,
+        dni: parseInt(item?.dni),
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        apellido_paterno: item?.apellido_paterno,
+        apellido_materno: item?.apellido_materno,
+        nombre: item?.nombre,
+        email: item?.email,
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
       };
     });
 
-    const getTrabajador = await trabajador.findAll();
+    console.log(obj);
+
+    const getTrabajador = await trabajador.findAll({
+      attributes: { exclude: ["usuarioId"] },
+    });
+
     const filtered = obj.filter(
       ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
     );
@@ -211,12 +217,24 @@ const postMultipleTrabajador = async (req, res, next) => {
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
 
-    const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
-    res
-      .status(200)
-      .json({ msg: "Trabajadores creados con éxito!", status: 200 });
+    console.log(dnis);
 
-    next();
+    if(dnis.length !== 0){
+
+      const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
+      res
+        .status(200)
+        .json({ msg: "Trabajadores creados con éxito!", status: 200 });
+  
+
+    }else{
+      res
+        .status(200)
+        .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
+  
+      }
+      next();
+      
   } catch (error) {
     console.log(error);
     res

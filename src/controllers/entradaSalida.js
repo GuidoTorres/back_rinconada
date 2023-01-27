@@ -138,7 +138,7 @@ const postEntradaSalida = async (req, res, next) => {
     console.log(error);
     res
       .status(500)
-      .json({ msg: `No se pudo crear la ${req.body.tipo}.`, status: 500 });
+      .json({ msg: `No se pudo crear la ${req.body[0].tipo}.`, status: 500 });
   }
 };
 

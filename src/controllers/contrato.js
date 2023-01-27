@@ -74,11 +74,6 @@ const postContrato = async (req, res, next) => {
       contrato_id: post.id,
       evaluacion_id: req.body.evaluacion_id,
     };
-    console.log(info);
-    const tablaIntermedia = await contratoEvaluacion.create({
-      contrato_id: post.id,
-      evaluacion_id: req.body.evaluacion_id,
-    });
 
     let volquete = parseInt(req.body?.volquete);
     let teletran = parseInt(req.body?.teletran);

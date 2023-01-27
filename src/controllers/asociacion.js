@@ -14,11 +14,6 @@ const getAsociacion = async (req, res, next) => {
     const all = await asociacion.findAll({
       include: [
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          include: [{ model: campamento }],
-        },
-        {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
           include: [{ model: evaluacion }],
@@ -32,17 +27,26 @@ const getAsociacion = async (req, res, next) => {
         nombre: item?.nombre,
         codigo: item?.codigo,
         tipo: item?.tipo,
-        contrato: item?.contratos?.length !== 0 ? item.contratos : "",
-        campamento: item?.contratos
-          .map((dat) => dat?.campamento?.nombre)
-          .toString(),
-        trabajador: item.trabajadors.length !== 0 ? item.trabajadors : "",
-        evaluacion_id: item?.trabajadors
-          ?.map((data) => data?.evaluacions?.map((dat) => dat.id))
-          .flat(),
-        evaluacions: item?.trabajadors
-          ?.map((data) => data?.evaluacions[data.evaluacions.length - 1])
-          .flat(),
+        trabajadors: item.trabajadors.map((data) => {
+          return {
+            dni: data.dni,
+            codigo_trabajador: data.codigo_trabajador,
+            fecha_nacimiento: data.fecha_nacimiento,
+            telefono: data.telefono,
+            nombre: data.nombre,
+            apellido_paterno: data.apellido_paterno,
+            apellido_materno: data.apellido_materno,
+            email: data.email,
+            estado_civil: data.estado_civil,
+            genero: data.genero,
+            direccion: data.direccion,
+            asociacion_id: data.asociacion_id,
+            deshabilitado: data.deshabilitado,
+            foto: data.foto,
+            eliminar: data.eliminar,
+            evaluacions: data.evaluacions[data.evaluacions.length - 1],
+          };
+        }),
       };
     });
 
@@ -159,9 +163,9 @@ const deleteAsociacion = async (req, res, next) => {
 
 const uploadFile = async (req, res, next) => {
   let id = req.params.id;
-
+  console.log(req.file);
   try {
-    const workbook = XLSX.readFile("./upload/data.xlsx");
+    const workbook = XLSX.readFile("./upload/asociacion.xlsx");
     const workbookSheets = workbook.SheetNames;
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
@@ -178,21 +182,22 @@ const uploadFile = async (req, res, next) => {
 
     const obj = result.map((item) => {
       return {
-        dni: parseInt(item.__EMPTY),
-        codigo_trabajador: item.Tabla_1,
-        fecha_nacimiento: item.__EMPTY_4,
-        telefono: item.__EMPTY_5,
-        apellido_paterno: item.__EMPTY_2,
-        apellido_materno: item.__EMPTY_3,
-        nombre: item.__EMPTY_1,
-        email: item.__EMPTY_6,
-        estado_civil: item.__EMPTY_7,
-        genero: item.__EMPTY_8,
+        dni: parseInt(item?.dni),
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        apellido_paterno: item?.apellido_paterno,
+        apellido_materno: item?.apellido_materno,
+        nombre: item?.nombre,
+        email: item?.email,
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
         asociacion_id: id,
       };
     });
+    console.log(obj);
 
-    const getTrabajador = await trabajador.findAll();
+    const getTrabajador = await trabajador.findAll({attributes:{exclude:["usuarioId"]}});
     const filtered = obj.filter(
       ({ dni, codigo_trabajador }) =>
         !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
@@ -209,6 +214,7 @@ const uploadFile = async (req, res, next) => {
       .send({ data: "Trabajadores creados con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ data: "No se pudo registrar los trabajadores", status: 500 });
