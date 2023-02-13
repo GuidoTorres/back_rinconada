@@ -9,7 +9,7 @@ const date = require("date-and-time");
 
 const getContrato = async (req, res, next) => {
   try {
-    const get = await contrato.findAll();
+    const get = await contrato.findAll({attributes:{exclude:["contrato_id"]}});
     res.status(200).json({ data: get });
     next();
   } catch (error) {
@@ -155,6 +155,11 @@ const postContratoAsociacion = async (req, res, next) => {
           .json({ msg: "Contrato creado con éxito!", status: 200 });
         next();
       }
+    }else{
+      res
+          .status(200)
+          .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });
+        next();
     }
   } catch (error) {
     console.log(error);
@@ -170,21 +175,24 @@ const updateContrato = async (req, res, next) => {
       where: { id: id },
     });
 
-    let volquete = parseInt(req.body?.volquete);
-    let teletran = parseInt(req.body?.teletran);
-    let total = parseInt(volquete) * 4 + parseInt(teletran);
+    if(req?.body?.volquete && req?.body?.teletran){
 
-    console.log(volquete);
-    const ttransInfo = {
-      volquete: volquete,
-      total: total,
-      saldo: total,
-      teletrans: teletran,
-      contrato_id: id,
-    };
-    const createtTrans = await teletrans.update(ttransInfo, {
-      where: { contrato_id: id },
-    });
+      let volquete = parseInt(req.body?.volquete);
+      let teletran = parseInt(req.body?.teletran);
+      let total = parseInt(volquete) * 4 + parseInt(teletran);
+      
+      console.log(volquete);
+      const ttransInfo = {
+        volquete: volquete,
+        total: total,
+        saldo: total,
+        teletrans: teletran,
+        contrato_id: id,
+      };
+      const createtTrans = await teletrans.update(ttransInfo, {
+        where: { contrato_id: id },
+      });
+    }
 
     res
       .status(200)

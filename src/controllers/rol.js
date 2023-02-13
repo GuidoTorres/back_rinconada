@@ -63,6 +63,8 @@ const postRol = async (req, res, next) => {
         finanzas_proveedor: false,
         finanzas_sucursal: false,
         rol_id: createRol.id,
+        personal_contrato: false,
+        personal_evaluacion: false
       };
       const agregarPermisos = await permisos.create(accesos);
     }

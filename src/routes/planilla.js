@@ -4,6 +4,8 @@ const planilla = require("../controllers/planilla")
 
 
 router.get("/", planilla.getPlanilla)
+router.get("/pagos", planilla.getPlanillaPago)
+
 router.get("/campamento", planilla.campamentoPlanilla)
 router.get("/tareo/:id", planilla.getTareoTrabajador)
 router.get("/tareo/asociacion/:id", planilla.getTareoAsociacion)

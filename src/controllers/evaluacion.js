@@ -37,7 +37,7 @@ const getEvaluacionById = async (req, res, next) => {
       return {
         evaluacion_id: item?.id,
         trabajador_id: item?.trabajador?.id,
-        fecha_evaluacion: dayjs(item?.fecha_evaluacion).format("DD-MM-YYYY"),
+        fecha_evaluacion: dayjs(item?.fecha_evaluacion),
         evaluacion_laboral: item?.evaluacion_laboral,
         finalizado: item?.finalizado,
         antecedentes: item?.antecedentes,

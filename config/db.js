@@ -459,13 +459,14 @@ const ingresos_egresos = sequelize.define(
     proveedor: DataTypes.STRING,
     comprobante: DataTypes.STRING,
     sucursal_id: DataTypes.INTEGER,
-    saldo_inicial: DataTypes.FLOAT,
-    ingresos: DataTypes.FLOAT,
-    egresos: DataTypes.FLOAT,
-    saldo_final: DataTypes.FLOAT,
+    saldo_inicial: DataTypes.STRING,
+    ingresos: DataTypes.STRING,
+    egresos: DataTypes.STRING,
+    saldo_final: DataTypes.STRING,
     dni: DataTypes.STRING,
     sucursal_transferencia: DataTypes.STRING,
     nro_comprobante: DataTypes.STRING,
+    precio: DataTypes.STRING
   },
   {
     tableName: "ingresos_egresos",
@@ -617,7 +618,7 @@ const requerimiento = sequelize.define(
     aprobacion_jefe: DataTypes.BOOLEAN,
     aprobacion_gerente: DataTypes.BOOLEAN,
     aprobacion_superintendente: DataTypes.BOOLEAN,
-    completado: DataTypes.BOOLEAN,
+    completado: DataTypes.STRING,
   },
   {
     tableName: "requerimiento",
@@ -807,6 +808,8 @@ const permisos = sequelize.define(
     finanzas_proveedor: DataTypes.BOOLEAN,
     finanzas_sucursal: DataTypes.BOOLEAN,
     rol_id: DataTypes.INTEGER,
+    personal_contrato: DataTypes.BOOLEAN,
+    personal_evaluacion: DataTypes.BOOLEAN
   },
   {
     tableName: "permisos",

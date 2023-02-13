@@ -54,7 +54,7 @@ const deleteSocio = async (req, res, next) => {
   let id = req.params.id;
   try {
     let delRol = await socio.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Registro eliminado con éxito!", status:200 });
+    res.status(200).json({ msg: "Eliminado con éxito!", status:200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar el registro.", status:500 });

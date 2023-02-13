@@ -64,7 +64,10 @@ const updateSucursal = async (req, res, next) => {
 const deleteSucursal = async (req, res, next) => {
   let id = req.params.id;
   try {
-    let destroy = await campamento.destroy({ where: { id: id } });
+    let destroySaldo = await saldo.destroy({
+      where: {sucursal_id: id}
+    })
+    let destroy = await sucursal.destroy({ where: { id: id } });
     res.status(200).json({ msg: "Sucursal eliminada con éxito!", status: 200 });
     next();
   } catch (error) {

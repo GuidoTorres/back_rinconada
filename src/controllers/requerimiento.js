@@ -3,12 +3,14 @@ const {
   requerimiento_producto,
   producto,
   area,
+  almacen,
 } = require("../../config/db");
 
 const getRequerimiento = async (req, res, next) => {
   try {
 
     const getArea = await area.findAll()
+    const getAlmacen = await almacen.findAll()
     const get = await requerimiento.findAll({
       include: [
         {
@@ -33,6 +35,7 @@ const getRequerimiento = async (req, res, next) => {
         proyecto: item.proyecto,
         codigo_requerimiento: item.codigo_requerimiento,
         almacen_id: item.almacen_id,
+        almacen: (getAlmacen.filter(dat => dat.id == item.almacen_id).map(item => item.nombre)).toString(),
         estado: item.estado,
         aprobacion_jefe: item.aprobacion_jefe,
         aprobacion_gerente: item.aprobacion_gerente,
@@ -66,7 +69,7 @@ const getRequerimientoById = async (req, res, next) => {
 };
 
 const postARequerimiento = async (req, res, next) => {
-  let data = req.body.map((item) => {
+  let data = req?.body?.map((item) => {
     return {
       codigo: item.codigo,
       fecha_pedido: item.fecha_pedido,
@@ -76,6 +79,7 @@ const postARequerimiento = async (req, res, next) => {
       celular: item.celular,
       proyecto: item.proyecto,
       almacen_id: item.almacen_id,
+      completado: "Pendiente"
     };
   });
 
@@ -104,6 +108,7 @@ const postARequerimiento = async (req, res, next) => {
   }
 };
 
+
 const updateRequerimiento = async (req, res, next) => {
   let id = req.params.id;
 
@@ -119,12 +124,12 @@ const updateRequerimiento = async (req, res, next) => {
       updateEstado.aprobacion_superintendente
     ) {
       let update = await requerimiento.update(
-        { estado: 1 },
+        { estado: 1, completado: "Aprobado" },
         { where: { id: id } }
       );
     } else {
       let update = await requerimiento.update(
-        { estado: 0 },
+        { estado: 0, completado: "Aprobado" },
         { where: { id: id } }
       );
     }

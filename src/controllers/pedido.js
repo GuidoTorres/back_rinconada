@@ -125,7 +125,7 @@ const postPedido = async (req, res, next) => {
     );
 
     const updateRequerimiento = await requerimiento.update(
-      { completado: true },
+      { completado: "Pedido" },
       {
         where: {
           id: req.body.req_id,

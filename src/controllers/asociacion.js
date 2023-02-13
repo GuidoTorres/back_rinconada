@@ -155,6 +155,7 @@ const deleteAsociacion = async (req, res, next) => {
       .json({ msg: "Asociación eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo eliminar la asociación.", status: 500 });

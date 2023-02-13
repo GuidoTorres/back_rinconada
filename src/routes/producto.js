@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const producto = require("../controllers/producto")
-const multer = require("../middleware/multer")
+const multer = require("../middleware/multerImage")
 
 
 router.get("/", producto.getProducto)

@@ -4,7 +4,7 @@ const sharp = require("sharp");
 
 const uploadFile = (req, res, next) => {
   const storage = multer.diskStorage({
-    destination: "./images",
+    destination: "./public/images",
 
     filename: function (req, res, cb) {
       //poner nombres diferentes a cada imagen
@@ -16,7 +16,7 @@ const uploadFile = (req, res, next) => {
   return upload;
 };
 
-const helperImage = (filePath, fileName, size = 100) => {
-  return sharp(filePath).resize(size).toFile(`./optimizeImage/${fileName}`);
-};
-module.exports = { uploadFile, helperImage };
+// const helperImage = (filePath, fileName, size = 100) => {
+//   return sharp(filePath).resize(size).toFile(`./optimizeImage/${fileName}`);
+// };
+module.exports = uploadFile;

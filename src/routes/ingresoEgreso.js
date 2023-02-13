@@ -3,6 +3,7 @@ const ingresoEgreso = require("../controllers/ingresoEgreso");
 
 router.get("/", ingresoEgreso.getIngresoEgresos);
 router.get("/trabajador", ingresoEgreso.getTrabajadorFinanza);
+router.get("/saldo/:id", ingresoEgreso.getSaldoMensual)
 router.post("/reporte/:id", ingresoEgreso.reporteIngreso);
 router.get("/sucursal/:id", ingresoEgreso.getIngresoEgresosById);
 router.post("/", ingresoEgreso.postIngresoEgreso);

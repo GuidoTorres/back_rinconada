@@ -123,6 +123,7 @@ const updateProducto = async (req, res, next) => {
 const deleteProducto = async (req, res, next) => {
   let id = req.params.id;
   try {
+    console.log(id);
     let camp = await producto.destroy({ where: { id: id } });
     res.status(200).json({ msg: "Producto eliminado con éxito!", status: 200 });
     next();

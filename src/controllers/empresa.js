@@ -36,12 +36,25 @@ const postEmpresa = async (req, res, next) => {
   };
 
   try {
-    const empre = await empresa.create(info);
-    res.status(200).json({ data: empre });
+    const getRuc = await empresa.findAll({
+      where: { ruc: info.ruc },
+    });
+
+    if (getRuc.length > 0) {
+      res.status(409).json({
+        msg: "Ruc actualmente registrado, intente con otro!",
+        status: 409,
+      });
+    } else {
+      const empre = await empresa.create(info);
+      res
+        .status(200)
+        .json({ msg: "Empresa registrada correctamente!", status: 200 });
+    }
 
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ msg: "Eliminada con éxito!", status: 500 });
   }
 };
 
@@ -50,10 +63,10 @@ const updateEmpresa = async (req, res, next) => {
 
   try {
     let camp = await empresa.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Empresa actualizado con exito" });
+    res.status(200).json({ msg: "Empresa actualizada con éxito", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
 
@@ -61,10 +74,10 @@ const deleteEmpresa = async (req, res, next) => {
   let id = req.params.id;
   try {
     let camp = await empresa.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Empresa eliminada con exito" });
+    res.status(200).json({ msg: "Empresa eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };
 

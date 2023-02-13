@@ -3,14 +3,14 @@ const {
   campamento,
   contrato,
   evaluacion,
-  contratoEvaluacion,
   area,
 } = require("../../config/db");
-const { Op, Sequelize } = require("sequelize");
+const { Op, Sequelize, where } = require("sequelize");
 const { cloudinary } = require("../../config/cloudinary");
 const XLSX = require("xlsx");
 const sharp = require("sharp");
 const dayjs = require("dayjs");
+const fs = require("fs");
 
 const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
@@ -19,7 +19,6 @@ const getTrabajador = async (req, res, next) => {
       where: {
         [Op.and]: [
           { asociacion_id: { [Op.is]: null } },
-          { deshabilitado: { [Op.not]: true } },
           { eliminar: { [Op.not]: true } },
         ],
       },
@@ -40,23 +39,23 @@ const getTrabajador = async (req, res, next) => {
 
     const obj = get.map((item) => {
       return {
-        dni: item.dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: dayjs(item?.fecha_nacimiento).toDate(),
-        telefono: item.telefono,
-        nombre: item.nombre,
-        apellido_paterno: item.apellido_paterno,
-        apellido_materno: item.apellido_materno,
-        email: item.email,
-        estado_civil: item.estado_civil,
-        genero: item.genero,
-        direccion: item.direccion,
-        asociacion_id: item.asociacion_id,
-        deshabilitado: item.deshabilitado,
-        foto: item.foto,
-        eliminar: item.eliminar,
-        evaluacion: item.evaluacions,
-        contrato: item.contrato,
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        nombre: item?.nombre,
+        apellido_paterno: item?.apellido_paterno,
+        apellido_materno: item?.apellido_materno,
+        email: item?.email,
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
+        direccion: item?.direccion,
+        asociacion_id: item?.asociacion_id,
+        deshabilitado: item?.deshabilitado,
+        foto: item?.foto,
+        eliminar: item?.eliminar,
+        evaluacion: item?.evaluacions,
+        contrato: item?.contratos,
       };
     });
     res.status(200).json({ data: obj });
@@ -74,23 +73,38 @@ const getTrabajadorById = async (req, res, next) => {
       attributes: { exclude: ["usuarioId"] },
     });
 
-    res.status(200).json({ data: get });
+    const obj = get.map((item) => {
+      return {
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("DD/MM/YYYY"),
+        telefono: item?.telefono,
+        nombre: item?.nombre,
+        apellido_paterno: item?.apellido_paterno,
+        apellido_materno: item?.apellido_materno,
+        email: item?.email,
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
+        direccion: item?.direccion,
+        asociacion_id: item?.asociacion_id,
+        deshabilitado: item?.deshabilitado,
+        foto: item?.foto,
+        eliminar: item?.eliminar,
+      };
+    });
+
+    res.status(200).json({ data: obj });
     next();
   } catch (error) {
-    console.log(error);
     res.status(500).json();
   }
 };
+
 
 const postTrabajador = async (req, res, next) => {
   let info;
 
   if (req.file) {
-    const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
-      upload_preset: "ml_default",
-      height: 80,
-      width: 80,
-    });
     info = {
       dni: req.body.dni,
       codigo_trabajador: req.body.codigo_trabajador,
@@ -104,7 +118,7 @@ const postTrabajador = async (req, res, next) => {
       genero: req.body.genero,
       direccion: req.body.direccion,
       tipo_trabajador: req.body.tipo_trabajador,
-      foto: uploadResponse.url,
+      foto: "http://localhost:3000/img/" + req.file.filename,
     };
   } else {
     info = {
@@ -219,22 +233,17 @@ const postMultipleTrabajador = async (req, res, next) => {
 
     console.log(dnis);
 
-    if(dnis.length !== 0){
-
+    if (dnis.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
       res
         .status(200)
         .json({ msg: "Trabajadores creados con éxito!", status: 200 });
-  
-
-    }else{
+    } else {
       res
         .status(200)
         .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
-  
-      }
-      next();
-      
+    }
+    next();
   } catch (error) {
     console.log(error);
     res
@@ -246,12 +255,20 @@ const postMultipleTrabajador = async (req, res, next) => {
 const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
   let info;
+
+  // console.log(req?.body?.foto?.split("/").pop());
+
+  // fs.unlink(
+  //   `${__dirname}/upload/images/${req?.body?.foto?.split("/").pop()}`,
+  //   function (err) {
+  //     if (err) {
+  //       console.log(err);
+  //     } else {
+  //       console.log("eliminado correctamente");
+  //     }
+  //   }
+  // );
   if (req.file) {
-    const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
-      upload_preset: "ml_default",
-      height: 120,
-      width: 120,
-    });
     info = {
       dni: req.body.dni,
       codigo_trabajador: req.body.codigo_trabajador,
@@ -267,7 +284,7 @@ const updateTrabajador = async (req, res, next) => {
       tipo_trabajador: req.body.tipo_trabajador,
       asociacion_id: req.body.asociacion_id || null,
       deshabilitado: req.body.deshabilitado,
-      foto: uploadResponse.url,
+      // foto: "http://localhost:3000/img/" + req.file.filename,
     };
   } else {
     info = {
@@ -307,12 +324,15 @@ const updateTrabajador = async (req, res, next) => {
 const deleteTrabajador = async (req, res, next) => {
   let id = req.params.id;
   try {
+    // let deleteEvaluacion = await evaluacion.destroy({where: {trabajador_id: id}})
+    // let deleteContrato = await contrato.destroy({where : {trabajador_id: id}})
     let response = await trabajador.destroy({ where: { dni: id } });
     res
       .status(200)
       .json({ msg: "Trabajador eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo eliminar el trabajador.", status: 500 });

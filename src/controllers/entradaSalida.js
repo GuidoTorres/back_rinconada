@@ -195,9 +195,11 @@ const deleteEntradaSalida = async (req, res, next) => {
 
 const entradaSalidaEstadistica = async (req, res, next) => {
   try {
+    let fecha_inicio = req.body?.fecha_inicio?.split("T")[0];
+    let fecha_fin = req.body?.fecha_fin?.split("T")[0];
     const getIngresoEgresos = await entrada_salida.findAll({
       where: {
-        fecha: { [Op.between]: [req.body.fecha_inicio, req.body.fecha_fin] },
+        fecha: { [Op.between]: [fecha_inicio, fecha_fin] },
         tipo: "salida",
       },
       include: [{ model: producto_entrada_salida }, { model: area }],
@@ -212,8 +214,6 @@ const entradaSalidaEstadistica = async (req, res, next) => {
         ),
       };
     });
-
-    console.log(formatData);
 
     let reduce = formatData.reduce((value, current) => {
       let temp = value.find((o) => o.id == current.id);

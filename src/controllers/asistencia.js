@@ -1,4 +1,3 @@
-const { where, TimeoutError } = require("sequelize");
 const {
   asistencia,
   contrato,
@@ -10,6 +9,7 @@ const {
 } = require("../../config/db");
 const XLSX = require("xlsx");
 const date = require("date-and-time");
+
 
 const getAsistencia = async (req, res, next) => {
   try {
@@ -178,7 +178,6 @@ const getExcelAsistencia = async (req, res, next) => {
     res.status(200).json({
       msg: "Se registraron las asistencias exitosamente!",
       status: 200,
-
     });
 
     next();
@@ -196,6 +195,7 @@ const getTrabajadorAsistencia = async (req, res, next) => {
 
   try {
     const get = await trabajador.findAll({
+      attributes: { exclude: ["usuarioId"] },
       include: [
         {
           model: trabajadorAsistencia,
@@ -203,44 +203,35 @@ const getTrabajadorAsistencia = async (req, res, next) => {
           attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
         },
         {
-          model: evaluacion,
-          include: [
-            { model: contratoEvaluacion },
-            // { model: contrato, attributes: { exclude: ["contrato_id"] } },
-          ],
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
         },
       ],
     });
     const filterDeshabilitado = get.filter(
-      (item) => item.deshabilitado !== true
+      (item) =>
+        item?.contratos?.length > 0 &&
+        !item?.deshabilitado &&
+        item?.contratos?.at(-1)?.finalizado === false
     );
-    const filterIfEvaluacion = filterDeshabilitado.filter(
-      (item) => item.evaluacions.length !== 0
-    );
-
-    const jsonFinal = filterIfEvaluacion.map((item) => {
+    const jsonFinal = filterDeshabilitado.map((item) => {
       return {
-        dni: item.dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: item.fecha_nacimiento,
-        telefono: item.telefono,
-        apellido_paterno: item.apellido_paterno,
-        apellido_materno: item.apellido_materno,
-        nombre: item.nombre,
-        email: item.email,
-        estado_civil: item.estado_civil,
-        genero: item.genero,
-        asociacion_id: item.asociacion_id,
-        trabajador_asistencia: item.trabajador_asistencia.filter(
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        apellido_paterno: item?.apellido_paterno,
+        apellido_materno: item?.apellido_materno,
+        nombre: item?.nombre,
+        email: item?.email,
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
+        asociacion_id: item?.asociacion_id,
+        trabajador_asistencia: item?.trabajador_asistencia?.filter(
           (item) => item.asistencia_id == id
         ),
-        // contrato: item?.evaluacions[item.evaluacions.length - 1]?.contratos,
-        contrato_evaluacion:
-          item?.evaluacions[item.evaluacions.length - 1]?.contrato_evaluacions,
       };
     });
-
-    // const filterFinal = jsonFinal.filter((item) => item.contrato.length > 0);
 
     res.status(200).json({ data: jsonFinal });
     next();
@@ -397,10 +388,14 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
 const deleteAsistencia = async (req, res, next) => {
   let id = req.params.id;
   try {
+    let delAsisTrabajador = trabajadorAsistencia.destroy({
+      where: { asistencia_id: id },
+    });
     let delAsis = await asistencia.destroy({ where: { id: id } });
     res.status(200).json({ msg: "Eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };

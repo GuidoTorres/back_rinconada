@@ -104,10 +104,82 @@ const getPlanilla = async (req, res, next) => {
       };
     });
 
+    const mapTrabajador = filterTrabajador.map((item) => {
+      return {
+        dni: item.dni,
+        codigo_trabajador: item.codigo_trabajador,
+        fecha_nacimiento: item.fecha_nacimiento,
+        telefono: item.telefono,
+        apellido_paterno: item.apellido_paterno,
+        apellido_materno: item.apellido_materno,
+        nombre: item.nombre,
+        email: item.email,
+        estado_civil: item.estado_civil,
+        genero: item.genero,
+        direccion: item.direccion,
+        asociacion_id: item.asociacion_id,
+        deshabilitado: item.deshabilitado,
+        eliminar: item.e,
+        contratos: item.contratos,
+        asistencia: item.trabajador_asistencia.filter(
+          (data) => data.asistencia === "Asistio"
+        ).length,
+      };
+    });
 
-    const final = mapAsociacion.concat(filterTrabajador);
+    const final = mapAsociacion.concat(mapTrabajador);
 
     res.status(200).json({ data: final });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
+const getPlanillaPago = async (req, res, next) => {
+  try {
+    const getPlanilla = await trabajador.findAll({
+      where: {
+        [Op.and]: [
+          { asociacion_id: { [Op.is]: null } },
+          { deshabilitado: { [Op.not]: true } },
+        ],
+      },
+      attributes: { exclude: ["usuarioId"] },
+      include: [
+        {
+          model: trabajadorAsistencia,
+          attributes: {
+            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
+          },
+        },
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          where: {
+            [Op.and]: [{ finalizado: { [Op.not]: true } }],
+          },
+          include: [
+            { model: teletrans },
+          ],
+        },
+      ],
+    });
+
+    const filterAsistencia = getPlanilla
+      ?.map((item) => {
+        if (
+          item.trabajador_asistencia.filter(
+            (item) => item.asistencia === "Asistio"
+          ).length >= 15
+        ) {
+          return item;
+        }
+      })
+      .flat();
+      
+    res.status(200).json({ data: filterAsistencia });
     next();
   } catch (error) {
     console.log(error);
@@ -133,6 +205,9 @@ const getTareoTrabajador = async (req, res, next) => {
   try {
     const getTareo = await trabajador.findAll({
       where: { dni: id },
+      attributes: {
+        exclude: ["usuarioId"],
+      },
       include: [
         {
           model: trabajadorAsistencia,
@@ -329,4 +404,5 @@ module.exports = {
   getTareoTrabajador,
   getTareoAsociacion,
   juntarTeletrans,
+  getPlanillaPago,
 };

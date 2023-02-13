@@ -1,10 +1,9 @@
 const { ingresos_egresos, saldo, trabajador } = require("../../config/db");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const path = require("path");
 const XLSX = require("xlsx");
 const fs = require("fs");
 const _ = require("lodash");
-const { Blob } = require("buffer");
 
 const getIngresoEgresos = async (req, res, next) => {
   try {
@@ -64,7 +63,8 @@ const postIngresoEgreso = async (req, res, next) => {
         saldo_inicial: getSaldo[getSaldo.length - 1?.saldo_inicial],
         ingresos: null,
         egresos:
-          parseFloat(getSaldo[getSaldo.length - 1]?.egresos) + parseFloat(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.egresos) +
+          parseFloat(req.body.monto),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
             ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
@@ -95,15 +95,18 @@ const postIngresoEgreso = async (req, res, next) => {
         egresos: null,
         saldo_final:
           getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final === 0
-            ? parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial) +
-              parseFloat(req.body.monto)
-            : parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final) +
-              parseFloat(req.body.monto),
+            ? parseFloat(
+                getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial
+              ) + parseFloat(req.body.monto)
+            : parseFloat(
+                getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final
+              ) + parseFloat(req.body.monto),
       };
       let newSaldoEgreso = {
         saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
         egresos:
-          parseFloat(getSaldo[getSaldo.length - 1]?.egresos) + parseFloat(req.body.monto),
+          parseFloat(getSaldo[getSaldo.length - 1]?.egresos) +
+          parseFloat(req.body.monto),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
             ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
@@ -112,16 +115,20 @@ const postIngresoEgreso = async (req, res, next) => {
               parseFloat(req.body.monto),
       };
       let newSaldoIngreso = {
-        saldo_inicial: parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial),
+        saldo_inicial: parseFloat(
+          getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial
+        ),
         ingresos:
           parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.ingresos) +
           parseFloat(req.body.monto),
         saldo_final:
           getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final === 0
-            ? parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial) +
-              parseFloat(req.body.monto)
-            : parseFloat(getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final) +
-              parseFloat(req.body.monto),
+            ? parseFloat(
+                getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial
+              ) + parseFloat(req.body.monto)
+            : parseFloat(
+                getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_final
+              ) + parseFloat(req.body.monto),
       };
 
       const postEgreso = await ingresos_egresos.create(objEgreso);
@@ -144,8 +151,9 @@ const postIngresoEgreso = async (req, res, next) => {
     if (req.body.movimiento === "Ingreso" && !req.body.sucursal_transferencia) {
       newSaldo = {
         saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
-        ingresos:
-          parseFloat(getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto)),
+        ingresos: parseFloat(
+          getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto)
+        ),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
             ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) +
@@ -167,10 +175,11 @@ const postIngresoEgreso = async (req, res, next) => {
         proveedor: req.body.proveedor,
         comprobante: req.body.comprobante,
         dni: req.body.dni,
-        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1?.saldo_inicial]),
-        ingresos:
-         parseFloat (getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto)),
-        egresos: null,
+        precio: req.body.precio,
+        saldo_inicial: getSaldo[getSaldo.length - 1?.saldo_inicial],
+        ingresos: parseFloat(
+          getSaldo[getSaldo.length - 1]?.ingresos + parseInt(req.body.monto)
+        ),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
             ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) +
@@ -194,8 +203,9 @@ const postIngresoEgreso = async (req, res, next) => {
     ) {
       newSaldo = {
         saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
-        egresos:
-          parseFloat(getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto)),
+        egresos: parseFloat(
+          getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto)
+        ),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
             ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
@@ -217,10 +227,11 @@ const postIngresoEgreso = async (req, res, next) => {
         proveedor: req.body.proveedor,
         comprobante: req.body.comprobante,
         dni: req.body.dni,
-        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
-        ingresos: null,
-        egresos:
-          parseFloat(getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto)),
+        precio: req.body.precio,
+        saldo_inicial: getSaldo[getSaldo.length - 1]?.saldo_inicial,
+        egresos: parseFloat(
+          getSaldo[getSaldo.length - 1]?.egresos + parseInt(req.body.monto)
+        ),
         saldo_final:
           getSaldo[getSaldo.length - 1]?.saldo_final === 0
             ? parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial) -
@@ -743,12 +754,37 @@ const convertJsonToExcel = async (req, res, next) => {
 const getTrabajadorFinanza = async (req, res, next) => {
   try {
     const get = await trabajador.findAll({
-      attributes:{exclude:["usuarioId"]}
+      attributes: { exclude: ["usuarioId"] },
     });
     res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log("===============================");
+    console.log(error);
+    res.status(500).json(error);
+  }
+};
+
+const getSaldoMensual = async (req, res, next) => {
+  let id = req.params.id;
+
+  try {
+    const getById = await ingresos_egresos.findAll({
+      where: { sucursal_id: id },
+      attributes: [
+        "movimiento",
+        "area",
+        "ingresos",
+        "egresos",
+        "monto",
+        [Sequelize.literal(`MONTH(fecha)`), "fecha"],
+      ],
+    });
+
+
+    res.status(200).json({ data: getById });
+    next();
+  } catch (error) {
     console.log(error);
     res.status(500).json(error);
   }
@@ -763,4 +799,5 @@ module.exports = {
   reporteIngreso,
   convertJsonToExcel,
   getTrabajadorFinanza,
+  getSaldoMensual,
 };

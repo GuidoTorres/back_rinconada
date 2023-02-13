@@ -12,7 +12,6 @@ const uploadFile = () => {
   });
 
   const upload = multer({ storage: storage }).single("myFile");
-  console.log(upload);
   return upload;
 };
 module.exports = uploadFile;

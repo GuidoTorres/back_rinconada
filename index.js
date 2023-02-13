@@ -39,8 +39,9 @@ app.use(cors());
 app.use(express.json());
 
 
-app.use(express.static(path.join(__dirname, "/upload")))
-console.log(__dirname);
+app.use(express.static(path.join(__dirname, "public")))
+app.use("/img",express.static(path.join(__dirname, "public/images")))
+
 
 app.use("/api/v1/trabajador", trabajadorRouter);
 app.use("/api/v1/usuario", usuarioRouter);
