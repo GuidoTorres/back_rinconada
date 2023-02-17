@@ -9,7 +9,9 @@ const date = require("date-and-time");
 
 const getContrato = async (req, res, next) => {
   try {
-    const get = await contrato.findAll({attributes:{exclude:["contrato_id"]}});
+    const get = await contrato.findAll({
+      attributes: { exclude: ["contrato_id"] },
+    });
     res.status(200).json({ data: get });
     next();
   } catch (error) {
@@ -24,7 +26,7 @@ const getContratoById = async (req, res, next) => {
   try {
     const user = await trabajador.findAll({
       where: { dni: id },
-      attributes: { exclude: [ "usuarioId"] },
+      attributes: { exclude: ["usuarioId"] },
       include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
     });
     // const obj = user.map((item) => {
@@ -71,9 +73,12 @@ const postContrato = async (req, res, next) => {
     const post = await contrato.create(req.body);
 
     let info = {
+      fecha: "",
+      estado: "Pendiente",
       contrato_id: post.id,
-      evaluacion_id: req.body.evaluacion_id,
     };
+
+    const fechaPago = await fechaPago.create(info);
 
     let volquete = parseInt(req.body?.volquete);
     let teletran = parseInt(req.body?.teletran);
@@ -155,11 +160,11 @@ const postContratoAsociacion = async (req, res, next) => {
           .json({ msg: "Contrato creado con éxito!", status: 200 });
         next();
       }
-    }else{
+    } else {
       res
-          .status(200)
-          .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });
-        next();
+        .status(200)
+        .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });
+      next();
     }
   } catch (error) {
     console.log(error);
@@ -175,12 +180,11 @@ const updateContrato = async (req, res, next) => {
       where: { id: id },
     });
 
-    if(req?.body?.volquete && req?.body?.teletran){
-
+    if (req?.body?.volquete && req?.body?.teletran) {
       let volquete = parseInt(req.body?.volquete);
       let teletran = parseInt(req.body?.teletran);
       let total = parseInt(volquete) * 4 + parseInt(teletran);
-      
+
       console.log(volquete);
       const ttransInfo = {
         volquete: volquete,

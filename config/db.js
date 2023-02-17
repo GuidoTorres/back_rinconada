@@ -4,9 +4,9 @@ const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
   database: "heroku_30cfe8f0814e57f",
-  username: "bcbf9d2c2227ee",
-  password: "011e52da",
-  host: "us-cdbr-east-06.cleardb.net",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
   dialect: "mysql",
   port: 3306,
   define: { timestamps: false, freezeTableName: true },
@@ -85,7 +85,7 @@ const rol = sequelize.define(
       allowNull: false,
     },
     nombre: DataTypes.STRING,
-    descripcion: DataTypes.STRING
+    descripcion: DataTypes.STRING,
   },
   {
     tableName: "rol",
@@ -151,6 +151,8 @@ const evaluacion = sequelize.define(
     recursos_humanos_observacion: DataTypes.STRING,
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
+    area: DataTypes.STRING,
+    campamento: DataTypes. STRING
   },
   {
     tableName: "evaluacion",
@@ -466,7 +468,7 @@ const ingresos_egresos = sequelize.define(
     dni: DataTypes.STRING,
     sucursal_transferencia: DataTypes.STRING,
     nro_comprobante: DataTypes.STRING,
-    precio: DataTypes.STRING
+    precio: DataTypes.STRING,
   },
   {
     tableName: "ingresos_egresos",
@@ -809,10 +811,30 @@ const permisos = sequelize.define(
     finanzas_sucursal: DataTypes.BOOLEAN,
     rol_id: DataTypes.INTEGER,
     personal_contrato: DataTypes.BOOLEAN,
-    personal_evaluacion: DataTypes.BOOLEAN
+    personal_evaluacion: DataTypes.BOOLEAN,
   },
   {
     tableName: "permisos",
+    timestamp: false,
+  }
+);
+
+const fecha_pago = sequelize.define(
+  "fecha_pago",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    fecha: DataTypes.STRING,
+    estado: DataTypes.STRING,
+    contrato_id: DataTypes.INTEGER,
+  },
+  {
+    tableName: "fecha_pago",
     timestamp: false,
   }
 );
@@ -911,8 +933,11 @@ trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id" });
 trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id" });
 trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-contrato.hasOne(pago, { foreignKey: "contrato_id" }),
-  pago.belongsTo(contrato, { foreignKey: "contrato_id" });
+contrato.hasMany(fecha_pago, { foreignKey: "contrato_id" }),
+fecha_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
+
+fecha_pago.hasOne(pago, { foreignKey: "fecha_pago_id" });
+pago.hasOne(fecha_pago, { foreignKey: "fecha_pago_id" });
 
 sucursal.hasMany(ingresos_egresos, { foreignKey: "sucursal_id" });
 ingresos_egresos.belongsTo(sucursal, { foreignKey: "sucursal_id" });
@@ -1023,7 +1048,6 @@ module.exports = {
   producto_entrada_salida,
   requerimiento,
   requerimiento_producto,
-
   unidad,
   pedido,
   requerimiento_pedido,
@@ -1031,4 +1055,5 @@ module.exports = {
   categoria,
   transferencia_producto,
   permisos,
+  fecha_pago,
 };

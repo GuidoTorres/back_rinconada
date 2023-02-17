@@ -10,6 +10,7 @@ const {
   teletrans,
   asistencia,
   trabajadorAsistencia,
+  fecha_pago,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
@@ -41,6 +42,7 @@ const getPlanilla = async (req, res, next) => {
             { model: campamento, include: [{ model: asistencia }] },
           ],
         },
+        {model:evaluacion}
       ],
     });
 
@@ -124,6 +126,7 @@ const getPlanilla = async (req, res, next) => {
         asistencia: item.trabajador_asistencia.filter(
           (data) => data.asistencia === "Asistio"
         ).length,
+        evaluacion: item.evaluacions
       };
     });
 
@@ -160,10 +163,9 @@ const getPlanillaPago = async (req, res, next) => {
           where: {
             [Op.and]: [{ finalizado: { [Op.not]: true } }],
           },
-          include: [
-            { model: teletrans },
-          ],
+          include: [{ model: teletrans }],
         },
+
       ],
     });
 
@@ -178,7 +180,7 @@ const getPlanillaPago = async (req, res, next) => {
         }
       })
       .flat();
-      
+
     res.status(200).json({ data: filterAsistencia });
     next();
   } catch (error) {
@@ -395,6 +397,19 @@ const juntarTeletrans = async (req, res, next) => {
   } catch (error) {
     console.log(error);
     res.status(500).json();
+  }
+};
+
+const updateFechaPago = async (req, res, next) => {
+  id = req.params.id;
+
+  try {
+    const get = await fecha_pago.update({ where: { contrato_id: id } });
+
+    res.status(500).json({ msg: "Actualizado con éxito!", status: 200 });
+    next();
+  } catch (error) {
+    res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
 
