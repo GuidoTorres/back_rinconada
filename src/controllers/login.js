@@ -19,8 +19,7 @@ const authLogin = async (req, res, next) => {
     const checkPassword = await compare(contrasenia, get.contrasenia);
     const tokenSession = await tokenSign(get);
     console.log(get);
-    if (get.estado !== true) {
-      console.log("pokemon");
+    if (get.estado === false) {
       return res.status(500).send({ msg: "Usuario inactivo!", status: 500 });
     }
 

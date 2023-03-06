@@ -30,6 +30,10 @@ const unidadRouter = require("./src/routes/unidad");
 const pedidoRouter = require("./src/routes/pedido");
 const transferenciaRouter = require("./src/routes/transferencia");
 const categoriaRouter = require("./src/routes/categoria");
+const trapicheRouter = require("./src/routes/trapiche");
+const volqueteRouter = require("./src/routes/volquete");
+const incentivoRouter = require("./src/routes/incentivo");
+
 const authRouter = require("./src/routes/auth");
 
 const app = express();
@@ -71,6 +75,10 @@ app.use("/api/v1/unidad", unidadRouter);
 app.use("/api/v1/pedido", pedidoRouter);
 app.use("/api/v1/transferencia", transferenciaRouter);
 app.use("/api/v1/categoria", categoriaRouter);
+app.use("/api/v1/trapiche", trapicheRouter);
+app.use("/api/v1/volquete", volqueteRouter);
+app.use("/api/v1/incentivo", incentivoRouter);
+
 app.use("/api/v1/auth", authRouter);
 
 

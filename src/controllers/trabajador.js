@@ -1,3 +1,4 @@
+require("dotenv").config;
 const {
   trabajador,
   campamento,
@@ -5,8 +6,7 @@ const {
   evaluacion,
   area,
 } = require("../../config/db");
-const { Op, Sequelize, where } = require("sequelize");
-const { cloudinary } = require("../../config/cloudinary");
+const { Op, Sequelize } = require("sequelize");
 const XLSX = require("xlsx");
 const sharp = require("sharp");
 const dayjs = require("dayjs");
@@ -100,42 +100,24 @@ const getTrabajadorById = async (req, res, next) => {
   }
 };
 
-
 const postTrabajador = async (req, res, next) => {
   let info;
 
-  if (req.file) {
-    info = {
-      dni: req.body.dni,
-      codigo_trabajador: req.body.codigo_trabajador,
-      fecha_nacimiento: req.body.fecha_nacimiento,
-      telefono: req.body.telefono,
-      apellido_paterno: req.body.apellido_paterno,
-      apellido_materno: req.body.apellido_materno,
-      nombre: req.body.nombre,
-      email: req.body.email,
-      estado_civil: req.body.estado_civil,
-      genero: req.body.genero,
-      direccion: req.body.direccion,
-      tipo_trabajador: req.body.tipo_trabajador,
-      foto: "http://localhost:3000/img/" + req.file.filename,
-    };
-  } else {
-    info = {
-      dni: req.body.dni,
-      codigo_trabajador: req.body.codigo_trabajador,
-      fecha_nacimiento: req.body.fecha_nacimiento,
-      telefono: req.body.telefono,
-      apellido_paterno: req.body.apellido_paterno,
-      apellido_materno: req.body.apellido_materno,
-      nombre: req.body.nombre,
-      email: req.body.email,
-      estado_civil: req.body.estado_civil,
-      genero: req.body.genero,
-      direccion: req.body.direccion,
-      tipo_trabajador: req.body.tipo_trabajador,
-    };
-  }
+  info = {
+    dni: req?.body?.dni,
+    codigo_trabajador: req?.body?.codigo_trabajador,
+    fecha_nacimiento: req?.body?.fecha_nacimiento,
+    telefono: req?.body?.telefono,
+    apellido_paterno: req?.body?.apellido_paterno,
+    apellido_materno: req?.body?.apellido_materno,
+    nombre: req?.body?.nombre,
+    email: req?.body?.email,
+    estado_civil: req?.body?.estado_civil,
+    genero: req?.body?.genero,
+    direccion: req?.body?.direccion,
+    tipo_trabajador: req?.body?.tipo_trabajador,
+    foto: req.file ? process.env.LOCAL_IMAGE + req?.file?.filename : "",
+  };
 
   try {
     const getTrabajador = await trabajador.findAll({
@@ -255,55 +237,38 @@ const postMultipleTrabajador = async (req, res, next) => {
 const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
   let info;
+  if (req?.body?.foto !== "" ) {
+    const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
-  // console.log(req?.body?.foto?.split("/").pop());
-
-  // fs.unlink(
-  //   `${__dirname}/upload/images/${req?.body?.foto?.split("/").pop()}`,
-  //   function (err) {
-  //     if (err) {
-  //       console.log(err);
-  //     } else {
-  //       console.log("eliminado correctamente");
-  //     }
-  //   }
-  // );
-  if (req.file) {
-    info = {
-      dni: req.body.dni,
-      codigo_trabajador: req.body.codigo_trabajador,
-      fecha_nacimiento: req.body.fecha_nacimiento,
-      telefono: req.body.telefono,
-      apellido_paterno: req.body.apellido_paterno,
-      apellido_materno: req.body.apellido_materno,
-      nombre: req.body.nombre,
-      email: req.body.email,
-      estado_civil: req.body.estado_civil,
-      genero: req.body.genero,
-      direccion: req.body.direccion,
-      tipo_trabajador: req.body.tipo_trabajador,
-      asociacion_id: req.body.asociacion_id || null,
-      deshabilitado: req.body.deshabilitado,
-      // foto: "http://localhost:3000/img/" + req.file.filename,
-    };
-  } else {
-    info = {
-      dni: req.body.dni,
-      codigo_trabajador: req.body.codigo_trabajador,
-      fecha_nacimiento: req.body.fecha_nacimiento,
-      telefono: req.body.telefono,
-      apellido_paterno: req.body.apellido_paterno,
-      apellido_materno: req.body.apellido_materno,
-      nombre: req.body.nombre,
-      email: req.body.email,
-      estado_civil: req.body.estado_civil,
-      genero: req.body.genero,
-      direccion: req.body.direccion,
-      asociacion_id: req.body.asociacion_id || null,
-      tipo_trabajador: req.body.tipo_trabajador,
-      deshabilitado: req.body.deshabilitado,
-    };
+    const editFotoLink = req.body.foto.split("/").at(-1);
+    fs.unlink("./public/images/" + editFotoLink, (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("eliminado con éxito!");
+      }
+    });
   }
+
+  info = {
+    dni: req.body.dni,
+    codigo_trabajador: req.body.codigo_trabajador,
+    fecha_nacimiento: req.body.fecha_nacimiento,
+    telefono: req.body.telefono,
+    apellido_paterno: req.body.apellido_paterno,
+    apellido_materno: req.body.apellido_materno,
+    nombre: req.body.nombre,
+    email: req.body.email,
+    estado_civil: req.body.estado_civil,
+    genero: req.body.genero,
+    direccion: req.body.direccion,
+    tipo_trabajador: req.body.tipo_trabajador,
+    asociacion_id: req.body.asociacion_id || null,
+    deshabilitado: req.body.deshabilitado,
+    foto: req.file
+      ? process.env.LOCAL_IMAGE + req.file.filename
+      : req.body.foto,
+  };
 
   try {
     const putTrabajador = await trabajador.update(info, {

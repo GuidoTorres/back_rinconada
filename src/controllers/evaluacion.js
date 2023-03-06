@@ -43,6 +43,8 @@ const getEvaluacionById = async (req, res, next) => {
         antecedentes: item?.antecedentes,
         capacitacion_gema: item?.capacitacion_gema,
         capacitacion_sso: item?.capacitacion_sso,
+        area: item?.area,
+        campamento:item?.campamento,
         diabetes: item?.diabetes,
         emo: item?.emo,
         imc: item?.imc,

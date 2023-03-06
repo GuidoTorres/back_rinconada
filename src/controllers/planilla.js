@@ -11,8 +11,10 @@ const {
   asistencia,
   trabajadorAsistencia,
   fecha_pago,
+  pago,
 } = require("../../config/db");
 const { Op } = require("sequelize");
+const dayjs = require("dayjs");
 
 const getPlanilla = async (req, res, next) => {
   try {
@@ -42,7 +44,7 @@ const getPlanilla = async (req, res, next) => {
             { model: campamento, include: [{ model: asistencia }] },
           ],
         },
-        {model:evaluacion}
+        { model: evaluacion },
       ],
     });
 
@@ -70,63 +72,64 @@ const getPlanilla = async (req, res, next) => {
         id: item?.id,
         nombre: item?.nombre,
         codigo: item?.codigo,
-        fecha_inicio: item?.contratos
-          ?.map((data) =>
-            data?.fecha_inicio?.toLocaleDateString("en-GB", {
-              timeZone: "UTC",
-            })
-          )
+        fecha_inicio: item?.contratos?.at(-1)?.fecha_inicio,
+        fecha_fin: item?.contratos?.at(-1)?.fecha_fin,
+        contratos: item?.contratos.at(-1),
+        volquete: item?.contratos?.at(-1)?.volquete,
+        puesto: "",
+        campamento: item.contratos
+          .map((item) => item.campamento.nombre)
           .toString(),
-        fecha_fin: item?.contratos
-          ?.map((data) =>
-            data?.fecha_fin?.toLocaleDateString("en-GB", {
-              timeZone: "UTC",
-            })
-          )
-          .toString(),
-        contrato: item?.contratos[item.contratos.length - 1],
-        volquete: item?.contratos[item.contratos.length - 1]?.volquete,
-        teletran: parseInt(
-          item?.contratos[item.contratos.length - 1]?.teletrans.map(
-            (item) => item?.teletrans
-          )
-        ),
-        total: parseInt(
-          item?.contratos[item.contratos.length - 1]?.teletrans.map(
-            (item) => item?.total
-          )
-        ),
-        saldo: parseInt(
-          item?.contratos[item.contratos.length - 1]?.teletrans.map(
-            (item) => item?.saldo
-          )
-        ),
-
-        estado: item?.contratos[item.contratos.length - 1]?.teletrans,
+        teletran: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.teletrans),
+        total: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.total),
+        saldo: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.saldo),
       };
     });
 
     const mapTrabajador = filterTrabajador.map((item) => {
       return {
-        dni: item.dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: item.fecha_nacimiento,
-        telefono: item.telefono,
-        apellido_paterno: item.apellido_paterno,
-        apellido_materno: item.apellido_materno,
-        nombre: item.nombre,
-        email: item.email,
-        estado_civil: item.estado_civil,
-        genero: item.genero,
-        direccion: item.direccion,
-        asociacion_id: item.asociacion_id,
-        deshabilitado: item.deshabilitado,
-        eliminar: item.e,
-        contratos: item.contratos,
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        nombre:
+          item?.nombre +
+          " " +
+          item?.apellido_paterno +
+          " " +
+          item?.apellido_materno,
+        email: item?.email,
+        campamento: item?.contratos
+          ?.map((item) => item?.campamento?.nombre)
+          ?.toString(),
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
+        direccion: item?.direccion,
+        asociacion_id: item?.asociacion_id,
+        deshabilitado: item?.deshabilitado,
+        eliminar: item?.e,
+        contratos: item?.contratos?.at(-1),
+        puesto: item?.contratos?.at(-1)?.puesto,
+        fecha_inicio: item?.contratos?.at(-1)?.fecha_inicio,
+        fecha_fin: String(
+          item?.contratos?.map((acc, curr) => {
+            const trabajador_asistencia = item?.trabajador_asistencia?.filter(
+              (data) => data?.asistencia !== "Asistio"
+            ).length;
+
+            return dayjs(acc.fecha_fin)
+              .add(trabajador_asistencia, "day")
+              .toISOString();
+          })
+        ),
         asistencia: item.trabajador_asistencia.filter(
           (data) => data.asistencia === "Asistio"
         ).length,
-        evaluacion: item.evaluacions
+        evaluacion: item.evaluacions,
+        volquete: item?.contratos?.at(-1)?.volquete,
+        teletran: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.teletrans),
+        total: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.total),
+        saldo: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.saldo),
       };
     });
 
@@ -156,6 +159,7 @@ const getPlanillaPago = async (req, res, next) => {
           attributes: {
             exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
           },
+          include:[{model:asistencia}]
         },
         {
           model: contrato,
@@ -163,25 +167,94 @@ const getPlanillaPago = async (req, res, next) => {
           where: {
             [Op.and]: [{ finalizado: { [Op.not]: true } }],
           },
-          include: [{ model: teletrans }],
+          include: [{ model: teletrans }, { model: pago }],
         },
-
       ],
     });
 
     const filterAsistencia = getPlanilla
-      ?.map((item) => {
-        if (
-          item.trabajador_asistencia.filter(
-            (item) => item.asistencia === "Asistio"
-          ).length >= 15
-        ) {
-          return item;
-        }
-      })
-      .flat();
+    ?.map((item, i) => {
+      return {
+        id: i+1,
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        nombre:
+          item?.nombre +
+          " " +
+          item?.apellido_paterno +
+          " " +
+          item?.apellido_materno,
+        trabajador_asistencia: item?.trabajador_asistencia,
+        contrato: item?.contratos,
+        asistencias: item?.trabajador_asistencia?.filter(
+          (data) => data.asistencia === "Asistio"
+        ).length,
+        nro_quincena:
+          parseInt(
+            item?.trabajador_asistencia?.filter(
+              (data) => data.asistencia === "Asistio"
+            ).length
+          ) / 15,
+      };
+    })
+    .filter((item) => item.asistencias !== 0 && item.asistencias % 15 === 0)
+    .flat();
 
-    res.status(200).json({ data: filterAsistencia });
+  const duplicate = filterAsistencia
+    .map((item) =>
+      item?.trabajador_asistencia
+        ?.slice(0, item.nro_quincena)
+        .map((data, i) => {
+          return {
+            dni: item.dni,
+            codigo_trabajador: item?.codigo_trabajador,
+            fecha_nacimiento: item?.fecha_nacimiento,
+            telefono: item?.telefono,
+            nombre: item?.nombre,
+            cargo: item?.contrato?.at(-1)?.puesto,
+            asistencias: item?.trabajador_asistencia?.filter(
+              (data) => data.asistencia === "Asistio"
+            ).length,
+            nro_quincena: i + 1,
+            fecha_inicio: item?.trabajador_asistencia?.at((i + 1 - 1) * 15)
+              ?.asistencium?.fecha,
+            fecha_fin: item?.trabajador_asistencia?.at((i + 1 - 1) * 15 + 14)
+              ?.asistencium?.fecha,
+            volquete: item?.contrato?.at(-1)?.volquete,
+            teletran: parseInt(
+              item?.contrato.at(-1)?.teletrans.at(-1)?.teletrans
+            ),
+            total: parseInt(item?.contrato.at(-1)?.teletrans.at(-1)?.total),
+            saldo: parseInt(item?.contrato.at(-1)?.teletrans.at(-1)?.saldo),
+            // pagos: item?.contrato.at(-1),
+            observacion: item?.contrato
+              .at(-1)
+              .pagos.map((item) => item.observacion)
+              .toString(),
+            teletrans: item?.contrato
+              .at(-1)
+              .pagos.map((item) => item.teletrans)
+              .toString(),
+            fecha_pago: item?.contrato
+              .at(-1)
+              .pagos.map((item) => item.fecha_pago)
+              .toString(),
+            contrato_id: item?.contrato.at(-1)?.id,
+            pago_id: item?.contrato
+              .at(-1)
+              .pagos.map((item) => item.id)
+              .toString(),
+            pagos: item?.contrato?.at(-1)?.pagos
+
+
+          };
+        })
+    )
+    .flat();
+
+    res.status(200).json({ data: duplicate });
     next();
   } catch (error) {
     console.log(error);
@@ -315,6 +388,7 @@ const juntarTeletrans = async (req, res, next) => {
   try {
     const getTrabajador = await trabajador.findAll({
       where: { asociacion_id: { [Op.is]: null } },
+      attributes: { exclude: ["usuarioId"] },
       include: [
         {
           model: trabajadorAsistencia,
@@ -323,76 +397,69 @@ const juntarTeletrans = async (req, res, next) => {
           },
         },
         {
-          model: evaluacion,
-          include: [
-            {
-              model: contratoEvaluacion,
-              include: [
-                {
-                  model: contrato,
-                  attributes: { exclude: ["contrato_id"] },
-                  include: [{ model: teletrans }],
-                },
-              ],
-            },
-          ],
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          where: {
+            [Op.and]: [{ finalizado: { [Op.not]: true } }],
+          },
+          include:[{model:teletrans}]
         },
       ],
     });
+    
+    
+    const filterAsistencia = getTrabajador
+    ?.map((item, i) => {
+      return {
+        id: i+1,
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        nombre:
+          item?.nombre +
+          " " +
+          item?.apellido_paterno +
+          " " +
+          item?.apellido_materno,
+        saldo: item.contratos.at(-1).teletrans.at(-1).saldo,
+        trabajador_asistencia: item?.trabajador_asistencia,
+        contrato: item?.contratos,
+        asistencias: item?.trabajador_asistencia?.filter(
+          (data) => data.asistencia === "Asistio"
+        ).length,
+        nro_quincena:
+          parseInt(
+            item?.trabajador_asistencia?.filter(
+              (data) => data.asistencia === "Asistio"
+            ).length
+          ) / 15,
+      };
+    })
+    .filter((item) => item.asistencias !== 0 && item.asistencias % 15 === 0 && parseInt(item.saldo) % 4 !== 0 )
+    .flat();
 
-    const filter = getTrabajador
+    const filter = filterAsistencia
       .map((item) => {
         return {
           nombre: item?.nombre,
-          apellido_materno: item?.apellido_materno,
-          apellido_paterno: item?.apellido_paterno,
           telefono: item?.telefono,
           dni: item?.dni,
-          volquete: parseInt(
-            item?.evaluacions[
-              item?.evaluacions.length - 1
-            ]?.contrato_evaluacions.map((data) =>
-              data?.contrato?.teletrans.map((dat) => dat?.volquete)
-            )
-          ),
-          teletrans: parseInt(
-            item?.evaluacions[
-              item?.evaluacions.length - 1
-            ]?.contrato_evaluacions?.map((data) =>
-              data?.contrato?.teletrans.map((dat) => dat?.teletrans)
-            )
-          ),
-          saldo: parseInt(
-            item?.evaluacions[
-              item?.evaluacions.length - 1
-            ]?.contrato_evaluacions?.map((data) =>
-              data?.contrato?.teletrans?.map((dat) => dat?.saldo)
-            )
-          ),
+          volquete: parseInt(item?.contrato?.at(-1)?.teletrans?.at(-1)?.volquete),
+          teletrans: parseInt(item?.contrato?.at(-1)?.teletrans?.at(-1)?.teletrans),
+          saldo: parseInt(item?.saldo),
           dias_laborados: item?.trabajador_asistencia.filter(
             (data) => data?.asistencia === "Asistio"
           ).length,
-          contrato:
-            item?.evaluacions[item.evaluacions.length - 1]
-              ?.contrato_evaluacions,
-          contrato_id: item?.evaluacions[
-            item.evaluacions.length - 1
-          ]?.contrato_evaluacions
-            .map((item) => item.contrato_id)
-            .toString(),
+          contrato_id: item?.contrato?.at(-1).id,
+          contrato: item?.contrato,
+
         };
       })
       .flat();
 
-    const filterTrabajador = filter.filter(
-      (item) => item?.contrato?.length > 0
-    );
 
-    const filterTeletrans = filterTrabajador.filter(
-      (item) => parseInt(item.saldo) % 4 !== 0
-    );
-
-    res.status(200).json({ data: filterTeletrans });
+    res.status(200).json({ data: filter });
     next();
   } catch (error) {
     console.log(error);

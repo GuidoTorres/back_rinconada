@@ -2,7 +2,6 @@ const {
   contrato,
   trabajador,
   evaluacion,
-  contratoEvaluacion,
   teletrans,
 } = require("../../config/db");
 const date = require("date-and-time");
@@ -72,13 +71,13 @@ const postContrato = async (req, res, next) => {
   try {
     const post = await contrato.create(req.body);
 
-    let info = {
-      fecha: "",
-      estado: "Pendiente",
-      contrato_id: post.id,
-    };
+    // let info = {
+    //   fecha: "",
+    //   estado: "Pendiente",
+    //   contrato_id: post.id,
+    // };
 
-    const fechaPago = await fechaPago.create(info);
+    // const fechaPago = await fechaPago.create(info);
 
     let volquete = parseInt(req.body?.volquete);
     let teletran = parseInt(req.body?.teletran);
@@ -130,20 +129,10 @@ const postContratoAsociacion = async (req, res, next) => {
     finalizado: false,
   };
   try {
+    console.log(req.body);
     if (req.body.evaluacion_id.length > 0) {
       const post = await contrato.create(info);
       if (post) {
-        console.log("pokemon");
-        const createEvaluacionContrato = req.body.evaluacion_id.map((item) => {
-          return {
-            contrato_id: post.id,
-            evaluacion_id: item,
-          };
-        });
-        const tablaIntermedia = await contratoEvaluacion.bulkCreate(
-          createEvaluacionContrato
-        );
-
         let volquete = parseInt(req.body?.volquete);
         let teletran = parseInt(req.body?.teletran);
         let total = parseInt(volquete) * 4 + parseInt(teletran);

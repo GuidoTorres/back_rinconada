@@ -4,9 +4,9 @@ const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
   database: "heroku_30cfe8f0814e57f",
-  username: "bcbf9d2c2227ee",
-  password: "011e52da",
-  host: "us-cdbr-east-06.cleardb.net",
+  username: "root",
+  password: "Tupapi00",
+  host: "localhost",
   dialect: "mysql",
   port: 3306,
   define: { timestamps: false, freezeTableName: true },
@@ -15,7 +15,7 @@ const sequelize = new Sequelize({
 const dbConnect = async () => {
   try {
     await sequelize.authenticate();
-    console.log("Conexion con bd exitosa!!");
+    console.log("Conexión con bd exitosa!!");
   } catch (error) {
     console.log(error);
   }
@@ -152,7 +152,7 @@ const evaluacion = sequelize.define(
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
     area: DataTypes.STRING,
-    campamento: DataTypes. STRING
+    campamento: DataTypes.STRING,
   },
   {
     tableName: "evaluacion",
@@ -382,16 +382,38 @@ const pago = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    conductor: DataTypes.STRING,
-    dni: DataTypes.STRING,
-    telefono: DataTypes.STRING,
+    hora: DataTypes.STRING,
     placa: DataTypes.STRING,
+    propietario: DataTypes.STRING,
+    trapiche: DataTypes.STRING,
     teletrans: DataTypes.STRING,
-    lugar: DataTypes.STRING,
-    contrato_id: DataTypes.INTEGER,
+    observacion: DataTypes.STRING,
+    fecha_pago: DataTypes.STRING,
+    estado: DataTypes.BOOLEAN,
+    tipo: DataTypes.STRING,
   },
   {
     tableName: "pago",
+    timestamp: false,
+  }
+);
+
+const contrato_pago = sequelize.define(
+  "contrato_pago",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    contrato_id: DataTypes.INTEGER,
+    pago_id: DataTypes.INTEGER,
+    teletrans: DataTypes.STRING,
+  },
+  {
+    tableName: "contrato_pago",
     timestamp: false,
   }
 );
@@ -819,8 +841,8 @@ const permisos = sequelize.define(
   }
 );
 
-const fecha_pago = sequelize.define(
-  "fecha_pago",
+const volquete = sequelize.define(
+  "volquete",
 
   {
     id: {
@@ -829,12 +851,29 @@ const fecha_pago = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    fecha: DataTypes.STRING,
-    estado: DataTypes.STRING,
-    contrato_id: DataTypes.INTEGER,
+    placa: DataTypes.STRING,
+    propietario: DataTypes.STRING,
   },
   {
-    tableName: "fecha_pago",
+    tableName: "volquete",
+    timestamp: false,
+  }
+);
+
+const trapiche = sequelize.define(
+  "trapiche",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    nombre: DataTypes.STRING,
+  },
+  {
+    tableName: "trapiche",
     timestamp: false,
   }
 );
@@ -933,12 +972,6 @@ trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id" });
 trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id" });
 trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-contrato.hasMany(fecha_pago, { foreignKey: "contrato_id" }),
-fecha_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
-
-fecha_pago.hasOne(pago, { foreignKey: "fecha_pago_id" });
-pago.hasOne(fecha_pago, { foreignKey: "fecha_pago_id" });
-
 sucursal.hasMany(ingresos_egresos, { foreignKey: "sucursal_id" });
 ingresos_egresos.belongsTo(sucursal, { foreignKey: "sucursal_id" });
 
@@ -1021,6 +1054,12 @@ entrada_salida.belongsTo(area, { foreignKey: "area_id" });
 rol.hasMany(permisos, { foreignKey: "rol_id" });
 permisos.belongsTo(rol, { foreignKey: "rol_id" });
 
+contrato.hasMany(contrato_pago, { foreignKey: "contrato_id" });
+contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
+
+pago.hasMany(contrato_pago, { foreignKey: "pago_id" });
+contrato_pago.belongsTo(pago, { foreignKey: "pago_id" });
+
 module.exports = {
   trabajador,
   campamento,
@@ -1055,5 +1094,7 @@ module.exports = {
   categoria,
   transferencia_producto,
   permisos,
-  fecha_pago,
+  trapiche,
+  volquete,
+  contrato_pago,
 };

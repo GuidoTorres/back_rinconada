@@ -1,16 +1,16 @@
+require("dotenv").config;
 const { producto, unidad, categoria } = require("../../config/db");
+const fs = require("fs");
 
 const getProducto = async (req, res, next) => {
   try {
     const get = await producto.findAll({
       attributes: { exclude: ["categoria_id"] },
-      include:[{model:unidad}, {model:categoria}]
+      include: [{ model: unidad }, { model: categoria }],
     });
 
-    const formatData = get.map(item => {
-
-      return{
-
+    const formatData = get.map((item) => {
+      return {
         id: item?.id,
         codigo: item?.codigo,
         codigo_interno: item?.codigo_interno,
@@ -26,11 +26,9 @@ const getProducto = async (req, res, next) => {
         observacion: item?.observacion,
         costo_total: item?.costo_total,
         categoria_id: item?.categorium?.id,
-        categoria: item?.categorium?.descripcion
-
-      }
-
-    })
+        categoria: item?.categorium?.descripcion,
+      };
+    });
     res.status(200).json({ data: formatData });
     next();
   } catch (error) {
@@ -55,27 +53,30 @@ const getProductoById = async (req, res, next) => {
 };
 
 const postProducto = async (req, res, next) => {
-
-  let info = {
-    almacen_id: req.body.almacen_id,
-    categoria_id: req.body.categoria_id,
-    codigo: req.body.codigo,
-    codigo_barras: req.body.codigo_barras,
-    codigo_interno: req.body.codigo_interno,
-    costo_total: req.body.costo_total,
-    descripcion: req.body.descripcion,
-    fecha: req.body.fecha,
-    nombre: req.body.nombre,
-    observacion: req.body.observacion,
-    precio: req.body.precio,
-    stock: req.body.stock,
-    unidad_id: req.body.unidad_id,
-    foto: req?.file?.filename ? "https://rinconada.fly.dev/" + req.file.filename : ""
-
-  }
+    let info = {
+      almacen_id: req.body.almacen_id,
+      categoria_id: req.body.categoria_id,
+      codigo: req.body.codigo,
+      codigo_barras: req.body.codigo_barras,
+      codigo_interno: req.body.codigo_interno,
+      costo_total: req.body.costo_total,
+      descripcion: req.body.descripcion,
+      fecha: req.body.fecha,
+      nombre: req.body.nombre,
+      observacion: req.body.observacion,
+      precio: req.body.precio,
+      stock: req.body.stock,
+      unidad_id: req.body.unidad_id,
+      foto: req?.file
+        ? process.env.LOCAL_IMAGE + req.file.filename
+        : "",
+    };
+  
   try {
     const post = await producto.create(info);
-    res.status(200).json({ msg: "Producto registrado con éxito!", status: 200 });
+    res
+      .status(200)
+      .json({ msg: "Producto registrado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -87,24 +88,37 @@ const postProducto = async (req, res, next) => {
 const updateProducto = async (req, res, next) => {
   let id = req.params.id;
 
-  let info = {
-    almacen_id: req.body.almacen_id || "",
-    categoria_id: req.body.categoria_id || null,
-    codigo: req.body.codigo || "",
-    codigo_barras: req.body.codigo_barras || "",
-    codigo_interno: req.body.codigo_interno || "",
-    costo_total: req.body.costo_total || "",
-    descripcion: req.body.descripcion || "",
-    fecha: req.body.fecha || "",
-    nombre: req.body.nombre,
-    observacion: req.body.observacion || "",
-    precio: req.body.precio || "",
-    stock: req.body.stock || "",
-    unidad_id: req.body.unidad_id || null,
-    foto: req?.file?.filename ? "https://rinconada.fly.dev/" + req.file.filename : ""
+  if (req?.body?.foto !== "" ) {
+    const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
+    const editFotoLink = req?.body?.foto?.split("/").at(-1);
+    fs.unlink("./public/images/" + editFotoLink, (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("eliminado con éxito!");
+      }
+    });
   }
 
+  let info = {
+    almacen_id: req.body.almacen_id || "",
+    categoria_id: req.body.categoria_id || null,
+    codigo: req.body.codigo || "",
+    codigo_barras: req.body.codigo_barras || "",
+    codigo_interno: req.body.codigo_interno || "",
+    costo_total: req.body.costo_total || "",
+    descripcion: req.body.descripcion || "",
+    fecha: req.body.fecha || "",
+    nombre: req.body.nombre,
+    observacion: req.body.observacion || "",
+    precio: req.body.precio || "",
+    stock: req.body.stock || "",
+    unidad_id: req.body.unidad_id || null,
+    foto: req?.file
+      ? process.env.LOCAL_IMAGE + req.file.filename
+      : req.body.foto,
+  };
 
   try {
     let update = await producto.update(info, { where: { id: id } });
