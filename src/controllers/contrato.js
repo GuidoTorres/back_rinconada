@@ -128,6 +128,7 @@ const postContratoAsociacion = async (req, res, next) => {
     suspendido: false,
     finalizado: false,
   };
+  console.log(req.body.evaluacion_id);
   try {
     console.log(req.body);
     if (req.body.evaluacion_id.length > 0) {
@@ -149,7 +150,8 @@ const postContratoAsociacion = async (req, res, next) => {
           .json({ msg: "Contrato creado con éxito!", status: 200 });
         next();
       }
-    } else {
+    } 
+    else {
       res
         .status(200)
         .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });

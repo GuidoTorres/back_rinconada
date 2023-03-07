@@ -42,38 +42,87 @@ const getIncentivo = async (req, res, next) => {
       ],
     });
 
-    const filterContratoPago = get.filter(
-      (item) => item?.contratos.at(-1)?.contrato_pagos.length > 0
+    const getPago = await pago.findAll({
+      include: [
+        {
+          model: contrato_pago,
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              include: [
+                {
+                  model: trabajador,
+                  where: {
+                    [Op.and]: [
+                      { asociacion_id: { [Op.is]: null } },
+                      { deshabilitado: { [Op.not]: true } },
+                    ],
+                  },
+                  attributes: { exclude: ["usuarioId"] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const filterIncentivo = getPago.filter(
+      (item) => item?.tipo === "incentivo"
     );
 
-    const formatData = filterContratoPago.map((item) => {
+    // const formatData = filterContratoPago.map((item) => {
+    //   return {
+    //     nombre:
+    //       item?.apellido_paterno +
+    //       " " +
+    //       item?.apellido_materno +
+    //       " " +
+    //       item?.nombre,
+    //     celular: item?.telefono,
+    //     cargo: item?.contratos?.at(-1)?.puesto,
+    //     contrato_id: item.contratos?.at(-1).id,
+    //     pago: item?.contratos
+    //       ?.at(-1)
+    //       ?.contrato_pagos?.map((data) => {
+    //         return {
+    //           id: data?.pago?.id,
+    //           teletrans: data?.pago?.teletrans,
+    //           observacion: data?.pago?.observacion,
+    //           fecha_pago: data?.pago?.fecha_pago,
+    //           tipo: data?.pago?.tipo,
+    //         };
+    //       })
+    //       .sort((a, b) => a.id - b.id)
+    //       .at(-1),
+    //   };
+    // });
+
+    const format = filterIncentivo.map((item) => {
       return {
-        nombre:
-          item?.apellido_paterno +
-          " " +
-          item?.apellido_materno +
-          " " +
-          item?.nombre,
-        celular: item?.telefono,
-        cargo: item?.contratos?.at(-1)?.puesto,
-        contrato_id: item.contratos?.at(-1).id,
-        pago: item?.contratos
-          ?.at(-1)
-          ?.contrato_pagos?.map((data) => {
-            return {
-              id: data?.pago?.id,
-              teletrans: data?.pago?.teletrans,
-              observacion: data?.pago?.observacion,
-              fecha_pago: data?.pago?.fecha_pago,
-              tipo: data?.pago?.tipo,
-            };
-          })
-          .sort((a, b) => a.id - b.id)
-          .at(-1),
+        pago_id: item.id,
+        observacion: item.observacion,
+        fecha_pago: item.fecha_pago,
+        tipo: item.tipo,
+        trabajadores: item.contrato_pagos.map((data) => {
+          return {
+            contrato_id: data.contrato_id,
+            teletrans: data.teletrans,
+            nombre:
+              data.contrato.trabajador.nombre +
+              " " +
+              data.contrato.trabajador.apellido_paterno +
+              " " +
+              data.contrato.trabajador.apellido_materno,
+            cargo: data.contrato.puesto,
+            celular: data.contrato.trabajador.telefono,
+          };
+        }),
       };
     });
 
-    res.status(200).json({ data: formatData });
+    res.status(200).json({ data: format });
     next();
   } catch (error) {
     console.log(error);
@@ -172,13 +221,17 @@ const postIncentivo = async (req, res, next) => {
   }
 
   try {
+    if (req.body.contrato_id === undefined && req.body.contrato_id === "") {
+      return res.status(400).json({
+        msg: "Error! Datos incompletos.",
+        status: 400,
+      });
+    }
     if (parseInt(req.body.teletrans) % 4 !== 0) {
-      res.status(400).json({
+      return res.status(400).json({
         msg: "Error! La cantidad de teletrans debe ser igual a 1 ó mas volquetes.",
         status: 400,
       });
-
-      next();
     } else {
       if (createPago) {
         const post = await pago.create(createPago);
@@ -193,12 +246,11 @@ const postIncentivo = async (req, res, next) => {
           where: { id: req.body.id },
         });
       }
-      res
+      return res
         .status(200)
         .json({ msg: "Incentivo registrado con éxito!", status: 200 });
-
-      next();
     }
+    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo crear.", status: 500 });

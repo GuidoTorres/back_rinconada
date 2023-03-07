@@ -7,6 +7,7 @@ const {
   trabajador,
   contrato_pago,
   asociacion,
+  ayuda_pago,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
@@ -20,25 +21,32 @@ const createProgramacion = async (req, res, next) => {
   };
 
   try {
-    if (parseInt(info.teletrans) % 4 !== 0) {
-      res.status(400).json({
-        msg: "Error! La cantidad de teletrans debe ser equivalente a un volquete.",
+    if (req.body.contrato_id) {
+      if (parseInt(info.teletrans) % 4 !== 0) {
+        return res.status(400).json({
+          msg: "Error! La cantidad de teletrans debe ser equivalente a un volquete.",
+          status: 400,
+        });
+      } else {
+        const post = await pago.create(info);
+        let contra_pago = {
+          teletrans: info.teletrans,
+          contrato_id: req.body.contrato_id,
+          pago_id: post.id,
+        };
+        const pagoContrato = await contrato_pago.create(contra_pago);
+        return res
+          .status(200)
+          .json({ msg: "Programación registrada con éxito!", status: 200 });
+      }
+    } else {
+      return res.status(400).json({
+        msg: "Error! Falta el id del contrato.",
         status: 400,
       });
-      next();
-    } else {
-      const post = await pago.create(info);
-      let contra_pago = {
-        teletrans: info.teletrans,
-        contrato_id: req.body.contrato_id,
-        pago_id: post.id,
-      };
-      const pagoContrato = await contrato_pago.create(contra_pago);
-      res
-        .status(200)
-        .json({ msg: "Programación registrada con éxito!", status: 200 });
-      next();
     }
+
+    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
@@ -68,6 +76,7 @@ const createProgramacionMultiple = async (req, res, next) => {
         };
       });
       const pagoContrato = await contrato_pago.bulkCreate(contra_pago);
+      console.log(pagoContrato);
       res
         .status(200)
         .json({ msg: "Programación registrada con éxito!", status: 200 });
@@ -92,20 +101,16 @@ const updateProgramacion = async (req, res, next) => {
     fecha_pago: req.body.fecha_pago,
     contrato_id: req.body.contrato_id,
     teletrans: req.body.teletrans,
-    trabajador: req.body.trabajador,
   };
   try {
     if (info.teletrans % 4 === 0) {
-      if (info.trabajador.length > 0) {
-        let update = await pago.update(info, { where: { id: id } });
-        let data = {
-          teletrans: info.teletrans,
-        };
-        let updateContatoPago = await contrato_pago.update({
-          data,
-          where: { pago_id: id },
-        });
-      }
+      let updatePAgo = await pago.update(info, { where: { id: id } });
+      let data = {
+        teletrans: info.teletrans,
+      };
+      let updateContratoPago = await contrato_pago.update(data, {
+        where: { pago_id: id },
+      });
       res
         .status(200)
         .json({ msg: "Programación actualizada con éxito!", status: 200 });
@@ -118,6 +123,7 @@ const updateProgramacion = async (req, res, next) => {
       next();
     }
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
@@ -241,7 +247,7 @@ const postPago = async (req, res, next) => {
       }
     } else {
       return res.status(200).json({
-        msg: "Error! el pago solamente se puede realizar si los teletrans equivalen un volquete.",
+        msg: "Error! el pago solamente se puede realizar si los teletrans equivalen a 1 o más volquetes.",
         status: 200,
       });
     }
@@ -305,7 +311,7 @@ const postMultiplePagos = async (req, res, next) => {
       // });
       console.log(update);
     }
-    res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
+    res.status(200).json({ msg: "Pagos realizados con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -317,66 +323,75 @@ const postMultiplePagos = async (req, res, next) => {
 const getPagoFecha = async (req, res, next) => {
   let fecha = req.query.fecha;
   try {
-    const get = await trabajador.findAll({
-      where: {
-        [Op.and]: [
-          { asociacion_id: { [Op.is]: null } },
-          { deshabilitado: { [Op.not]: true } },
-        ],
-      },
-      attributes: { exclude: ["usuarioId"] },
+    const getPago = await pago.findAll({
+      where: { fecha_pago: fecha },
       include: [
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          where: {
-            [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          },
+          model: contrato_pago,
           include: [
-            { model: teletrans },
-            { model: pago, where: { fecha_pago: fecha } },
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              include: [
+                { model: trabajador, attributes: { exclude: ["usuarioId"] } },
+              ],
+            },
+          ],
+        },
+        {
+          model: ayuda_pago,
+          include: [
+            { model: trabajador, attributes: { exclude: ["usuarioId"] } },
           ],
         },
       ],
     });
 
-    const formatData = get.map((item) => {
+    const format = getPago.map((item) => {
       return {
-        nombre:
-          item.apellido_paterno +
-          " " +
-          item.apellido_materno +
-          " " +
-          item.nombre,
-        celular: item.telefono,
-        pago: item?.contratos
-          ?.at(-1)
-          ?.pagos?.map((data) =>
-            parseInt(data.teletrans) % 4 !== 0
-              ? data.teletrans + " Teletrans"
-              : parseInt(data.teletrans) / 4 + " Volquete"
-          )
-          .toString(),
-        observacion: item?.contratos
-          ?.at(-1)
-          ?.pagos?.map((data) => data.observacion)
-          .toString(),
-        pago_id: item?.contratos
-          ?.at(-1)
-          ?.pagos?.map((data) => data.id)
-          .toString(),
-        nombre:
-          item.nombre +
-          " " +
-          item.apellido_paterno +
-          " " +
-          item.apellido_materno,
-        dni: item.dni,
-        cargo: item.contratos.at(-1).puesto,
-        contrato_id: item.contratos.at(-1).id,
+        observacion: item?.observacion,
+        fecha_pago: item?.fecha_pago,
+        tipo: item?.tipo,
+        trabajadores:
+          item.contrato_pagos.length > 0
+            ? item?.contrato_pagos?.map((data) => {
+                return {
+                  contrato_id: data?.contrato_id,
+                  pago_id: data?.pago_id,
+                  nombre:
+                    data?.contrato?.trabajador?.nombre +
+                    " " +
+                    data?.contrato?.trabajador?.apellido_paterno +
+                    " " +
+                    data?.contrato?.trabajador?.apellido_materno,
+                  area: data?.contrato?.area,
+                  cargo: data?.contrato?.puesto,
+                  celular: data?.contrato?.trabajador?.telefono,
+                  dni: data?.contrato?.trabajador?.dni,
+                  teletrans: data?.teletrans,
+                };
+              })
+            : item?.ayuda_pagos?.map((data) => {
+                return {
+                  contrato_id: "---",
+                  pago_id: data?.pago_id,
+                  nombre:
+                    data?.trabajador?.nombre +
+                    " " +
+                    data?.trabajador?.apellido_paterno +
+                    " " +
+                    data?.trabajador?.apellido_materno,
+                  area: "---",
+                  cargo: "---",
+                  celular: data?.trabajador?.telefono,
+                  dni: data?.trabajador?.dni,
+                  teletrans: data?.teletrans,
+                };
+              }),
       };
     });
-    res.status(200).json({ data: formatData, status: 200 });
+
+    res.status(200).json({ data: format, status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -457,10 +472,22 @@ const historialProgramacion = async (req, res, next) => {
 const deletePago = async (req, res, next) => {
   let id = req.params.id;
   try {
+    let delContratoPago = await contrato_pago.destroy({
+      where: { pago_id: id },
+    });
     let del = await pago.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Pago eliminado con éxito!", status: 200 });
+    if (delContratoPago === 0 && del === 0) {
+      return res
+        .status(404)
+        .json({ msg: "No se encontró el pago.", status: 404 });
+    } else {
+      return res
+        .status(200)
+        .json({ msg: "Pago eliminado con éxito!", status: 200 });
+    }
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };

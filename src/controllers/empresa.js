@@ -5,7 +5,18 @@ const getEmpresa = async (req, res, next) => {
     const all = await empresa.findAll({
       include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
     });
-    res.status(200).json({ data: all });
+
+    const formatData = all.map(item => {
+
+      return{
+        id: item.id,
+        razon_social: item.razon_social,
+        ruc: item.ruc,
+        contrato_id: item.contratos.at(-1).id,
+
+      }
+    })
+    res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     res.status(500).json();

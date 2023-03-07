@@ -33,6 +33,10 @@ const categoriaRouter = require("./src/routes/categoria");
 const trapicheRouter = require("./src/routes/trapiche");
 const volqueteRouter = require("./src/routes/volquete");
 const incentivoRouter = require("./src/routes/incentivo");
+const casaRouter = require("./src/routes/casa");
+const ayudaRouter = require("./src/routes/ayuda");
+
+
 
 const authRouter = require("./src/routes/auth");
 
@@ -78,6 +82,9 @@ app.use("/api/v1/categoria", categoriaRouter);
 app.use("/api/v1/trapiche", trapicheRouter);
 app.use("/api/v1/volquete", volqueteRouter);
 app.use("/api/v1/incentivo", incentivoRouter);
+app.use("/api/v1/casa", casaRouter);
+app.use("/api/v1/ayuda", ayudaRouter);
+
 
 app.use("/api/v1/auth", authRouter);
 

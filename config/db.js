@@ -4,9 +4,9 @@ const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
   database: "heroku_30cfe8f0814e57f",
-  username: "root",
-  password: "Tupapi00",
-  host: "localhost",
+  username: "bcbf9d2c2227ee",
+  password: "011e52da",
+  host: "us-cdbr-east-06.cleardb.net",
   dialect: "mysql",
   port: 3306,
   define: { timestamps: false, freezeTableName: true },
@@ -878,6 +878,26 @@ const trapiche = sequelize.define(
   }
 );
 
+const ayuda_pago = sequelize.define(
+  "ayuda_pago",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    trabajador_dni: DataTypes.INTEGER,
+    pago_id: DataTypes.INTEGER,
+    teletrans: DataTypes.STRING
+  },
+  {
+    tableName: "ayuda_pago",
+    timestamp: false,
+  }
+);
+
 gerencia.hasMany(area, {
   foreignKey: "gerencia_id",
   onDelete: "CASCADE",
@@ -1060,6 +1080,12 @@ contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
 pago.hasMany(contrato_pago, { foreignKey: "pago_id" });
 contrato_pago.belongsTo(pago, { foreignKey: "pago_id" });
 
+trabajador.hasMany(ayuda_pago, { foreignKey: "trabajador_dni" });
+ayuda_pago.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
+
+pago.hasMany(ayuda_pago, {foreignKey: "pago_id"})
+ayuda_pago.belongsTo(pago, {foreignKey: "pago_id"})
+
 module.exports = {
   trabajador,
   campamento,
@@ -1097,4 +1123,5 @@ module.exports = {
   trapiche,
   volquete,
   contrato_pago,
+  ayuda_pago
 };
