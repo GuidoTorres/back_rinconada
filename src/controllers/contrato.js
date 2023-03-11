@@ -69,32 +69,38 @@ const getContratoAsociacionById = async (req, res, next) => {
 
 const postContrato = async (req, res, next) => {
   try {
-    const post = await contrato.create(req.body);
+    const get = await contrato.findAll({
+      where: { trabajador_id: req.body.trabajador_id },
+      attributes: { exclude: ["contrato_id"] },
+    });
+    const filter = get.filter((item) => item.finalizado === false);
+    if (filter.length > 0) {
+      return res.status(500).json({
+        msg: "No se pudo crear el contrato, el trabajador tiene un contrato activo.",
+        status: 500,
+      });
+    } else {
+      const post = await contrato.create(req.body);
 
-    // let info = {
-    //   fecha: "",
-    //   estado: "Pendiente",
-    //   contrato_id: post.id,
-    // };
+      let volquete = parseInt(req.body?.volquete);
+      let teletran = parseInt(req.body?.teletran);
+      let total = parseInt(volquete) * 4 + parseInt(teletran);
 
-    // const fechaPago = await fechaPago.create(info);
-
-    let volquete = parseInt(req.body?.volquete);
-    let teletran = parseInt(req.body?.teletran);
-    let total = parseInt(volquete) * 4 + parseInt(teletran);
-
-    const ttransInfo = {
-      volquete: volquete,
-      teletrans: teletran,
-      total: total,
-      saldo: total,
-      contrato_id: post.id,
-    };
-    if (volquete !== "" && teletran !== "") {
-      const createtTrans = await teletrans.create(ttransInfo);
+      const ttransInfo = {
+        volquete: volquete,
+        teletrans: teletran,
+        total: total,
+        saldo: total,
+        contrato_id: post.id,
+      };
+      if (volquete !== "" && teletran !== "") {
+        const createtTrans = await teletrans.create(ttransInfo);
+      }
+      return res
+        .status(200)
+        .json({ msg: "Contrato creado con éxito!", status: 200 });
     }
 
-    res.status(200).json({ msg: "Contrato creado con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -150,8 +156,7 @@ const postContratoAsociacion = async (req, res, next) => {
           .json({ msg: "Contrato creado con éxito!", status: 200 });
         next();
       }
-    } 
-    else {
+    } else {
       res
         .status(200)
         .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });

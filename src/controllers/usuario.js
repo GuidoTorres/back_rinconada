@@ -1,5 +1,6 @@
 const { usuario, permisos } = require("../../config/db");
 const { encrypt } = require("../helpers/handleBcrypt");
+const fs = require("fs");
 
 const getUsuario = async (req, res, next) => {
   try {
@@ -35,6 +36,7 @@ const postUsuario = async (req, res, next) => {
     estado: req.body.estado,
     rol_id: req.body.rol_id,
     cargo_id: req.body.cargo_id,
+    foto: req.file ? process.env.LOCAL_IMAGE + req?.file?.filename : "",
   };
 
   try {
@@ -65,11 +67,39 @@ const postUsuario = async (req, res, next) => {
 const updateUsuario = async (req, res, next) => {
   let id = req.params.id;
 
+  let info = {
+    nombre: req.body.nombre,
+    usuario: req.body.usuario,
+    estado: req.body.estado,
+    rol_id: req.body.rol_id,
+    cargo_id: req.body.cargo_id,
+    foto: req.file
+      ? process.env.LOCAL_IMAGE + req.file.filename
+      : req.body.foto,
+  };
+
+
   try {
-    let user = await usuario.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Usuario actualizado con éxito!", status: 200 });
+    console.log(req.body.foto);
+    if (req?.body?.foto !== undefined && req.body.foto !== "") {
+      const fileDir = require("path").resolve(__dirname, `./public/images/`);
+
+      const editFotoLink = req.body.foto.split("/").at(-1);
+      fs.unlink("./public/images/" + editFotoLink, (err) => {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("eliminado con éxito!");
+        }
+      });
+    }
+    let user = await usuario.update(info, { where: { id: id } });
+    res
+      .status(200)
+      .json({ msg: "Usuario actualizado con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar", status: 500 });
   }
 };
@@ -130,7 +160,7 @@ const updatePermisos = async (req, res, next) => {
     finanzas_proveedor: req?.body?.finanzas_proveedor,
     finanzas_sucursal: req?.body?.finanzas_sucursal,
     personal_contrato: req?.body?.personal_contrato,
-    personal_evaluacion: req?.body?.personal_evaluacion
+    personal_evaluacion: req?.body?.personal_evaluacion,
   };
   try {
     let user = await permisos.update(info, { where: { rol_id: id } });

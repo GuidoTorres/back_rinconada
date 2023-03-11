@@ -4,8 +4,7 @@ const {
   contrato,
   contratoEvaluacion,
 } = require("../../config/db");
-const dayjs = require('dayjs')
-
+const dayjs = require("dayjs");
 
 const getEvaluacion = async (req, res, next) => {
   try {
@@ -44,7 +43,7 @@ const getEvaluacionById = async (req, res, next) => {
         capacitacion_gema: item?.capacitacion_gema,
         capacitacion_sso: item?.capacitacion_sso,
         area: item?.area,
-        campamento:item?.campamento,
+        campamento: item?.campamento,
         diabetes: item?.diabetes,
         emo: item?.emo,
         imc: item?.imc,
@@ -126,12 +125,27 @@ const postEvaluacion = async (req, res, next) => {
     recursos_humanos_observacion: req?.body?.recursos_humanos_observacion,
     finalizado: req?.body?.finalizado,
     area: req?.body?.area,
-    campamento: req?.body?.campamento
+    campamento: req?.body?.campamento,
   };
 
   try {
-    const post = await evaluacion.create(info);
-    res.status(200).json({ msg: "Evaluación creada con éxito!", status: 200 });
+    const get = await evaluacion.findAll({
+      where: { trabajador_id: info.trabajador_id },
+    });
+    const filter = get.filter((item) => item.finalizado === false);
+    console.log(filter);
+
+    if (filter.length > 0) {
+      return res.status(500).json({
+        msg: "No se pudo crear la evaluación, el trabajador tiene una evaluación activa.",
+        status: 500,
+      });
+    } else {
+      const post = await evaluacion.create(info);
+      return res
+        .status(200)
+        .json({ msg: "Evaluación creada con éxito!", status: 200 });
+    }
 
     next();
   } catch (error) {

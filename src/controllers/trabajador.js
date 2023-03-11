@@ -180,7 +180,7 @@ const postMultipleTrabajador = async (req, res, next) => {
       return {
         dni: parseInt(item?.dni),
         codigo_trabajador: item?.codigo_trabajador,
-        fecha_nacimiento: item?.fecha_nacimiento,
+        fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,
         apellido_materno: item?.apellido_materno,
@@ -237,7 +237,7 @@ const postMultipleTrabajador = async (req, res, next) => {
 const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
   let info;
-  if (req?.body?.foto !== "" ) {
+  if (req?.body?.foto !== undefined && req.body.foto !== "" ) {
     const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
     const editFotoLink = req.body.foto.split("/").at(-1);

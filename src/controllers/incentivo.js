@@ -5,6 +5,8 @@ const {
   teletrans,
   pago,
   contrato_pago,
+  destino_pago,
+  destino,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
@@ -28,6 +30,7 @@ const getIncentivo = async (req, res, next) => {
           include: [
             {
               model: contrato_pago,
+              attributes: { exclude: ["contrato_pago_id"] },
               include: [
                 {
                   model: pago,
@@ -46,10 +49,12 @@ const getIncentivo = async (req, res, next) => {
       include: [
         {
           model: contrato_pago,
+          attributes: { exclude: ["contrato_pago_id"] },
           include: [
             {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
+
               include: [
                 {
                   model: trabajador,
@@ -99,28 +104,31 @@ const getIncentivo = async (req, res, next) => {
     //   };
     // });
 
-    const format = filterIncentivo.map((item) => {
-      return {
-        pago_id: item.id,
-        observacion: item.observacion,
-        fecha_pago: item.fecha_pago,
-        tipo: item.tipo,
-        trabajadores: item.contrato_pagos.map((data) => {
-          return {
-            contrato_id: data.contrato_id,
-            teletrans: data.teletrans,
-            nombre:
-              data.contrato.trabajador.nombre +
-              " " +
-              data.contrato.trabajador.apellido_paterno +
-              " " +
-              data.contrato.trabajador.apellido_materno,
-            cargo: data.contrato.puesto,
-            celular: data.contrato.trabajador.telefono,
-          };
-        }),
-      };
-    });
+    const format = filterIncentivo
+      .map((item) => {
+        return {
+          pago_id: item.id,
+          observacion: item.observacion,
+          fecha_pago: item.fecha_pago,
+          tipo: item.tipo,
+          estado: item.estado,
+          trabajadores: item.contrato_pagos.map((data) => {
+            return {
+              contrato_id: data.contrato_id,
+              teletrans: data.teletrans,
+              nombre:
+                data.contrato.trabajador.nombre +
+                " " +
+                data.contrato.trabajador.apellido_paterno +
+                " " +
+                data.contrato.trabajador.apellido_materno,
+              cargo: data.contrato.puesto,
+              celular: data.contrato.trabajador.telefono,
+            };
+          }),
+        };
+      })
+      .filter((item) => item.estado === "programado");
 
     res.status(200).json({ data: format });
     next();
@@ -206,7 +214,7 @@ const postIncentivo = async (req, res, next) => {
       id: req.body.id,
       observacion: req.body.observacion,
       fecha_pago: req.body.fecha_pago,
-      estado: false,
+      estado: "programado",
       teletrans: req.body.teletrans,
       tipo: req.body.tipo,
     };
@@ -214,7 +222,7 @@ const postIncentivo = async (req, res, next) => {
     createPago = {
       observacion: req.body.observacion,
       fecha_pago: req.body.fecha_pago,
-      estado: false,
+      estado: "programado",
       teletrans: req.body.teletrans,
       tipo: req.body.tipo,
     };
@@ -325,6 +333,17 @@ const postIncentivoMultiple = async (req, res, next) => {
 const deleteIncentivo = async (req, res, next) => {
   let id = req.params.id;
   try {
+    const getDestinoPago = await destino_pago.findAll({
+      where: { pago_id: id },
+    });
+
+    const ids = getDestinoPago.map((item) => item.destino_id);
+    let delDestinoPago = await destino_pago.destroy({ where: { pago_id: id } });
+    let delDestino = await destino.destroy({ where: { id: ids } });
+
+    let delContratoPago = await contrato_pago.destroy({
+      where: { pago_id: id },
+    });
     let del = await pago.destroy({ where: { id: id } });
     res
       .status(200)

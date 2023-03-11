@@ -6,16 +6,16 @@ const {
   contrato,
   evaluacion,
   campamento,
-  contratoEvaluacion,
   teletrans,
   asistencia,
   trabajadorAsistencia,
-  fecha_pago,
   pago,
   contrato_pago,
+  pago_asociacion,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
+const { includes } = require("lodash");
 
 const getPlanilla = async (req, res, next) => {
   try {
@@ -34,6 +34,7 @@ const getPlanilla = async (req, res, next) => {
             exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
           },
         },
+        { model: evaluacion },
         {
           model: contrato,
           attributes: { exclude: ["contrato_id"] },
@@ -143,6 +144,241 @@ const getPlanilla = async (req, res, next) => {
   }
 };
 
+//lista de asociaciones con trabajadores para programar
+const getListaPago = async (req, res, next) => {
+  try {
+    const getPlanilla = await trabajador.findAll({
+      where: {
+        [Op.and]: [
+          { asociacion_id: { [Op.is]: null } },
+          { deshabilitado: { [Op.not]: true } },
+        ],
+      },
+      attributes: { exclude: ["usuarioId"] },
+      include: [
+        {
+          model: trabajadorAsistencia,
+          attributes: {
+            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
+          },
+          include: [{ model: asistencia }],
+        },
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          where: {
+            [Op.and]: [{ finalizado: { [Op.not]: true } }],
+          },
+          include: [
+            { model: teletrans },
+            {
+              model: contrato_pago,
+              attributes: { exclude: ["contrato_pago_id"] },
+              include: [{ model: pago }],
+            },
+          ],
+        },
+      ],
+    });
+
+    const getAsociacion = await asociacion.findAll({
+      include: [
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          // where: {
+          //   [Op.and]: [{ finalizado: { [Op.not]: true } }],
+          // },
+          include: [
+            { model: teletrans },
+            {
+              model: contrato_pago,
+              attributes: { exclude: ["contrato_pago_id"] },
+              include: [{ model: pago }],
+            },
+          ],
+        },
+        {
+          model: trabajador,
+          attributes: { exclude: ["usuarioId"] },
+          include: [{ model: evaluacion }, { model: pago_asociacion }],
+        },
+      ],
+    });
+
+    const fecha = new Date();
+    const formatAsociacion = getAsociacion
+      .map((item) => {
+        let contratoActivo = item?.contratos?.filter(
+          (item) => item?.finalizado === false
+        );
+        const fechaActual = dayjs(fecha);
+        const fechaContrato = dayjs(contratoActivo?.at(-1)?.fecha_inicio);
+        const diferencia = fechaActual.diff(fechaContrato, "day");
+
+        return {
+          dni: "---",
+          nombre: item?.nombre,
+          contrato_id: item?.contratos?.at(-1)?.id,
+          dias_cumplidos: diferencia,
+          trabajadores: item?.trabajadors?.map((data) => {
+            return {
+              dni: data?.dni,
+              nombre:
+                data?.nombre +
+                " " +
+                data?.apellido_paterno +
+                " " +
+                data?.apellido_materno,
+              evaluacion_id: data?.evaluacions
+                ?.filter((dat) => dat.finalizado === false)
+                ?.at(-1)?.id,
+              programado: data.pago_asociacions.length > 0 ? true : false,
+            };
+          }),
+        };
+      })
+      .filter((item) => item.dias_cumplidos >= 14);
+
+    // const filterAsistencia = getPlanilla
+    //   ?.map((item, i) => {
+    //     let contratoActivo = item?.contratos?.filter(
+    //       (item) => item?.finalizado === false
+    //     );
+    //     return {
+    //       dni: item?.dni,
+    //       codigo_trabajador: item?.codigo_trabajador,
+    //       fecha_nacimiento: item?.fecha_nacimiento,
+    //       telefono: item?.telefono,
+    //       tipo: "---",
+    //       nombre:
+    //         item?.nombre +
+    //         " " +
+    //         item?.apellido_paterno +
+    //         " " +
+    //         item?.apellido_materno,
+    //       trabajador_asistencia: item?.trabajador_asistencia,
+    //       contrato: item?.contratos,
+    //       asistencias: item?.trabajador_asistencia?.filter(
+    //         (data) => data.asistencia === "Asistio"
+    //       ).length,
+    //       nro_quincena:
+    //         parseInt(
+    //           item?.trabajador_asistencia?.filter(
+    //             (data) => data.asistencia === "Asistio"
+    //           ).length
+    //         ) / 15,
+    //       volquetes: contratoActivo?.at(-1)?.teletrans?.at(-1)?.volquete,
+    //       teletrans: contratoActivo?.at(-1)?.teletrans?.at(-1)?.teletrans,
+    //       total: contratoActivo?.at(-1)?.teletrans?.at(-1)?.total,
+    //       saldo: contratoActivo?.at(-1)?.teletrans?.at(-1)?.saldo,
+    //       contrato_id: contratoActivo?.at(-1).id,
+    //     };
+    //   })
+    //   .filter((item) => item.asistencias !== 0 && item.asistencias % 15 >= 0)
+    //   .flat();
+
+    // const duplicate = filterAsistencia
+    //   .map((item) =>
+    //     item?.trabajador_asistencia
+    //       ?.slice(0, item.nro_quincena)
+    //       .map((data, i) => {
+    //         return {
+    //           dni: item.dni,
+    //           nombre: item?.nombre,
+    //           cargo: item?.contrato?.at(-1)?.puesto,
+    //           asistencias: item?.trabajador_asistencia?.filter(
+    //             (data) => data.asistencia === "Asistio"
+    //           ).length,
+    //           nro_quincena: i + 1,
+    //           contrato_id: item.contrato_id,
+    //         };
+    //       })
+    //   )
+    //   .flat();
+
+    // let concat = duplicate.concat(formatAsociacion);
+    res.status(200).json({ data: formatAsociacion });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
+//lista de asociaciones con trabajadores para programar
+const getListaAsociacionProgramada = async (req, res, next) => {
+  try {
+    const getAsociacion = await pago.findAll({
+      where: { tipo: "asociacion" },
+      include: [
+        {
+          model: contrato_pago,
+          attributes: { exclude: ["contrato_pago_id"] },
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              include: [{ model: asociacion }],
+            },
+
+            {
+              model: pago_asociacion,
+              include: [
+                { model: trabajador, attributes: { exclude: ["usuarioId"] } },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const formatData = getAsociacion
+      .map((item) => {
+        return {
+          id: item?.id,
+          teletrans: item?.teletrans,
+          observacion: item?.observacion,
+          fecha_pago: item?.fecha_pago,
+          estado: item?.estado,
+          tipo: item?.tipo,
+          volquetes: item?.volquetes,
+          asociacion: item?.contrato_pagos
+            ?.map((data) => data?.contrato?.asociacion?.nombre)
+            ?.toString(),
+          tipo_asociacion: item?.contrato_pagos
+            ?.map((data) => data?.contrato?.asociacion?.tipo)
+            ?.toString(),
+
+          trabajadores: item?.contrato_pagos?.map((data) =>
+            data?.pago_asociacions?.map((dat) => {
+              return {
+                id: dat?.id,
+                teletrans: dat?.teletrans,
+                dni: dat?.trabajador_dni,
+                nombre:
+                  dat?.trabajador?.nombre +
+                  " " +
+                  dat?.trabajador?.apellido_paterno +
+                  " " +
+                  dat?.trabajador?.apellido_materno,
+              };
+            })
+          ).flat(),
+        };
+      })
+      .filter(
+        (item) => item.estado === "programado" && item.trabajadores.length > 0
+      );
+
+    res.status(200).json({ data: formatData });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
 const getPlanillaPago = async (req, res, next) => {
   try {
     const getPlanilla = await trabajador.findAll({
@@ -169,7 +405,11 @@ const getPlanillaPago = async (req, res, next) => {
           },
           include: [
             { model: teletrans },
-            { model: contrato_pago, include: [{ model: pago }] },
+            {
+              model: contrato_pago,
+              attributes: { exclude: ["contrato_pago_id"] },
+              include: [{ model: pago }],
+            },
           ],
         },
       ],
@@ -180,10 +420,16 @@ const getPlanillaPago = async (req, res, next) => {
         {
           model: contrato,
           attributes: { exclude: ["contrato_id"] },
-
+          // where: {
+          //   [Op.and]: [{ finalizado: { [Op.not]: true } }],
+          // },
           include: [
             { model: teletrans },
-            { model: contrato_pago, include: [{ model: pago }] },
+            {
+              model: contrato_pago,
+              attributes: { exclude: ["contrato_pago_id"] },
+              include: [{ model: pago }],
+            },
           ],
         },
         {
@@ -194,14 +440,65 @@ const getPlanillaPago = async (req, res, next) => {
       ],
     });
 
+    const fecha = new Date();
+    const formatAsociacion = getAsociacion
+      .map((item) => {
+        let contratoActivo = item?.contratos?.filter(
+          (item) => item?.finalizado === false
+        );
+        const fechaActual = dayjs(fecha);
+        const fechaContrato = dayjs(contratoActivo?.at(-1)?.fecha_inicio);
+        const diferencia = fechaActual.diff(fechaContrato, "day");
+
+        return {
+          dni: item?.dni,
+          codigo_trabajador: "---",
+          fecha_nacimiento: "---",
+          telefono: "---",
+          tipo: item.tipo,
+          nombre: item?.nombre,
+          trabajador_asistencia: "---",
+          asistencias: "---",
+          nro_quincena: "---",
+          volquetes: contratoActivo?.at(-1)?.teletrans?.at(-1)?.volquete,
+          teletrans: contratoActivo?.at(-1)?.teletrans?.at(-1)?.teletrans,
+          total: contratoActivo?.at(-1)?.teletrans?.at(-1)?.total,
+          saldo: contratoActivo?.at(-1)?.teletrans?.at(-1)?.saldo,
+          fecha_inicio: fechaContrato,
+          dias_cumplidos: diferencia,
+          contrato: item?.contratos.at(-1),
+          trabajadores: item?.trabajadors?.map((data) => {
+            return {
+              dni: data?.dni,
+              nombre:
+                data?.nombre +
+                " " +
+                data?.apellido_paterno +
+                " " +
+                data?.apellido_materno,
+              codigo_trabajador: data?.codigo_trabajador,
+              celular: data?.celular,
+              evaluacion_id: data?.evaluacions
+                ?.map((dat) => dat?.id)
+                .toString(),
+              asociacion_id: data?.asociacion_id,
+            };
+          }),
+        };
+      })
+      .filter((item) => item.dias_cumplidos >= 14);
+
     const filterAsistencia = getPlanilla
       ?.map((item, i) => {
+        let contratoActivo = item?.contratos?.filter(
+          (item) => item?.finalizado === false
+        );
         return {
-          id: i + 1,
           dni: item?.dni,
           codigo_trabajador: item?.codigo_trabajador,
           fecha_nacimiento: item?.fecha_nacimiento,
           telefono: item?.telefono,
+          tipo: "---",
           nombre:
             item?.nombre +
             " " +
@@ -219,6 +516,10 @@ const getPlanillaPago = async (req, res, next) => {
                 (data) => data.asistencia === "Asistio"
               ).length
             ) / 15,
+          volquetes: contratoActivo?.at(-1)?.teletrans?.at(-1)?.volquete,
+          teletrans: contratoActivo?.at(-1)?.teletrans?.at(-1)?.teletrans,
+          total: contratoActivo?.at(-1)?.teletrans?.at(-1)?.total,
+          saldo: contratoActivo?.at(-1)?.teletrans?.at(-1)?.saldo,
         };
       })
       .filter((item) => item.asistencias !== 0 && item.asistencias % 15 >= 0)
@@ -244,13 +545,11 @@ const getPlanillaPago = async (req, res, next) => {
                 ?.asistencium?.fecha,
               fecha_fin: item?.trabajador_asistencia?.at((i + 1 - 1) * 15 + 14)
                 ?.asistencium?.fecha,
-              volquete: item?.contrato?.at(-1)?.volquete,
-              teletran: parseInt(
-                item?.contrato.at(-1)?.teletrans.at(-1)?.teletrans
-              ),
-              total: parseInt(item?.contrato.at(-1)?.teletrans.at(-1)?.total),
-              saldo: parseInt(item?.contrato.at(-1)?.teletrans.at(-1)?.saldo),
               contrato: item?.contrato.at(-1),
+              volquetes: item.volquetes,
+              teletrans: item.teletrans,
+              total: item.total,
+              saldo: item.saldo,
               // observacion: item?.contrato
               //   .at(-1)
               //   .pagos.map((item) => item.observacion)
@@ -274,10 +573,12 @@ const getPlanillaPago = async (req, res, next) => {
       )
       .flat();
 
-    res.status(200).json({ data: getAsociacion });
+    let concat = duplicate
+      .concat(formatAsociacion)
+      .filter((item) => item?.contrato?.contrato_pagos?.length > 0);
+    res.status(200).json({ data: concat });
     next();
   } catch (error) {
-    console.log(error);
     res.status(500).json();
   }
 };
@@ -513,4 +814,6 @@ module.exports = {
   getTareoAsociacion,
   juntarTeletrans,
   getPlanillaPago,
+  getListaPago,
+  getListaAsociacionProgramada,
 };

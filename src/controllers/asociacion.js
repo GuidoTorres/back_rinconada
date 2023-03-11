@@ -13,6 +13,7 @@ const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       include: [
+        {model:contrato, attributes:{exclude:"contrato_id"}},
         {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
@@ -27,6 +28,7 @@ const getAsociacion = async (req, res, next) => {
         nombre: item?.nombre,
         codigo: item?.codigo,
         tipo: item?.tipo,
+        contrato: item?.contratos.filter(data => data.finalizado === false),
         trabajadors: item.trabajadors.map((data) => {
           return {
             dni: data.dni,

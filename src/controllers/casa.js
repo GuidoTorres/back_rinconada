@@ -1,32 +1,47 @@
-const { contrato_pago, pago, empresa, contrato } = require("../../config/db");
+const {
+  contrato_pago,
+  pago,
+  empresa,
+  contrato,
+  destino,
+  destino_pago,
+  trabajador,
+} = require("../../config/db");
 
 const getEmpresaPago = async (req, res, next) => {
   try {
-    const get = await empresa.findAll({
+    const get = await contrato_pago.findAll({
+      attributes: { exclude: "contrato_pago_id" },
       include: [
+        {
+          model: pago,
+          where: { tipo: "casa" },
+        },
         {
           model: contrato,
           attributes: { exclude: ["contrato_id"] },
-          include: [{ model: contrato_pago, include: [{ model: pago }] }],
+          include: [{ model: empresa }],
         },
       ],
     });
 
-    const formatData = get.map((item) => {
-      return {
-        id: item?.id,
-        razon_social: item?.razon_social,
-        ruc: item?.ruc,
-        contrato_id: item?.contratos?.map((data) => data?.id)?.toString(),
-        contrato_pago: item?.contratos
-          ?.map((data) => data?.contrato_pagos)
-          ?.flat()
-          ?.sort((a, b) => a.id - b.id)
-          ?.filter((item) => item?.pago?.estado !== true).at(-1),
-      };
-    });
-    //       .at(-1)
-    res.status(400).json({ data: formatData });
+    const formatData = get
+      .map((item) => {
+        return {
+          id: item?.id,
+          pago_id: item.pago_id,
+          razon_social: item?.contrato?.empresa?.razon_social,
+          ruc: item?.contrato?.empresa?.ruc,
+          contrato_id: item?.contrato?.id,
+          pago: item.pago,
+        };
+      })
+      .filter(
+        (item) =>
+          Object.keys(item.pago).length > 0 && item.pago.estado !== "completado"
+      );
+
+    res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -38,48 +53,38 @@ const createProgramacionCasa = async (req, res, next) => {
   let info = {
     observacion: req.body.observacion,
     fecha_pago: req.body.fecha_pago,
-    estado: false,
+    estado: "programado",
     teletrans: req.body.teletrans,
+    volquetes: req.body.volquetes,
     tipo: req.body.tipo,
   };
 
+  const totalTtrans =
+    parseFloat(info.volquetes) * 4 + parseFloat(info.teletrans);
   try {
     const get = await contrato_pago.findAll({
       where: { contrato_id: req.body.contrato_id },
+      attributes: { exclude: ["contrato_pago_id"] },
       include: [{ model: pago }],
     });
 
-    const filterExist = get.filter((item) => item.pago.estado !== true);
-    if (filterExist.length > 0) {
+    if (totalTtrans < 4) {
       return res.status(400).json({
-        msg: "No se pudo registrar la programación del pago, tiene un pago pendiente.",
+        msg: "Error! La cantidad de teletrans debe ser equivalente o mayor a 1 volquete.",
         status: 400,
       });
     } else {
-      if (req.body.contrato_id) {
-        if (parseInt(info.teletrans) % 4 !== 0) {
-          return res.status(400).json({
-            msg: "Error! La cantidad de teletrans debe ser equivalente a un volquete.",
-            status: 400,
-          });
-        } else {
-          const post = await pago.create(info);
-          let contra_pago = {
-            teletrans: info.teletrans,
-            contrato_id: req.body.contrato_id,
-            pago_id: post.id,
-          };
-          const pagoContrato = await contrato_pago.create(contra_pago);
-          return res
-            .status(200)
-            .json({ msg: "Programación registrada con éxito!", status: 200 });
-        }
-      } else {
-        return res.status(400).json({
-          msg: "Error! Falta el id del contrato.",
-          status: 400,
-        });
-      }
+      const post = await pago.create(info);
+      let contra_pago = {
+        teletrans: info.teletrans,
+        volquetes: info.volquetes,
+        contrato_id: req.body.contrato_id,
+        pago_id: post.id,
+      };
+      const pagoContrato = await contrato_pago.create(contra_pago);
+      return res
+        .status(200)
+        .json({ msg: "Programación registrada con éxito!", status: 200 });
     }
 
     next();
@@ -96,14 +101,15 @@ const postPagoCasa = async (req, res, next) => {
     placa: req?.body?.placa,
     propietario: req?.body?.propietario,
     trapiche: req.body?.trapiche,
-    teletrans: parseInt(req.body?.teletrans),
+    teletrans: 0,
     contrato_id: parseInt(req.body?.contrato_id),
     pago_id: parseInt(req.body.pago_id),
-    estado: true,
+    volquete: parseInt(req.body.volquete),
+    estado: "completado",
   };
 
   try {
-    if (req.body.teletrans % 4 === 0) {
+    if (req.body.volquete % 4 === 0) {
       const create = await pago.update(info, {
         where: { id: info.pago_id },
       });
@@ -112,10 +118,52 @@ const postPagoCasa = async (req, res, next) => {
         .json({ msg: "Pago registrado con éxito!", status: 200 });
     } else {
       return res.status(200).json({
-        msg: "Error! el pago solamente se puede realizar si los teletrans equivalente a 1 o más volquetes.",
+        msg: "Error! el pago solamente se puede realizar si los teletrans equivalen a 1 volquete.",
         status: 200,
       });
     }
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
+  }
+};
+const postMultiplePagos = async (req, res, next) => {
+  try {
+    if (req.body.volquetes >= 1) {
+      const getPago = await pago.findAll({
+        where: { id: req.body.pago_id },
+      });
+
+      const create = await destino.bulkCreate(req.body.destino);
+      const destinoPago = create.map((item) => {
+        return {
+          destino_id: item.id,
+          pago_id: req.body.pago_id,
+          estado: "completado",
+        };
+      });
+
+      const pagoDestino = await destino_pago.bulkCreate(destinoPago);
+      console.log(pagoDestino);
+      const pagoEstado = {
+        estado: "completado",
+      };
+      const updatePago = await pago.update(pagoEstado, {
+        where: {
+          id: req.body.pago_id,
+        },
+      });
+      return res
+        .status(200)
+        .json({ msg: "Pago realizado con éxito!", status: 200 });
+    } else {
+      return res.status(400).json({
+        msg: "Error! el monto a pagar debe ser igual o mayor a 1 volquete.",
+        status: 400,
+      });
+    }
+
     next();
   } catch (error) {
     console.log(error);
@@ -129,28 +177,34 @@ const updateProgramacionCasa = async (req, res, next) => {
     observacion: req.body.observacion,
     fecha_pago: req.body.fecha_pago,
     teletrans: req.body.teletrans,
+    volquetes: req.body.volquetes,
   };
+
+  const totalTtrans =
+    parseFloat(info.volquetes) * 4 + parseFloat(info.teletrans);
+
   try {
-    if (info.teletrans % 4 === 0) {
+    if (totalTtrans >= 4) {
       let update = await pago.update(info, { where: { id: id } });
       let data = {
         teletrans: info.teletrans,
+        volquetes: info.volquetes,
       };
       let updateContatoPago = await contrato_pago.update(data, {
         where: { pago_id: id },
       });
 
-      res
+      return res
         .status(200)
         .json({ msg: "Programación actualizada con éxito!", status: 200 });
-      next();
     } else {
-      res.status(400).json({
-        msg: "Error! La cantidad de teletrans debe ser equivalente a 1 o mas volquetes.",
-        status: 400,
+      return res.status(200).json({
+        msg: "Error! la cantidad debe ser equivalente o mayor a 1 volquete.",
+        status: 200,
       });
-      next();
     }
+
+    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
@@ -159,6 +213,14 @@ const updateProgramacionCasa = async (req, res, next) => {
 const deletePagoCasa = async (req, res, next) => {
   let id = req.params.id;
   try {
+    const getDestinoPago = await destino_pago.findAll({
+      where: { pago_id: id },
+    });
+
+    const ids = getDestinoPago.map((item) => item.destino_id);
+    let delDestinoPago = await destino_pago.destroy({ where: { pago_id: id } });
+    let delDestino = await destino.destroy({ where: { id: ids } });
+
     let delContratoPago = await contrato_pago.destroy({
       where: { pago_id: id },
     });
@@ -174,6 +236,7 @@ const deletePagoCasa = async (req, res, next) => {
     }
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };
@@ -184,4 +247,5 @@ module.exports = {
   updateProgramacionCasa,
   deletePagoCasa,
   getEmpresaPago,
+  postMultiplePagos,
 };
