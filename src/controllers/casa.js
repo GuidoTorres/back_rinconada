@@ -128,24 +128,20 @@ const postPagoCasa = async (req, res, next) => {
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
   }
 };
-const postMultiplePagos = async (req, res, next) => {
+const postPagoCasaMultiple = async (req, res, next) => {
   try {
     if (req.body.volquetes >= 1) {
-      const getPago = await pago.findAll({
-        where: { id: req.body.pago_id },
-      });
-
       const create = await destino.bulkCreate(req.body.destino);
-      const destinoPago = create.map((item) => {
+      const destinoCreate = create.map((item) => {
         return {
           destino_id: item.id,
           pago_id: req.body.pago_id,
           estado: "completado",
         };
       });
-
-      const pagoDestino = await destino_pago.bulkCreate(destinoPago);
-      console.log(pagoDestino);
+      const dest = await destino_pago.bulkCreate(destinoCreate, {
+        ignoreDuplicates: true,
+      });
       const pagoEstado = {
         estado: "completado",
       };
@@ -184,25 +180,18 @@ const updateProgramacionCasa = async (req, res, next) => {
     parseFloat(info.volquetes) * 4 + parseFloat(info.teletrans);
 
   try {
-    if (totalTtrans >= 4) {
-      let update = await pago.update(info, { where: { id: id } });
-      let data = {
-        teletrans: info.teletrans,
-        volquetes: info.volquetes,
-      };
-      let updateContatoPago = await contrato_pago.update(data, {
-        where: { pago_id: id },
-      });
+    let update = await pago.update(info, { where: { id: id } });
+    let data = {
+      teletrans: info.teletrans,
+      volquetes: info.volquetes,
+    };
+    let updateContatoPago = await contrato_pago.update(data, {
+      where: { pago_id: id },
+    });
 
-      return res
-        .status(200)
-        .json({ msg: "Programación actualizada con éxito!", status: 200 });
-    } else {
-      return res.status(200).json({
-        msg: "Error! la cantidad debe ser equivalente o mayor a 1 volquete.",
-        status: 200,
-      });
-    }
+    return res
+      .status(200)
+      .json({ msg: "Programación actualizada con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -247,5 +236,5 @@ module.exports = {
   updateProgramacionCasa,
   deletePagoCasa,
   getEmpresaPago,
-  postMultiplePagos,
+  postPagoCasaMultiple,
 };

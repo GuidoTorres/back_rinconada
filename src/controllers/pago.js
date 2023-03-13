@@ -77,10 +77,12 @@ const createProgramacionMultiple = async (req, res, next) => {
     );
     if (info.teletrans % 4 === 0) {
       if (req?.body?.trabajadores?.length > 0) {
+        console.log("digimon");
+
         const post = await pago.create(info);
         let contra_pago = req.body.trabajadores.map((item) => {
           return {
-            contrato_id: req.body.contrato_id,
+            contrato_id: item.contrato_id,
             pago_id: post.id,
             volquetes: req.body.volquetes,
             teletrans: info.teletrans,
@@ -94,6 +96,7 @@ const createProgramacionMultiple = async (req, res, next) => {
 
       //=====================================
       if (req?.body?.asociacion?.length > 0) {
+        console.log("pokemon");
         const post = await pago.create(info);
         let contra_pago = {
           contrato_id: req.body.contrato_id,
@@ -474,7 +477,7 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           volquetes: item?.volquetes,
           teletrans: item?.teletrans,
-          asociacion: item?.contrato_pagos?.map((data) => {
+          pagos: item?.contrato_pagos?.map((data) => {
             return {
               contrato_id: data?.contrato_id,
               pago_id: data?.pago_id,
@@ -505,7 +508,7 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           volquetes: item?.volquetes,
           teletrans: item?.teletrans,
-          asociacion: item?.contrato_pagos?.map((data) => {
+          pagos: item?.contrato_pagos?.map((data) => {
             return {
               contrato_id: "---",
               pago_id: data?.pago_id,
@@ -540,7 +543,7 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           volquetes: item?.volquetes,
           teletrans: item?.teletrans,
-          asociacion: item?.contrato_pagos?.map((data) => {
+          pagos: item?.contrato_pagos?.map((data) => {
             return {
               contrato_id: data?.contrato_id,
               pago_id: data?.pago_id,

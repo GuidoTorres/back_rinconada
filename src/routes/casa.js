@@ -4,7 +4,7 @@ const casa = require("../controllers/casa");
 router.get("/", casa.getEmpresaPago)
 router.post("/programacion", casa.createProgramacionCasa);
 // router.post("/pago", casa.postPagoCasa);
-router.post("/pago", casa.postMultiplePagos);
+router.post("/pago", casa.postPagoCasaMultiple);
 router.put("/programacion/:id", casa.updateProgramacionCasa);
 router.delete("/:id", casa.deletePagoCasa)
 

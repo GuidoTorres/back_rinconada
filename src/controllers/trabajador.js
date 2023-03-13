@@ -54,8 +54,17 @@ const getTrabajador = async (req, res, next) => {
         deshabilitado: item?.deshabilitado,
         foto: item?.foto,
         eliminar: item?.eliminar,
-        evaluacion: item?.evaluacions,
-        contrato: item?.contratos,
+        evaluacion: item?.evaluacions.filter(
+          (item) => item.finalizado === false
+        ),
+        campamento: !item?.contratos
+          ?.filter((item) => item?.finalizado === false)
+          ?.at(-1)?.campamento.nombre
+          ? "Por asignar"
+          : item?.contratos
+              ?.filter((item) => item?.finalizado === false)
+              ?.at(-1)?.campamento.nombre,
+        contrato: item?.contratos.filter((item) => item?.finalizado === false),
       };
     });
     res.status(200).json({ data: obj });
@@ -176,11 +185,31 @@ const postMultipleTrabajador = async (req, res, next) => {
         )
       );
 
-    const obj = result.map((item) => {
+    const getCodigoTrabajador = await trabajador.findOne({
+      attributes: { exclude: ["usuarioId"] },
+      order: [["codigo_trabajador", "DESC"]],
+    });
+
+    codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCM000";
+    const getNumber = codigo_final.includes("CCM00")
+      ? codigo_final.split("CCM00")[1]
+      : codigo_final.includes("CCM0")
+      ? codigo_final.split("CCM0")[1]
+      : codigo_final.includes("CCM")
+      ? codigo_final.split("CCM")[1]
+      : "";
+
+    const obj = result.map((item, i) => {
       return {
         dni: parseInt(item?.dni),
-        codigo_trabajador: item?.codigo_trabajador,
-        fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
+        codigo_trabajador:
+          parseInt(getNumber) + i + 1 < 10
+            ? "CCM00" + (parseInt(getNumber) + i + 1)
+            : parseInt(getNumber) + i + 1 >= 10 &&
+              parseInt(getNumber) + i + 1 < 100
+            ? "CCM0" + (parseInt(getNumber) + i + 1)
+            : "CCM" + (parseInt(getNumber) + i + 1),
+        fecha_nacimiento: dayjs(item?.fecha_nacimiento)?.format("YYYY-MM-DD"),
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,
         apellido_materno: item?.apellido_materno,
@@ -190,8 +219,6 @@ const postMultipleTrabajador = async (req, res, next) => {
         genero: item?.genero,
       };
     });
-
-    console.log(obj);
 
     const getTrabajador = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
@@ -213,18 +240,17 @@ const postMultipleTrabajador = async (req, res, next) => {
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
 
-    console.log(dnis);
-
     if (dnis.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
       res
         .status(200)
-        .json({ msg: "Trabajadores creados con éxito!", status: 200 });
+        .json({ msg: "Trabajadores registrados con éxito!", status: 200 });
     } else {
       res
         .status(200)
         .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
     }
+
     next();
   } catch (error) {
     console.log(error);
@@ -237,7 +263,7 @@ const postMultipleTrabajador = async (req, res, next) => {
 const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
   let info;
-  if (req?.body?.foto !== undefined && req.body.foto !== "" ) {
+  if (req?.body?.foto !== undefined && req.body.foto !== "") {
     const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
     const editFotoLink = req.body.foto.split("/").at(-1);

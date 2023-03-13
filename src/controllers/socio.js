@@ -25,10 +25,10 @@ const postSocio = async (req, res, next) => {
     });
     const filterRepeated = getSocio.filter((item) => item.dni == info.dni);
     if (filterRepeated.length > 0) {
-      res.status(200).json({ msg: "Socio ya esta registrado.", status: 403 });
+      res.status(200).json({ msg: "El socio ya esta registrado.", status: 403 });
     } else {
       const create = await socio.create(info);
-      res.status(200).json({ msg: "Socio creado con exito!", status: 200 });
+      res.status(200).json({ msg: "Socio creado con éxito!", status: 200 });
     }
     next();
   } catch (error) {

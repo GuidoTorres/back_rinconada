@@ -12,6 +12,7 @@ const { Op } = require("sequelize");
 
 const getIncentivo = async (req, res, next) => {
   try {
+
     const get = await trabajador.findAll({
       where: {
         [Op.and]: [
@@ -34,9 +35,6 @@ const getIncentivo = async (req, res, next) => {
               include: [
                 {
                   model: pago,
-                  where: {
-                    [Op.and]: [{ estado: { [Op.not]: true } }],
-                  },
                 },
               ],
             },
@@ -58,12 +56,12 @@ const getIncentivo = async (req, res, next) => {
               include: [
                 {
                   model: trabajador,
-                  where: {
-                    [Op.and]: [
-                      { asociacion_id: { [Op.is]: null } },
-                      { deshabilitado: { [Op.not]: true } },
-                    ],
-                  },
+                  // where: {
+                  //   [Op.and]: [
+                  //     { asociacion_id: { [Op.is]: null } },
+                  //     { deshabilitado: { [Op.not]: true } },
+                  //   ],
+                  // },
                   attributes: { exclude: ["usuarioId"] },
                 },
               ],
@@ -107,28 +105,28 @@ const getIncentivo = async (req, res, next) => {
     const format = filterIncentivo
       .map((item) => {
         return {
-          pago_id: item.id,
-          observacion: item.observacion,
-          fecha_pago: item.fecha_pago,
-          tipo: item.tipo,
-          estado: item.estado,
-          trabajadores: item.contrato_pagos.map((data) => {
+          pago_id: item?.id,
+          observacion: item?.observacion,
+          fecha_pago: item?.fecha_pago,
+          tipo: item?.tipo,
+          estado: item?.estado,
+          trabajadores: item?.contrato_pagos?.map((data) => {
             return {
-              contrato_id: data.contrato_id,
-              teletrans: data.teletrans,
+              contrato_id: data?.contrato_id,
+              teletrans: data?.teletrans,
               nombre:
-                data.contrato.trabajador.nombre +
+                data?.contrato?.trabajador?.nombre +
                 " " +
-                data.contrato.trabajador.apellido_paterno +
+                data?.contrato?.trabajador?.apellido_paterno +
                 " " +
-                data.contrato.trabajador.apellido_materno,
-              cargo: data.contrato.puesto,
-              celular: data.contrato.trabajador.telefono,
+                data?.contrato?.trabajador?.apellido_materno,
+              cargo: data?.contrato?.puesto,
+              celular: data?.contrato?.trabajador?.telefono,
             };
           }),
         };
       })
-      .filter((item) => item.estado === "programado");
+      ?.filter((item) => item?.estado === "programado");
 
     res.status(200).json({ data: format });
     next();

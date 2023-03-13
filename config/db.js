@@ -48,7 +48,7 @@ const trabajador = sequelize.define(
   "trabajador",
   {
     dni: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
     },
@@ -130,7 +130,7 @@ const evaluacion = sequelize.define(
     diabetes: DataTypes.STRING,
     antecedentes: DataTypes.STRING,
     emo: DataTypes.STRING,
-    trabajador_id: DataTypes.INTEGER,
+    trabajador_id: DataTypes.STRING,
     aprobado: DataTypes.STRING,
     control: DataTypes.STRING,
     topico: DataTypes.STRING,
@@ -188,7 +188,7 @@ const contrato = sequelize.define(
     suspendido: DataTypes.BOOLEAN,
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
-    trabajador_id: DataTypes.INTEGER,
+    trabajador_id: DataTypes.STRING,
     tareo: DataTypes.STRING,
   },
   {
@@ -338,7 +338,7 @@ const trabajadorAsistencia = sequelize.define(
       allowNull: false,
     },
     asistencia_id: DataTypes.INTEGER,
-    trabajador_id: DataTypes.INTEGER,
+    trabajador_id: DataTypes.STRING,
     asistencia: DataTypes.STRING,
     observacion: DataTypes.STRING,
     hora_ingreso: DataTypes.STRING,
@@ -886,12 +886,35 @@ const ayuda_pago = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    trabajador_dni: DataTypes.INTEGER,
+    trabajador_dni: DataTypes.STRING,
     pago_id: DataTypes.INTEGER,
     teletrans: DataTypes.STRING,
   },
   {
     tableName: "ayuda_pago",
+    timestamp: false,
+  }
+);
+
+const destino = sequelize.define(
+  "destino",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    hora: DataTypes.STRING,
+    placa: DataTypes.STRING,
+    propietario: DataTypes.STRING,
+    trapiche: DataTypes.STRING,
+    volquetes: DataTypes.STRING,
+    teletrans: DataTypes.STRING,
+  },
+  {
+    tableName: "destino",
     timestamp: false,
   }
 );
@@ -914,27 +937,6 @@ const destino_pago = sequelize.define(
     timestamp: false,
   }
 );
-const destino = sequelize.define(
-  "destino",
-
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false,
-    },
-    hora: DataTypes.STRING,
-    placa: DataTypes.STRING,
-    propietario: DataTypes.STRING,
-    trapiche: DataTypes.STRING,
-    teletrans: DataTypes.STRING,
-  },
-  {
-    tableName: "destino",
-    timestamp: false,
-  }
-);
 
 const pago_asociacion = sequelize.define(
   "pago_asociacion",
@@ -947,7 +949,7 @@ const pago_asociacion = sequelize.define(
       allowNull: false,
     },
     teletrans: DataTypes.STRING,
-    contrato_pago_id: DataTypes.INTEGER,
+    contrato_pago_id: DataTypes.STRING,
     trabajador_dni: DataTypes.INTEGER,
   },
   {

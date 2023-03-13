@@ -9,16 +9,17 @@ const getEmpresa = async (req, res, next) => {
     const formatData = all.map(item => {
 
       return{
-        id: item.id,
-        razon_social: item.razon_social,
-        ruc: item.ruc,
-        contrato_id: item.contratos.at(-1).id,
+        id: item?.id,
+        razon_social: item?.razon_social,
+        ruc: item?.ruc,
+        contrato_id: item?.contratos?.at(-1)?.id,
 
       }
     })
     res.status(200).json({ data: formatData });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };

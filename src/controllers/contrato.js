@@ -5,6 +5,7 @@ const {
   teletrans,
 } = require("../../config/db");
 const date = require("date-and-time");
+const { Op } = require("sequelize");
 
 const getContrato = async (req, res, next) => {
   try {
@@ -69,16 +70,50 @@ const getContratoAsociacionById = async (req, res, next) => {
 
 const postContrato = async (req, res, next) => {
   try {
-    const get = await contrato.findAll({
-      where: { trabajador_id: req.body.trabajador_id },
-      attributes: { exclude: ["contrato_id"] },
-    });
-    const filter = get.filter((item) => item.finalizado === false);
-    if (filter.length > 0) {
-      return res.status(500).json({
-        msg: "No se pudo crear el contrato, el trabajador tiene un contrato activo.",
-        status: 500,
+    if (req.body.trabajador_id) {
+      const get = await contrato.findAll({
+        where: { trabajador_id: req.body.trabajador_id },
+        attributes: { exclude: ["contrato_id"] },
       });
+      const getEva = await evaluacion.findAll({
+        where: { trabajador_id: req.body.trabajador_id },
+        attributes: { exclude: ["contrato_id"] },
+      });
+      const filter = get.filter((item) => item.finalizado === false);
+      const filterEva = getEva.filter((item) => item.finalizado === false);
+      if (filter.length > 0) {
+        return res.status(500).json({
+          msg: "No se pudo crear el contrato, el trabajador tiene un contrato activo.",
+          status: 500,
+        });
+      } else {
+        if (filterEva.length > 0) {
+          const post = await contrato.create(req.body);
+
+          let volquete = parseInt(req.body?.volquete);
+          let teletran = parseInt(req.body?.teletran);
+          let total = parseInt(volquete) * 4 + parseInt(teletran);
+
+          const ttransInfo = {
+            volquete: volquete,
+            teletrans: teletran,
+            total: total,
+            saldo: total,
+            contrato_id: post.id,
+          };
+          if (volquete !== "" && teletran !== "") {
+            const createtTrans = await teletrans.create(ttransInfo);
+          }
+          return res
+            .status(200)
+            .json({ msg: "Contrato creado con éxito!", status: 200 });
+        } else {
+          return res.status(500).json({
+            msg: "No se pudo registrar,el trabajador no tiene una evaluación activa.",
+            status: 500,
+          });
+        }
+      }
     } else {
       const post = await contrato.create(req.body);
 
@@ -209,6 +244,7 @@ const updateContrato = async (req, res, next) => {
 const deleteContrato = async (req, res, next) => {
   let id = req.params.id;
   try {
+    let removeTtrans = await teletrans.destroy({ where: { contrato_id: id } });
     let remove = await contrato.destroy({ where: { id: id } });
     res.status(200).json({ msg: "Contrato eliminado con éxito", status: 200 });
     next();
@@ -216,6 +252,22 @@ const deleteContrato = async (req, res, next) => {
     res
       .status(500)
       .json({ msg: "No se pudo eliminar el contrato", status: 500 });
+  }
+};
+
+const getLastId = async (req, res, next) => {
+  try {
+    const get = await contrato.findOne({
+      attributes: { exclude: ["contrato_id"] },
+      order: [["id", "DESC"]],
+    });
+
+    const getId = get.id + 1 || 0;
+    res.status(200).json({ data: getId });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "No se pudo obtener", status: 500 });
   }
 };
 
@@ -227,4 +279,5 @@ module.exports = {
   getContratoById,
   postContratoAsociacion,
   getContratoAsociacionById,
+  getLastId,
 };

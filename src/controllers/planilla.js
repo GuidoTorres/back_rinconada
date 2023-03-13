@@ -343,12 +343,9 @@ const getListaAsociacionProgramada = async (req, res, next) => {
           estado: item?.estado,
           tipo: item?.tipo,
           volquetes: item?.volquetes,
-          asociacion: item?.contrato_pagos
-            ?.map((data) => data?.contrato?.asociacion?.nombre)
-            ?.toString(),
-          tipo_asociacion: item?.contrato_pagos
-            ?.map((data) => data?.contrato?.asociacion?.tipo)
-            ?.toString(),
+          asociacion: item?.contrato_pagos.at(-1)?.contrato?.asociacion?.nombre
+            ,
+          tipo_asociacion: item?.contrato_pagos.at(-1)?.contrato?.asociacion?.tipo,
 
           trabajadores: item?.contrato_pagos?.map((data) =>
             data?.pago_asociacions?.map((dat) => {
@@ -806,6 +803,7 @@ const updateFechaPago = async (req, res, next) => {
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
+
 
 module.exports = {
   getPlanilla,

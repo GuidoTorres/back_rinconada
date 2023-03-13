@@ -13,7 +13,7 @@ const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       include: [
-        {model:contrato, attributes:{exclude:"contrato_id"}},
+        { model: contrato, attributes: { exclude: "contrato_id" } },
         {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
@@ -28,7 +28,7 @@ const getAsociacion = async (req, res, next) => {
         nombre: item?.nombre,
         codigo: item?.codigo,
         tipo: item?.tipo,
-        contrato: item?.contratos.filter(data => data.finalizado === false),
+        contrato: item?.contratos.filter((data) => data.finalizado === false),
         trabajadors: item.trabajadors.map((data) => {
           return {
             dni: data.dni,
@@ -67,7 +67,7 @@ const getAsociacionById = async (req, res, next) => {
     const all = await asociacion.findAll({
       where: { id: id },
 
-      include: [{ model: contrato }, { model: trabajador }],
+      include: [{ model: contrato }, { model: trabajador, include:[{model:evaluacion}] }],
     });
 
     const obj = all.map((item) => {
@@ -183,10 +183,30 @@ const uploadFile = async (req, res, next) => {
         )
       );
 
-    const obj = result.map((item) => {
+    const getCodigoTrabajador = await trabajador.findOne({
+      attributes: { exclude: ["usuarioId"] },
+      order: [["codigo_trabajador", "DESC"]],
+    });
+
+    codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCM000";
+    const getNumber = codigo_final.includes("CCM00")
+      ? codigo_final.split("CCM00")[1]
+      : codigo_final.includes("CCM0")
+      ? codigo_final.split("CCM0")[1]
+      : codigo_final.includes("CCM")
+      ? codigo_final.split("CCM")[1]
+      : "";
+
+    const obj = result.map((item,i) => {
       return {
         dni: parseInt(item?.dni),
-        codigo_trabajador: item?.codigo_trabajador,
+        codigo_trabajador:
+          parseInt(getNumber) + i + 1 < 10
+            ? "CCM00" + (parseInt(getNumber) + i + 1)
+            : parseInt(getNumber) + i + 1 >= 10 &&
+              parseInt(getNumber) + i + 1 < 100
+            ? "CCM0" + (parseInt(getNumber) + i + 1)
+            : "CCM" + (parseInt(getNumber) + i + 1),
         fecha_nacimiento: item?.fecha_nacimiento,
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,
@@ -198,9 +218,10 @@ const uploadFile = async (req, res, next) => {
         asociacion_id: id,
       };
     });
-    console.log(obj);
 
-    const getTrabajador = await trabajador.findAll({attributes:{exclude:["usuarioId"]}});
+    const getTrabajador = await trabajador.findAll({
+      attributes: { exclude: ["usuarioId"] },
+    });
     const filtered = obj.filter(
       ({ dni, codigo_trabajador }) =>
         !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
@@ -214,13 +235,13 @@ const uploadFile = async (req, res, next) => {
     const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
     res
       .status(200)
-      .send({ data: "Trabajadores creados con éxito!", status: 200 });
+      .json({ data: "Trabajadores registrados con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);
     res
       .status(500)
-      .json({ data: "No se pudo registrar los trabajadores", status: 500 });
+      .json({ data: "No se pudo registrar a los trabajadores", status: 500 });
   }
 };
 
