@@ -87,8 +87,7 @@ const postProducto = async (req, res, next) => {
 
 const updateProducto = async (req, res, next) => {
   let id = req.params.id;
-
-  if (req?.body?.foto !== "" ) {
+  if (req.file && req?.body?.foto !== undefined && req.body.foto !== "" ) {
     const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
     const editFotoLink = req?.body?.foto?.split("/").at(-1);

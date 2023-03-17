@@ -211,12 +211,13 @@ const updateContrato = async (req, res, next) => {
       where: { id: id },
     });
 
+    console.log(id);
+
     if (req?.body?.volquete && req?.body?.teletran) {
       let volquete = parseInt(req.body?.volquete);
       let teletran = parseInt(req.body?.teletran);
       let total = parseInt(volquete) * 4 + parseInt(teletran);
 
-      console.log(volquete);
       const ttransInfo = {
         volquete: volquete,
         total: total,
@@ -262,7 +263,7 @@ const getLastId = async (req, res, next) => {
       order: [["id", "DESC"]],
     });
 
-    const getId = get.id + 1 || 0;
+    const getId = get ? get?.id + 1 : 1;
     res.status(200).json({ data: getId });
     next();
   } catch (error) {

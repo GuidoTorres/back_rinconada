@@ -48,7 +48,7 @@ app.use(express.json());
 
 
 app.use(express.static(path.join(__dirname, "public")))
-app.use("/img",express.static(path.join(__dirname, "public/images")))
+app.use("/img",express.static(path.join(__dirname, "upload/images")))
 
 
 app.use("/api/v1/trabajador", trabajadorRouter);

@@ -8,6 +8,7 @@ const {
 
 const XLSX = require("xlsx");
 const { Op } = require("sequelize");
+const dayjs = require("dayjs");
 
 const getAsociacion = async (req, res, next) => {
   try {
@@ -168,13 +169,13 @@ const uploadFile = async (req, res, next) => {
   let id = req.params.id;
   console.log(req.file);
   try {
-    const workbook = XLSX.readFile("./upload/asociacion.xlsx");
+    const workbook = XLSX.readFile("./upload/data.xlsx");
     const workbookSheets = workbook.SheetNames;
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
 
     const result = dataExcel
-      .slice(1)
+
       .map((v) =>
         Object.entries(v).reduce(
           (acc, [key, value]) =>
@@ -182,6 +183,7 @@ const uploadFile = async (req, res, next) => {
           {}
         )
       );
+
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },
@@ -199,7 +201,7 @@ const uploadFile = async (req, res, next) => {
 
     const obj = result.map((item,i) => {
       return {
-        dni: parseInt(item?.dni),
+        dni: item?.dni,
         codigo_trabajador:
           parseInt(getNumber) + i + 1 < 10
             ? "CCM00" + (parseInt(getNumber) + i + 1)
@@ -207,7 +209,7 @@ const uploadFile = async (req, res, next) => {
               parseInt(getNumber) + i + 1 < 100
             ? "CCM0" + (parseInt(getNumber) + i + 1)
             : "CCM" + (parseInt(getNumber) + i + 1),
-        fecha_nacimiento: item?.fecha_nacimiento,
+        fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,
         apellido_materno: item?.apellido_materno,
@@ -215,27 +217,46 @@ const uploadFile = async (req, res, next) => {
         email: item?.email,
         estado_civil: item?.estado_civil,
         genero: item?.genero,
-        asociacion_id: id,
+        asociacion_id: item?.asociacion_id,
+        direccion: item?.direccion
       };
-    });
+    }).filter(item => item.asociacion_id !== undefined);
+
+   
+    const unique = obj.reduce((acc, current) => {
+      if (!acc.find((ele) => ele.dni === current.dni)) {
+        acc.push(current);
+      }
+
+      return acc;
+    }, []);
 
     const getTrabajador = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
     });
-    const filtered = obj.filter(
-      ({ dni, codigo_trabajador }) =>
-        !getTrabajador.some((x) => x.dni == dni) && codigo_trabajador
+
+    //filtrar a los trabajadores que ya estan registrados en la bd
+    const filtered = unique.filter(
+      ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
     );
 
+    //listado de dnis del excel
     const dnis = filtered.map((item) => item.dni);
+    // filtrar
     const filterDni = filtered.filter(
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
-
-    const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
-    res
-      .status(200)
-      .json({ data: "Trabajadores registrados con éxito!", status: 200 });
+    console.log(dnis);
+    if (dnis.length !== 0) {
+      const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
+      return res
+        .status(200)
+        .json({ msg: "Trabajadores registrados con éxito!", status: 200 });
+    } else {
+      return res
+        .status(200)
+        .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
+    }
     next();
   } catch (error) {
     console.log(error);

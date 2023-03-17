@@ -2,10 +2,13 @@ const multer = require("multer");
 const path = require("path");
 const uploadFile = () => {
   const storage = multer.diskStorage({
-    destination: "./upload",
+    destination: function(req, file, cb) { 
+      cb(null, './upload');    
+      console.log(file);
+   }, 
 
     filename: function (req, res, cb) {
-      cb(null, "asociacion.xlsx");
+      cb(null, "data.xlsx");
       //poner nombres diferentes a cada imagen
       // cb(null, Date.now() + path.extname(res.originalname));
     },

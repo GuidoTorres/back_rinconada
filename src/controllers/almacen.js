@@ -2,7 +2,6 @@ const {
   almacen,
   producto,
   transferencia,
-  almacen_transferencia,
   transferencia_producto,
   unidad,
   categoria,
@@ -35,11 +34,11 @@ const getAlmacenById = async (req, res, next) => {
 const postAlmacen = async (req, res, next) => {
   try {
     const post = await almacen.create(req.body);
-    res.status(200).json({ msg: "Almacen creado con éxito!", status: 200 });
+    res.status(200).json({ msg: "Almacén registrado con éxito!", status: 200 });
 
     next();
   } catch (error) {
-    res.status(500).json({ msg: "No se pudo crear el almacen.", status: 500 });
+    res.status(500).json({ msg: "No se pudo registrar el almacén.", status: 500 });
   }
 };
 
@@ -50,12 +49,12 @@ const updateAlmacen = async (req, res, next) => {
     let update = await almacen.update(req.body, { where: { id: id } });
     res
       .status(200)
-      .json({ msg: "Almacen actualizado con éxito!", status: 200 });
+      .json({ msg: "Almacén actualizado con éxito!", status: 200 });
     next();
   } catch (error) {
     res
       .status(500)
-      .json({ msg: "No se pudo actualizar el almacen.", status: 500 });
+      .json({ msg: "No se pudo actualizar el almacén.", status: 500 });
   }
 };
 
@@ -63,7 +62,7 @@ const deleteAlmacen = async (req, res, next) => {
   let id = req.params.id;
   try {
     let camp = await almacen.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Almacen eliminado con éxito!", status: 200 });
+    res.status(200).json({ msg: "Almacén eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
@@ -112,10 +111,10 @@ const getProductsByAlmacen = async (req, res, next) => {
 
 const almacenTrasferencia = async (req, res, next) => {
   let transferenciaFormat = {
-    fecha: req.body[0].fecha,
-    almacen_id: req.body[0].almacen_origen,
-    almacen_origen: req.body[0].almacen_origen,
-    almacen_destino: req.body[0].almacen_destino,
+    fecha: req.body.at(-1).fecha,
+    almacen_id: req.body.at(-1).almacen_origen,
+    almacen_origen: req.body.at(-1).almacen_origen,
+    almacen_destino: req.body.at(-1).almacen_destino,
     estado_origen: "Pendiente",
     estado_destino: "Pendiente"
 

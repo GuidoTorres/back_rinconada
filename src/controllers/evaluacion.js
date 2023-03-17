@@ -133,18 +133,26 @@ const postEvaluacion = async (req, res, next) => {
       where: { trabajador_id: info.trabajador_id },
     });
     const filter = get.filter((item) => item.finalizado === false);
-    console.log(filter);
 
-    if (filter.length > 0) {
+    const { fecha_evaluacion } = req.body;
+
+    if (fecha_evaluacion === "") {
       return res.status(500).json({
-        msg: "No se pudo crear la evaluación, el trabajador tiene una evaluación activa.",
+        msg: "Ingrese una fecha para registrar la evaluación.",
         status: 500,
       });
     } else {
-      const post = await evaluacion.create(info);
-      return res
-        .status(200)
-        .json({ msg: "Evaluación creada con éxito!", status: 200 });
+      if (filter.length > 0) {
+        return res.status(500).json({
+          msg: "No se pudo crear la evaluación, el trabajador tiene una evaluación activa.",
+          status: 500,
+        });
+      } else {
+        const post = await evaluacion.create(info);
+        return res
+          .status(200)
+          .json({ msg: "Evaluación creada con éxito!", status: 200 });
+      }
     }
 
     next();

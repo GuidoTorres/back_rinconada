@@ -104,7 +104,7 @@ const postPagoCasa = async (req, res, next) => {
     teletrans: 0,
     contrato_id: parseInt(req.body?.contrato_id),
     pago_id: parseInt(req.body.pago_id),
-    volquete: parseInt(req.body.volquete),
+    volquetes: parseInt(req.body.volquetes),
     estado: "completado",
   };
 
@@ -139,8 +139,12 @@ const postPagoCasaMultiple = async (req, res, next) => {
           estado: "completado",
         };
       });
+
+      console.log(create);
+      console.log(destinoCreate);
+
       const dest = await destino_pago.bulkCreate(destinoCreate, {
-        ignoreDuplicates: true,
+        ignoreDuplicates: false,
       });
       const pagoEstado = {
         estado: "completado",

@@ -1,5 +1,3 @@
-const { where } = require("sequelize");
-const date = require("date-and-time");
 const {
   trabajador,
   asociacion,
@@ -15,7 +13,6 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const { includes } = require("lodash");
 
 const getPlanilla = async (req, res, next) => {
   try {
@@ -343,29 +340,31 @@ const getListaAsociacionProgramada = async (req, res, next) => {
           estado: item?.estado,
           tipo: item?.tipo,
           volquetes: item?.volquetes,
-          asociacion: item?.contrato_pagos.at(-1)?.contrato?.asociacion?.nombre
-            ,
-          tipo_asociacion: item?.contrato_pagos.at(-1)?.contrato?.asociacion?.tipo,
-
-          trabajadores: item?.contrato_pagos?.map((data) =>
-            data?.pago_asociacions?.map((dat) => {
-              return {
-                id: dat?.id,
-                teletrans: dat?.teletrans,
-                dni: dat?.trabajador_dni,
-                nombre:
-                  dat?.trabajador?.nombre +
-                  " " +
-                  dat?.trabajador?.apellido_paterno +
-                  " " +
-                  dat?.trabajador?.apellido_materno,
-              };
-            })
-          ).flat(),
+          asociacion: item?.contrato_pagos.at(-1)?.contrato?.asociacion?.nombre,
+          tipo_asociacion:
+            item?.contrato_pagos.at(-1)?.contrato?.asociacion?.tipo,
+          contrato_id: item?.contrato_pagos.at(-1)?.contrato?.id,
+          trabajadores: item?.contrato_pagos
+            ?.map((data) =>
+              data?.pago_asociacions?.map((dat) => {
+                return {
+                  id: dat?.id,
+                  teletrans: dat?.teletrans,
+                  dni: dat?.trabajador_dni,
+                  nombre:
+                    dat?.trabajador?.nombre +
+                    " " +
+                    dat?.trabajador?.apellido_paterno +
+                    " " +
+                    dat?.trabajador?.apellido_materno,
+                };
+              })
+            )
+            .flat(),
         };
       })
       .filter(
-        (item) => item.estado === "programado" && item.trabajadores.length > 0
+        (item) => item?.estado === "programado" && item.trabajadores.length > 0
       );
 
     res.status(200).json({ data: formatData });
@@ -804,6 +803,88 @@ const updateFechaPago = async (req, res, next) => {
   }
 };
 
+const updatepagoAsociacion = async (req, res, next) => {
+  let pago_id = req.params.id;
+  const totalTeletrans = req?.body?.trabajadores?.reduce(
+    (acc, value) => acc + parseFloat(value.teletrans),
+    0
+  );
+  let info = {
+    observacion: req.body.observacion,
+    fecha_pago: req.body.fecha_pago,
+    contrato_id: req.body.contrato_id,
+    volquetes: req.body.volquetes,
+    teletrans: req.body.teletrans,
+  };
+  try {
+    if (!req.body.trabajadores) {
+      let update = await pago.update(info, {
+        where: { id: pago_id },
+      });
+      let data = {
+        teletrans: info.teletrans,
+      };
+      let updateContratoPago = await contrato_pago.update(data, {
+        where: { pago_id: pago_id },
+      });
+
+      return res
+        .status(200)
+        .json({ msg: "Programación actualizada con éxito!", status: 200 });
+    }
+
+    if (req?.body?.trabajadores?.length > 1 && totalTeletrans % 4 === 0) {
+      let update = await pago.update(info, { where: { id: pago_id } });
+
+      const getContratoPago = await contrato_pago.findAll({
+        where: { pago_id: pago_id },
+        attributes: { exclude: ["contrato_pago_id"] },
+      });
+      const contratoPagoId = getContratoPago?.at(-1)?.id;
+      console.log(contratoPagoId);
+      const destoryPagoAsociacion = await pago_asociacion.destroy({
+        where: { contrato_pago_id: contratoPagoId },
+      });
+      const delPagoContrato = await contrato_pago.destroy({
+        where: { pago_id: pago_id },
+      });
+
+      let contra_pago = {
+        pago_id: pago_id,
+        contrato_id: req.body.contrato_id,
+        volquetes: req?.body.volquetes,
+        teletrans: req?.body.teletrans,
+      };
+      const pagoContrato = await contrato_pago.create(contra_pago);
+
+      let asociacionPago = req.body.trabajadores.map((item) => {
+        return {
+          teletrans: item.teletrans,
+          trabajador_dni: item.trabajador_dni,
+          contrato_pago_id: pagoContrato.id,
+        };
+      });
+      console.log(asociacionPago);
+
+      const asociPago = await pago_asociacion.bulkCreate(asociacionPago, {
+        ignoreDuplicates: false,
+      });
+
+      return res
+        .status(200)
+        .json({ msg: "Programación actualizada con éxito!", status: 200 });
+    } else {
+      return res.status(400).json({
+        msg: "Error! La cantidad de teletrans debe ser equivalente a 1 o mas volquetes.",
+        status: 400,
+      });
+    }
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
+  }
+};
 
 module.exports = {
   getPlanilla,
@@ -814,4 +895,5 @@ module.exports = {
   getPlanillaPago,
   getListaPago,
   getListaAsociacionProgramada,
+  updatepagoAsociacion,
 };

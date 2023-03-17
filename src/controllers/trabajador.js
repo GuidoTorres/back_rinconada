@@ -8,7 +8,6 @@ const {
 } = require("../../config/db");
 const { Op, Sequelize } = require("sequelize");
 const XLSX = require("xlsx");
-const sharp = require("sharp");
 const dayjs = require("dayjs");
 const fs = require("fs");
 
@@ -175,22 +174,20 @@ const postMultipleTrabajador = async (req, res, next) => {
     const workbookSheets = workbook.SheetNames;
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
-    const result = dataExcel
-      .slice(1)
-      .map((v) =>
-        Object.entries(v).reduce(
-          (acc, [key, value]) =>
-            Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
-          {}
-        )
-      );
+    const result = dataExcel.map((v) =>
+      Object.entries(v).reduce(
+        (acc, [key, value]) =>
+          Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
+        {}
+      )
+    );
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },
       order: [["codigo_trabajador", "DESC"]],
     });
 
-    codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCM000";
+    const codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCM000";
     const getNumber = codigo_final.includes("CCM00")
       ? codigo_final.split("CCM00")[1]
       : codigo_final.includes("CCM0")
@@ -201,7 +198,7 @@ const postMultipleTrabajador = async (req, res, next) => {
 
     const obj = result.map((item, i) => {
       return {
-        dni: parseInt(item?.dni),
+        dni: item?.dni,
         codigo_trabajador:
           parseInt(getNumber) + i + 1 < 10
             ? "CCM00" + (parseInt(getNumber) + i + 1)
@@ -217,36 +214,40 @@ const postMultipleTrabajador = async (req, res, next) => {
         email: item?.email,
         estado_civil: item?.estado_civil,
         genero: item?.genero,
+        direccion: item?.direccion,
       };
     });
+
+    const unique = obj.reduce((acc, current) => {
+      if (!acc.find((ele) => ele.dni === current.dni)) {
+        acc.push(current);
+      }
+
+      return acc;
+    }, []);
 
     const getTrabajador = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
     });
 
-    const filtered = obj.filter(
+    //filtrar a los trabajadores que ya estan registrados en la bd
+    const filtered = unique.filter(
       ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
     );
 
-    const filteredCod = obj.filter(
-      ({ codigo_trabajador }) =>
-        !getTrabajador.some((x) => x.codigo_trabajador == codigo_trabajador)
-    );
-
-    const dnis = filteredCod.map((item) => item.dni);
-    const cod_trabajador = filtered.map((item) => item.codigo_trabajador);
-
+    //listado de dnis del excel
+    const dnis = filtered.map((item) => item.dni);
+    // filtrar
     const filterDni = filtered.filter(
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
-
     if (dnis.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
-      res
+      return res
         .status(200)
         .json({ msg: "Trabajadores registrados con éxito!", status: 200 });
     } else {
-      res
+      return res
         .status(200)
         .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
     }
@@ -263,7 +264,7 @@ const postMultipleTrabajador = async (req, res, next) => {
 const updateTrabajador = async (req, res, next) => {
   let id = req.params.id;
   let info;
-  if (req?.body?.foto !== undefined && req.body.foto !== "") {
+  if (req.file && req?.body?.foto !== undefined && req.body.foto !== "") {
     const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
     const editFotoLink = req.body.foto.split("/").at(-1);
@@ -275,7 +276,6 @@ const updateTrabajador = async (req, res, next) => {
       }
     });
   }
-
   info = {
     dni: req.body.dni,
     codigo_trabajador: req.body.codigo_trabajador,
@@ -295,6 +295,7 @@ const updateTrabajador = async (req, res, next) => {
       ? process.env.LOCAL_IMAGE + req.file.filename
       : req.body.foto,
   };
+  console.log(info);
 
   try {
     const putTrabajador = await trabajador.update(info, {

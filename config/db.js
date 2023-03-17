@@ -489,6 +489,7 @@ const ingresos_egresos = sequelize.define(
     sucursal_transferencia: DataTypes.STRING,
     nro_comprobante: DataTypes.STRING,
     precio: DataTypes.STRING,
+    categoria: DataTypes.STRING
   },
   {
     tableName: "ingresos_egresos",
@@ -589,6 +590,9 @@ const entrada_salida = sequelize.define(
     boleta: DataTypes.STRING,
     codigo_requerimiento: DataTypes.STRING,
     area_id: DataTypes.INTEGER,
+    dni: DataTypes.STRING,
+    costo_total: DataTypes.STRING, 
+    codigo_pedido: DataTypes.STRING
   },
   {
     tableName: "entrada_salida",
@@ -641,6 +645,7 @@ const requerimiento = sequelize.define(
     aprobacion_gerente: DataTypes.BOOLEAN,
     aprobacion_superintendente: DataTypes.BOOLEAN,
     completado: DataTypes.STRING,
+    dni: DataTypes.STRING
   },
   {
     tableName: "requerimiento",
@@ -721,6 +726,7 @@ const requerimiento_pedido = sequelize.define(
     },
     requerimiento_id: DataTypes.INTEGER,
     pedido_id: DataTypes.INTEGER,
+    estado: DataTypes.STRING
   },
   {
     tableName: "requerimiento_pedido",

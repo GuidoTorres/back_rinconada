@@ -3,6 +3,10 @@ const {
   producto,
   producto_entrada_salida,
   area,
+  requerimiento,
+  pedido,
+  requerimiento_pedido,
+  unidad,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
@@ -28,10 +32,15 @@ const getEntradaByAlmacen = async (req, res, next) => {
       },
       attributes: { exclude: ["almacen_id", "alamcen_id", "producto_id"] },
       include: [
+        { model: area },
         {
           model: producto_entrada_salida,
           include: [
-            { model: producto, attributes: { exclude: ["categoria_id"] } },
+            {
+              model: producto,
+              attributes: { exclude: ["categoria_id"] },
+              include: [{ model: unidad }],
+            },
           ],
         },
       ],
@@ -52,18 +61,22 @@ const postEntradaSalida = async (req, res, next) => {
   const filterTipoEntrada = req.body.filter((item) => item.tipo === "entrada");
 
   if (filterTipoSalida.length > 0) {
-    data = filterTipoSalida.map((item) => {
-      return {
-        codigo: item.codigo,
-        motivo: item.motivo,
-        fecha: item.fecha,
-        encargado: item.encargado,
-        tipo: item.tipo,
-        almacen_id: item.almacen_id,
-        area_id: item.area,
-        cantidad: item.cantidad,
-      };
-    });
+    data = {
+      codigo: filterTipoSalida.at(-1).codigo,
+      motivo: filterTipoSalida.at(-1).motivo,
+      encargado: filterTipoSalida.at(-1).encargado,
+      tipo: filterTipoSalida.at(-1).tipo,
+      almacen_id: filterTipoSalida.at(-1).almacen_id,
+      area_id: filterTipoSalida.at(-1).area_id,
+      cantidad: filterTipoSalida.at(-1).cantidad,
+      dni: filterTipoSalida.at(-1).dni,
+      fecha: filterTipoSalida.at(-1).fecha,
+      costo: filterTipoSalida.at(-1).costo_total,
+      costo_total: req.body.reduce(
+        (acc, value) => parseFloat(acc) + parseFloat(value.costo_total),
+        0
+      ),
+    };
 
     updateStock = req.body.map((item) => {
       return {
@@ -73,21 +86,21 @@ const postEntradaSalida = async (req, res, next) => {
     });
   }
   if (filterTipoEntrada.length > 0) {
-    data = req.body.map((item) => {
-      return {
-        codigo: item.codigo,
-        motivo: item.motivo,
-        fecha: item.fecha,
-        encargado: item.encargado,
-        codigo_compra: item.codigo_compra,
-        tipo: item.tipo,
-        almacen_id: item.almacen_id,
-        boleta: item.boleta,
-        codigo_requerimiento: item.codigo_requerimiento,
-        solicitante: item.solicitante,
-        unidad: item.unidad,
-      };
-    });
+    data = {
+      codigo: filterTipoEntrada.at(-1).codigo,
+      motivo: filterTipoEntrada.at(-1).motivo,
+      fecha: filterTipoEntrada.at(-1).fecha,
+      encargado: filterTipoEntrada.at(-1).encargado,
+      codigo_compra: filterTipoEntrada.at(-1).codigo_compra,
+      tipo: filterTipoEntrada.at(-1).tipo,
+      almacen_id: filterTipoEntrada.at(-1).almacen_id,
+      boleta: filterTipoEntrada.at(-1).boleta,
+      codigo_requerimiento: filterTipoEntrada.at(-1).codigo_requerimiento,
+      solicitante: filterTipoEntrada.at(-1).solicitante,
+      unidad: filterTipoEntrada.at(-1).unidad,
+      dni: filterTipoEntrada.at(-1).dni,
+      codigo_pedido: filterTipoEntrada.at(-1).codigo_pedido,
+    };
 
     updateStock = req.body.map((item) => {
       return {
@@ -96,11 +109,9 @@ const postEntradaSalida = async (req, res, next) => {
       };
     });
   }
-
-  console.log(req.body);
-
+  console.log(data);
   try {
-    const post = await entrada_salida.create(data[data.length - 1]);
+    const post = await entrada_salida.create(data);
 
     const ProductoEntrada = req.body.map((item) => {
       return {
@@ -128,8 +139,65 @@ const postEntradaSalida = async (req, res, next) => {
       ProductoEntrada
     );
 
+    // al crear la entrada cambia el estado a en almacen
+    if (
+      req.body.at(-1).codigo_requerimiento !== "" &&
+      req.body.at(-1).tipo === "entrada"
+    ) {
+      const ids = req.body.at(-1).codigo_requerimiento;
+
+      const idSplit = ids.split(",");
+
+      const pedidoGet = await pedido.findAll({
+        where: { id: req.body.at(-1).codigo_pedido },
+        include: [{ model: requerimiento_pedido }],
+      });
+
+      const estadoReqPedido = pedidoGet
+        .map((item) => item.requerimiento_pedidos)
+        .flat()
+        .map((item) => item.estado)
+        .filter((item) => item === null);
+
+      if (estadoReqPedido === 0) {
+        const updatePedido = await pedido.update(
+          { estado: "En almacén" },
+          { where: { id: req.body.at(-1).codigo_pedido } }
+        );
+      }
+
+      const updateRequerimiento = await requerimiento.update(
+        { estado: "En almacén" },
+        { where: { id: idSplit } }
+      );
+
+      const updateRequerimientoPedido = await requerimiento_pedido.update(
+        { estado: "entrada" },
+        { where: { requerimiento_id: idSplit } }
+      );
+      console.log(updateRequerimientoPedido);
+    }
+
+    // al registrar la salida  del requerimiento cambia el estado
+    // del requerimiento a entragado
+    if (
+      req.body.at(-1).codigo_requerimiento !== "" &&
+      req.body.at(-1).tipo === "salida"
+    ) {
+      const ids = req.body.at(-1).codigo_requerimiento;
+
+      const updateRequerimiento = await requerimiento.update(
+        { estado: "Entregado" },
+        { where: { id: ids } }
+      );
+
+      const updateRequerimientoPedido = await requerimiento_pedido.update(
+        { estado: "Entregado" },
+        { where: { requerimiento_id: ids } }
+      );
+    }
     res.status(200).json({
-      msg: `${data[data.length - 1]?.tipo} creada con éxito!`,
+      msg: `${data?.tipo} creada con éxito!`,
       status: 200,
     });
 
@@ -144,20 +212,25 @@ const postEntradaSalida = async (req, res, next) => {
 
 const updateEntradaSalida = async (req, res, next) => {
   let id = req.params.id;
-
-  let info = req.body.map((item) => {
-    return {
-      codigo: item.codigo,
-      motivo: item.motivo,
-      fecha: item.fecha,
-      encargado: item.encargado,
-      codigo_compra: item.codigo_compra,
-      tipo: item.tipo,
-      almacen_id: item.almacen_id,
-      boleta: item.boleta,
-      codigo_requerimiento: item.codigo_requerimiento,
+  let obj;
+  if (req.body.at(-1).tipo === "entrada") {
+    obj = {
+      motivo: req.body.at(-1).motivo,
+      fecha: req.body.at(-1).fecha,
+      dni: req.body.at(-1).dni,
+      encargado: req.body.at(-1).encargado,
+      codigo_compra: req.body.at(-1).codigo_compra,
+      boleta: req.body.at(-1).boleta,
     };
-  });
+  } else {
+    obj = {
+      motivo: req.body.at(-1).motivo,
+      fecha: req.body.at(-1).fecha,
+      dni: req.body.at(-1).dni,
+      encargado: req.body.at(-1).personal,
+      area_id: req.body.at(-1).area_id,
+    };
+  }
 
   let updateStock = req.body.map((item) => {
     return {
@@ -165,11 +238,9 @@ const updateEntradaSalida = async (req, res, next) => {
       stock: item.cantidad,
     };
   });
-
-  console.log(updateStock);
-
+  console.log(obj);
   try {
-    // let update = await entrada_salida.update(req.body, { where: { id: id } });
+    let update = await entrada_salida.update(obj, { where: { id: id } });
     res.status(200).json({ msg: "Actualizado con éxito !", status: 200 });
     next();
   } catch (error) {
@@ -202,26 +273,24 @@ const entradaSalidaEstadistica = async (req, res, next) => {
         fecha: { [Op.between]: [fecha_inicio, fecha_fin] },
         tipo: "salida",
       },
-      include: [{ model: producto_entrada_salida }, { model: area }],
+      include: [{ model: area }, { model: producto_entrada_salida }],
     });
 
     const formatData = getIngresoEgresos.map((item) => {
       return {
         id: item?.area?.id,
         area: item?.area?.nombre,
-        costo: parseInt(
-          item.producto_entrada_salidas.map((data) => data?.costo)
-        ),
+        costo: parseInt(item.costo_total),
       };
     });
 
     let reduce = formatData.reduce((value, current) => {
-      let temp = value.find((o) => o.id == current.id);
-      if (!temp) {
-        value.push(current);
-      } else {
+      let temp = value.find((o) => o.area === current.area);
+      if (temp) {
         temp.costo += current.costo;
         Object.assign(temp);
+      } else {
+        value.push(current);
       }
       return value;
     }, []);

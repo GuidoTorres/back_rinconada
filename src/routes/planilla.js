@@ -9,6 +9,7 @@ router.get("/campamento", planilla.campamentoPlanilla);
 router.get("/tareo/:id", planilla.getTareoTrabajador);
 router.get("/tareo/asociacion/:id", planilla.getTareoAsociacion);
 router.get("/teletrans", planilla.juntarTeletrans);
+router.put("/asociacion/:id", planilla.updatepagoAsociacion)
 // router.get("/:id", rol.getRolById)
 // router.post("/", rol.postRol)
 // router.put("/:id", rol.updateRol)
