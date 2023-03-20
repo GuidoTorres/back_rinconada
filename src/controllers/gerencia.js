@@ -1,4 +1,4 @@
-const { gerencia } = require("../../config/db");
+const { gerencia, area } = require("../../config/db");
 
 const getGerencia = async (req, res, next) => {
   try {

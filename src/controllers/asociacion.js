@@ -14,7 +14,11 @@ const getAsociacion = async (req, res, next) => {
   try {
     const all = await asociacion.findAll({
       include: [
-        { model: contrato, attributes: { exclude: "contrato_id" } },
+        {
+          model: contrato,
+          attributes: { exclude: "contrato_id" },
+          include: [{ model: campamento }],
+        },
         {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
@@ -23,37 +27,73 @@ const getAsociacion = async (req, res, next) => {
       ],
     });
 
-    const orderData = all.map((item) => {
+    const formatData = all.map((item) => {
       return {
         id: item?.id,
         nombre: item?.nombre,
         codigo: item?.codigo,
         tipo: item?.tipo,
-        contrato: item?.contratos.filter((data) => data.finalizado === false),
-        trabajadors: item.trabajadors.map((data) => {
-          return {
-            dni: data.dni,
-            codigo_trabajador: data.codigo_trabajador,
-            fecha_nacimiento: data.fecha_nacimiento,
-            telefono: data.telefono,
-            nombre: data.nombre,
-            apellido_paterno: data.apellido_paterno,
-            apellido_materno: data.apellido_materno,
-            email: data.email,
-            estado_civil: data.estado_civil,
-            genero: data.genero,
-            direccion: data.direccion,
-            asociacion_id: data.asociacion_id,
-            deshabilitado: data.deshabilitado,
-            foto: data.foto,
-            eliminar: data.eliminar,
-            evaluacions: data.evaluacions[data.evaluacions.length - 1],
-          };
-        }),
+        campamento: item.contratos
+          .map((data) => data.campamento.nombre)
+          .toString(),
+        contrato: item.contratos
+          .map((data) => {
+            return {
+              id: data.id,
+              area: data.area,
+              asociacion_id: data.asociacion_id,
+              base: data.base,
+              campamento: data.campamento.nombre,
+              codigo_contrato: data.codigo_contrato,
+              condicion_cooperativa: data.condicion_cooperativa,
+              cooperativa: data.cooperativa,
+              empresa_id: data.empresa_id,
+              fecha_fin: dayjs(data.fecha_fin).format("YYYY-MM-DD"),
+              fecha_inicio: dayjs(data.fecha_inicio).format("YYYY-MM-DD"),
+              gerencia: data.gerencia,
+              id: data.id,
+              jefe_directo: data.jefe_directo,
+              nota_contrato: data.nota_contrato,
+              periodo_trabajo: data.periodo_trabajo,
+              puesto: data.puesto,
+              recomendado_por: data.recomendado_por,
+              termino_contrato: data.termino_contrato,
+              tipo_contrato: data.tipo_contrato,
+              finalizado: data.finalizado,
+            };
+          })
+          .filter((item) => item.finalizado === false),
+        trabajadors: item.trabajadors
+          .map((data) => {
+            return {
+              dni: data.dni,
+              codigo_trabajador: data.codigo_trabajador,
+              campamento: item.contratos
+                .map((data) => data.campamento.nombre)
+                .toString(),
+              fecha_nacimiento: data.fecha_nacimiento,
+              telefono: data.telefono,
+              nombre: data.nombre,
+              apellido_paterno: data.apellido_paterno,
+              apellido_materno: data.apellido_materno,
+              email: data.email,
+              estado_civil: data.estado_civil,
+              genero: data.genero,
+              direccion: data.direccion,
+              asociacion_id: data.asociacion_id,
+              deshabilitado: data.deshabilitado,
+              foto: data.foto,
+              eliminar: data.eliminar,
+              evaluacions: data.evaluacions[data.evaluacions.length - 1],
+            };
+          })
+          .sort((a, b) =>
+            a.codigo_trabajador.localeCompare(b.codigo_trabajador)
+          ),
       };
     });
 
-    res.status(200).json({ data: orderData });
+    res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -68,7 +108,10 @@ const getAsociacionById = async (req, res, next) => {
     const all = await asociacion.findAll({
       where: { id: id },
 
-      include: [{ model: contrato }, { model: trabajador, include:[{model:evaluacion}] }],
+      include: [
+        { model: contrato },
+        { model: trabajador, include: [{ model: evaluacion }] },
+      ],
     });
 
     const obj = all.map((item) => {
@@ -88,8 +131,8 @@ const getAsociacionById = async (req, res, next) => {
             condicion_cooperativa: item.condicion_cooperativa,
             cooperativa: item.cooperativa,
             empresa_id: item.empresa_id,
-            fecha_fin: item.fecha_fin,
-            fecha_inicio: item.fecha_inicio,
+            fecha_fin: dayjs(item.fecha_fin).format("YYYY-MM-DD"),
+            fecha_inicio: dayjs(item.fecha_inicio).format("YYYY-MM-DD"),
             gerencia: item.gerencia,
             id: item.id,
             jefe_directo: item.jefe_directo,
@@ -174,55 +217,58 @@ const uploadFile = async (req, res, next) => {
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
 
-    const result = dataExcel
-
-      .map((v) =>
-        Object.entries(v).reduce(
-          (acc, [key, value]) =>
-            Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
-          {}
-        )
-      );
-
+    const result = dataExcel.map((v) =>
+      Object.entries(v).reduce(
+        (acc, [key, value]) =>
+          Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
+        {}
+      )
+    );
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },
       order: [["codigo_trabajador", "DESC"]],
     });
 
-    codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCM000";
-    const getNumber = codigo_final.includes("CCM00")
-      ? codigo_final.split("CCM00")[1]
-      : codigo_final.includes("CCM0")
-      ? codigo_final.split("CCM0")[1]
-      : codigo_final.includes("CCM")
-      ? codigo_final.split("CCM")[1]
+    codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCMRL0000";
+    const getNumber = codigo_final.includes("CCMRL000")
+      ? codigo_final.split("CCMRL000")[1]
+      : codigo_final.includes("CCMRL00")
+      ? codigo_final.split("CCMRL00")[1]
+      : codigo_final.includes("CCMRL0")
+      ? codigo_final.split("CCMRL0")[1]
+      : codigo_final.includes("CCMRL")
+      ? codigo_final.split("CCMRL")[1]
       : "";
 
-    const obj = result.map((item,i) => {
-      return {
-        dni: item?.dni,
-        codigo_trabajador:
-          parseInt(getNumber) + i + 1 < 10
-            ? "CCM00" + (parseInt(getNumber) + i + 1)
-            : parseInt(getNumber) + i + 1 >= 10 &&
-              parseInt(getNumber) + i + 1 < 100
-            ? "CCM0" + (parseInt(getNumber) + i + 1)
-            : "CCM" + (parseInt(getNumber) + i + 1),
-        fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
-        telefono: item?.telefono,
-        apellido_paterno: item?.apellido_paterno,
-        apellido_materno: item?.apellido_materno,
-        nombre: item?.nombre,
-        email: item?.email,
-        estado_civil: item?.estado_civil,
-        genero: item?.genero,
-        asociacion_id: item?.asociacion_id,
-        direccion: item?.direccion
-      };
-    }).filter(item => item.asociacion_id !== undefined);
+    const obj = result
+      .map((item, i) => {
+        return {
+          dni: item?.dni,
+          codigo_trabajador:
+            parseInt(getNumber) + i + 1 < 10
+              ? "CCMRL000" + (parseInt(getNumber) + i + 1)
+              : parseInt(getNumber) + i + 1 > 9 &&
+                parseInt(getNumber) + i + 1 < 100
+              ? "CCMRL00" + (parseInt(getNumber) + i + 1)
+              : parseInt(getNumber) + i + 1 > 99 &&
+                parseInt(getNumber) + i + 1 < 1000
+              ? "CCMRL0" + (parseInt(getNumber) + i + 1)
+              : "CCMRL" + (parseInt(getNumber) + i + 1),
+          fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
+          telefono: item?.telefono,
+          apellido_paterno: item?.apellido_paterno,
+          apellido_materno: item?.apellido_materno,
+          nombre: item?.nombre,
+          email: item?.email,
+          estado_civil: item?.estado_civil,
+          genero: item?.genero,
+          asociacion_id: item?.asociacion_id,
+          direccion: item?.direccion,
+        };
+      })
+      .filter((item) => item.asociacion_id !== undefined);
 
-   
     const unique = obj.reduce((acc, current) => {
       if (!acc.find((ele) => ele.dni === current.dni)) {
         acc.push(current);

@@ -18,7 +18,7 @@ const authLogin = async (req, res, next) => {
     }
     const checkPassword = await compare(contrasenia, get.contrasenia);
     const tokenSession = await tokenSign(get);
-    console.log(get);
+    console.log(checkPassword);
     if (get.estado === false) {
       return res.status(500).send({ msg: "Usuario inactivo!", status: 500 });
     }
@@ -39,6 +39,7 @@ const authLogin = async (req, res, next) => {
     }
     next();
   } catch (error) {
+    console.log(error);
     return res.status(500).send({ msg: "Hubo un error.", status: 500 });
   }
 };

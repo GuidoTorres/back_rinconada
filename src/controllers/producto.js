@@ -1,6 +1,7 @@
 require("dotenv").config;
 const { producto, unidad, categoria } = require("../../config/db");
 const fs = require("fs");
+const dayjs = require("dayjs");
 
 const getProducto = async (req, res, next) => {
   try {
@@ -53,30 +54,37 @@ const getProductoById = async (req, res, next) => {
 };
 
 const postProducto = async (req, res, next) => {
-    let info = {
-      almacen_id: req.body.almacen_id,
-      categoria_id: req.body.categoria_id,
-      codigo: req.body.codigo,
-      codigo_barras: req.body.codigo_barras,
-      codigo_interno: req.body.codigo_interno,
-      costo_total: req.body.costo_total,
-      descripcion: req.body.descripcion,
-      fecha: req.body.fecha,
-      nombre: req.body.nombre,
-      observacion: req.body.observacion,
-      precio: req.body.precio,
-      stock: req.body.stock,
-      unidad_id: req.body.unidad_id,
-      foto: req?.file
-        ? process.env.LOCAL_IMAGE + req.file.filename
-        : "",
-    };
-  
+  let info = {
+    almacen_id: req.body.almacen_id,
+    categoria_id: req.body.categoria_id || null,
+    codigo: req.body.codigo,
+    codigo_barras: req.body.codigo_barras,
+    codigo_interno: req.body.codigo_interno,
+    costo_total: req.body.costo_total,
+    descripcion: req.body.descripcion,
+    fecha: dayjs(req.body.fecha).format("YYYY-MM-DD"),
+    nombre: req.body.nombre,
+    observacion: req.body.observacion,
+    precio: req.body.precio,
+    stock: req.body.stock,
+    unidad_id: req.body.unidad_id || null,
+    foto: req?.file ? process.env.LOCAL_IMAGE + req.file.filename : "",
+  };
+
   try {
-    const post = await producto.create(info);
-    res
-      .status(200)
-      .json({ msg: "Producto registrado con éxito!", status: 200 });
+    if (info.nombre !== "") {
+      const post = await producto.create(info);
+      return res
+        .status(200)
+        .json({ msg: "Producto registrado con éxito!", status: 200 });
+    } else {
+      return res
+        .status(500)
+        .json({
+          msg: "Para registrar el producto, debe ingresar un nombre.",
+          status: 500,
+        });
+    }
 
     next();
   } catch (error) {
@@ -87,7 +95,7 @@ const postProducto = async (req, res, next) => {
 
 const updateProducto = async (req, res, next) => {
   let id = req.params.id;
-  if (req.file && req?.body?.foto !== undefined && req.body.foto !== "" ) {
+  if (req.file && req?.body?.foto !== undefined && req.body.foto !== "") {
     const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
     const editFotoLink = req?.body?.foto?.split("/").at(-1);
@@ -101,18 +109,18 @@ const updateProducto = async (req, res, next) => {
   }
 
   let info = {
-    almacen_id: req.body.almacen_id || "",
+    almacen_id: req.body.almacen_id,
     categoria_id: req.body.categoria_id || null,
-    codigo: req.body.codigo || "",
-    codigo_barras: req.body.codigo_barras || "",
-    codigo_interno: req.body.codigo_interno || "",
-    costo_total: req.body.costo_total || "",
-    descripcion: req.body.descripcion || "",
-    fecha: req.body.fecha || "",
+    codigo: req.body.codigo,
+    codigo_barras: req.body.codigo_barras,
+    codigo_interno: req.body.codigo_interno,
+    costo_total: req.body.costo_total,
+    descripcion: req.body.descripcion,
+    fecha: dayjs(req.body.fecha).format("YYYY-MM-DD"),
     nombre: req.body.nombre,
-    observacion: req.body.observacion || "",
-    precio: req.body.precio || "",
-    stock: req.body.stock || "",
+    observacion: req.body.observacion,
+    precio: req.body.precio,
+    stock: req.body.stock,
     unidad_id: req.body.unidad_id || null,
     foto: req?.file
       ? process.env.LOCAL_IMAGE + req.file.filename
@@ -141,6 +149,7 @@ const deleteProducto = async (req, res, next) => {
     res.status(200).json({ msg: "Producto eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };

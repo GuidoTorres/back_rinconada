@@ -67,13 +67,13 @@ const postEntradaSalida = async (req, res, next) => {
       encargado: filterTipoSalida.at(-1).encargado,
       tipo: filterTipoSalida.at(-1).tipo,
       almacen_id: filterTipoSalida.at(-1).almacen_id,
-      area_id: filterTipoSalida.at(-1).area_id,
+      area_id: filterTipoSalida.at(-1).area,
       cantidad: filterTipoSalida.at(-1).cantidad,
       dni: filterTipoSalida.at(-1).dni,
       fecha: filterTipoSalida.at(-1).fecha,
-      costo: filterTipoSalida.at(-1).costo_total,
+      costo: filterTipoSalida.at(-1).costo_inicial,
       costo_total: req.body.reduce(
-        (acc, value) => parseFloat(acc) + parseFloat(value.costo_total),
+        (acc, value) => parseFloat(acc) + parseFloat(value.costo),
         0
       ),
     };
@@ -109,8 +109,8 @@ const postEntradaSalida = async (req, res, next) => {
       };
     });
   }
-  console.log(data);
   try {
+    console.log(req.body);
     const post = await entrada_salida.create(data);
 
     const ProductoEntrada = req.body.map((item) => {
@@ -266,15 +266,17 @@ const deleteEntradaSalida = async (req, res, next) => {
 
 const entradaSalidaEstadistica = async (req, res, next) => {
   try {
-    let fecha_inicio = req.body?.fecha_inicio?.split("T")[0];
-    let fecha_fin = req.body?.fecha_fin?.split("T")[0];
+    let fecha_inicio = new Date(req.body?.fecha_inicio);
+    let fecha_fin = new Date(req.body?.fecha_fin);
     const getIngresoEgresos = await entrada_salida.findAll({
       where: {
-        fecha: { [Op.between]: [fecha_inicio, fecha_fin] },
+        fecha: { [Op.and]: { [Op.gte]: fecha_inicio, [Op.lte]: fecha_fin } },
         tipo: "salida",
       },
       include: [{ model: area }, { model: producto_entrada_salida }],
     });
+
+    console.log(getIngresoEgresos);
 
     const formatData = getIngresoEgresos.map((item) => {
       return {
@@ -284,18 +286,19 @@ const entradaSalidaEstadistica = async (req, res, next) => {
       };
     });
 
+    console.log(formatData);
+
     let reduce = formatData.reduce((value, current) => {
       let temp = value.find((o) => o.area === current.area);
       if (temp) {
         temp.costo += current.costo;
-        Object.assign(temp);
       } else {
         value.push(current);
       }
       return value;
-    }, []);
+    }, [])
 
-    res.status(200).json({ data: reduce });
+    res.status(200).json({ data: reduce, });
     next();
   } catch (error) {
     console.log(error);

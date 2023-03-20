@@ -1,5 +1,4 @@
 const dayjs = require("dayjs");
-const { where } = require("sequelize");
 const {
   requerimiento,
   requerimiento_producto,
@@ -7,10 +6,15 @@ const {
   area,
   almacen,
   unidad,
+  trabajador,
+  contrato,
+  asociacion,
 } = require("../../config/db");
+const { Op, Sequelize } = require("sequelize");
 
 const getRequerimiento = async (req, res, next) => {
   try {
+    const getArea = await area.findAll({});
     const get = await requerimiento.findAll({
       include: [
         { model: almacen },
@@ -35,6 +39,7 @@ const getRequerimiento = async (req, res, next) => {
           fecha_entrega: dayjs(item?.fecha_entrega).format("YYYY-MM-DD"),
           solicitante: item?.solicitante,
           area: item?.area,
+          area_id: getArea?.filter(data => data.nombre === item?.area).at(-1)?.id,
           celular: item?.celular,
           proyecto: item?.proyecto,
           codigo_requerimiento: item?.codigo_requerimiento,
@@ -60,20 +65,20 @@ const getRequerimiento = async (req, res, next) => {
   }
 };
 
-const getRequerimientoById = async (req, res, next) => {
-  let id = req.params.id;
+// const getRequerimientoById = async (req, res, next) => {
+//   let id = req.params.id;
 
-  try {
-    const getById = await requerimiento.findAll({
-      where: { id: id },
-    });
-    res.status(200).json({ data: getById });
-    next();
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error });
-  }
-};
+//   try {
+//     const getById = await requerimiento.findAll({
+//       where: { id: id },
+//     });
+//     res.status(200).json({ data: getById });
+//     next();
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ error: "No se pudo obtenre el id" });
+//   }
+// };
 
 const postARequerimiento = async (req, res, next) => {
   let data = req?.body?.map((item) => {
@@ -174,7 +179,7 @@ const updateRequerimientoProducto = async (req, res, next) => {
       };
     })
     .at(-1);
-    console.log(req.body);
+  console.log(req.body);
   try {
     let update = await requerimiento.update(format, {
       where: { id: id },
@@ -217,7 +222,7 @@ const deleteRequerimiento = async (req, res, next) => {
     let getReq = await requerimiento.findOne({ where: { id: id } });
 
     console.log(getReq);
-    if (getReq.estado === "Pendiente" ) {
+    if (getReq.estado === "Pendiente") {
       let delReqProducto = await requerimiento_producto.destroy({
         where: { requerimiento_id: id },
       });
@@ -251,12 +256,60 @@ const getLastId = async (req, res, next) => {
   }
 };
 
+const getTrabajadorRequerimiento = async (req, res, next) => {
+  try {
+    const getArea = await area.findAll();
+    const get = await trabajador.findAll({
+      where: {
+        [Op.and]: [{ deshabilitado: { [Op.not]: true } }],
+      },
+      attributes: ["dni", "apellido_paterno", "apellido_materno", "nombre"],
+      include: [
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+        },
+      ],
+    });
+
+    const format = get.map((item) => {
+      return {
+        dni: item?.dni,
+        nombre:
+          item?.apellido_paterno +
+          "" +
+          item?.apellido_materno +
+          " " +
+          item?.nombre,
+        contrato: item.contratos,
+        area: getArea
+          .filter(
+            (data) =>
+              data?.nombre ===
+              item?.contratos
+                ?.filter((data) => data?.finalizado === false)
+                ?.map((data) => data?.area)
+                ?.toString()
+          )
+          .at(-1)?.id,
+      };
+    });
+
+    res.status(200).json({ data: format });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
 module.exports = {
   getRequerimiento,
-  getRequerimientoById,
+  // getRequerimientoById,
   postARequerimiento,
   updateRequerimiento,
   deleteRequerimiento,
   updateRequerimientoProducto,
   getLastId,
+  getTrabajadorRequerimiento,
 };

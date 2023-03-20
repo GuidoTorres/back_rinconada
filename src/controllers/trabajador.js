@@ -22,7 +22,7 @@ const getTrabajador = async (req, res, next) => {
         ],
       },
       attributes: { exclude: ["usuarioId"] },
-      order: [[Sequelize.literal("codigo_trabajador"), "ASC"]],
+      order: [[Sequelize.literal("codigo_trabajador"), "DESC"]],
       include: [
         {
           model: evaluacion,
@@ -36,36 +36,40 @@ const getTrabajador = async (req, res, next) => {
       ],
     });
 
-    const obj = get.map((item) => {
-      return {
-        dni: item?.dni,
-        codigo_trabajador: item?.codigo_trabajador,
-        fecha_nacimiento: item?.fecha_nacimiento,
-        telefono: item?.telefono,
-        nombre: item?.nombre,
-        apellido_paterno: item?.apellido_paterno,
-        apellido_materno: item?.apellido_materno,
-        email: item?.email,
-        estado_civil: item?.estado_civil,
-        genero: item?.genero,
-        direccion: item?.direccion,
-        asociacion_id: item?.asociacion_id,
-        deshabilitado: item?.deshabilitado,
-        foto: item?.foto,
-        eliminar: item?.eliminar,
-        evaluacion: item?.evaluacions.filter(
-          (item) => item.finalizado === false
-        ),
-        campamento: !item?.contratos
-          ?.filter((item) => item?.finalizado === false)
-          ?.at(-1)?.campamento.nombre
-          ? "Por asignar"
-          : item?.contratos
-              ?.filter((item) => item?.finalizado === false)
-              ?.at(-1)?.campamento.nombre,
-        contrato: item?.contratos.filter((item) => item?.finalizado === false),
-      };
-    });
+    const obj = get
+      .map((item) => {
+        return {
+          dni: item?.dni,
+          codigo_trabajador: item?.codigo_trabajador,
+          fecha_nacimiento: item?.fecha_nacimiento,
+          telefono: item?.telefono,
+          nombre: item?.nombre,
+          apellido_paterno: item?.apellido_paterno,
+          apellido_materno: item?.apellido_materno,
+          email: item?.email,
+          estado_civil: item?.estado_civil,
+          genero: item?.genero,
+          direccion: item?.direccion,
+          asociacion_id: item?.asociacion_id,
+          deshabilitado: item?.deshabilitado,
+          foto: item?.foto,
+          eliminar: item?.eliminar,
+          evaluacion: item?.evaluacions.filter(
+            (item) => item.finalizado === false
+          ),
+          campamento: !item?.contratos
+            ?.filter((item) => item?.finalizado === false)
+            ?.at(-1)?.campamento.nombre
+            ? "Por asignar"
+            : item?.contratos
+                ?.filter((item) => item?.finalizado === false)
+                ?.at(-1)?.campamento.nombre,
+          contrato: item?.contratos.filter(
+            (item) => item?.finalizado === false
+          ),
+        };
+      })
+      .sort((a, b) => a.codigo_trabajador.localeCompare(b.codigo_trabajador));
     res.status(200).json({ data: obj });
     next();
   } catch (error) {
@@ -187,13 +191,15 @@ const postMultipleTrabajador = async (req, res, next) => {
       order: [["codigo_trabajador", "DESC"]],
     });
 
-    const codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCM000";
-    const getNumber = codigo_final.includes("CCM00")
-      ? codigo_final.split("CCM00")[1]
-      : codigo_final.includes("CCM0")
-      ? codigo_final.split("CCM0")[1]
-      : codigo_final.includes("CCM")
-      ? codigo_final.split("CCM")[1]
+    const codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCMRL0000";
+    const getNumber = codigo_final.includes("CCMRL000")
+      ? codigo_final.split("CCMRL000")[1]
+      : codigo_final.includes("CCMRL00")
+      ? codigo_final.split("CCMRL00")[1]
+      : codigo_final.includes("CCMRL0")
+      ? codigo_final.split("CCMRL0")[1]
+      : codigo_final.includes("CCMRL")
+      ? codigo_final.split("CCMRL")[1]
       : "";
 
     const obj = result.map((item, i) => {
@@ -201,11 +207,14 @@ const postMultipleTrabajador = async (req, res, next) => {
         dni: item?.dni,
         codigo_trabajador:
           parseInt(getNumber) + i + 1 < 10
-            ? "CCM00" + (parseInt(getNumber) + i + 1)
-            : parseInt(getNumber) + i + 1 >= 10 &&
+            ? "CCMRL000" + (parseInt(getNumber) + i + 1)
+            : parseInt(getNumber) + i + 1 > 9 &&
               parseInt(getNumber) + i + 1 < 100
-            ? "CCM0" + (parseInt(getNumber) + i + 1)
-            : "CCM" + (parseInt(getNumber) + i + 1),
+            ? "CCMRL00" + (parseInt(getNumber) + i + 1)
+            : parseInt(getNumber) + i + 1 > 99 &&
+              parseInt(getNumber) + i + 1 < 1000
+            ? "CCMRL0" + (parseInt(getNumber) + i + 1)
+            : "CCMRL" + (parseInt(getNumber) + i + 1),
         fecha_nacimiento: dayjs(item?.fecha_nacimiento)?.format("YYYY-MM-DD"),
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,

@@ -6,6 +6,7 @@ const {
 } = require("../../config/db");
 const date = require("date-and-time");
 const { Op } = require("sequelize");
+const dayjs = require("dayjs");
 
 const getContrato = async (req, res, next) => {
   try {
@@ -29,20 +30,55 @@ const getContratoById = async (req, res, next) => {
       attributes: { exclude: ["usuarioId"] },
       include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
     });
-    // const obj = user.map((item) => {
-    //   return {
-    //     id: item.id,
-    //     contrato: item.evaluacions
-    //       .map((data) => data.contrato_evaluacions)
-    //       .flat(),
-    //   };
-    // });
 
-    // const obj2 = obj
-    //   .map((item) => item.contrato.map((data) => data.contrato))
-    //   .flat();
+    const format = user.map((item) => {
+      return {
+        dni: item?.dni,
+        codigo_trabajador: item?.codigo_trabajador,
+        fecha_nacimiento: item?.fecha_nacimiento,
+        telefono: item?.telefono,
+        apellido_paterno: item?.apellido_paterno,
+        apellido_materno: item?.apellido_materno,
+        nombre: item?.nombre,
+        email: item?.email,
+        estado_civil: item?.estado_civil,
+        genero: item?.genero,
+        direccion: item?.direccion,
+        asociacion_id: item?.asociacion_id,
+        deshabilitado: item?.deshabilitado,
+        foto: item?.foto,
+        contratos: item?.contratos
+          ?.filter((data) => data?.finalizado === false)
+          ?.map((data) => {
+            return {
+              id: data?.id,
+              fecha_inicio: dayjs(data?.fecha_inicio)?.format("YYYY-MM-DD"),
+              fecha_fin: dayjs(data?.fecha_fin)?.format("YYYY-MM-DD"),
+              codigo_contrato:data?.codigo_contrato,
+              tipo_contrato:data?.tipo_contrato,
+              periodo_trabajo: data?.periodo_trabajo,
+              gerencia: data?.gerencia,
+              area:data?.area,
+              puesto:data?.puesto,
+              jefe_directo: data?.jefe_directo,
+              base:data?.base,
+              termino_contrato: data?.termino_contrato,
+              nota_contrato: data?.nota_contrato,
+              campamento_id: data?.campamento_id,
+              asociacion_id: data?.asociacion_id,
+              estado: data?.estado,
+              volquete: data?.volquete,
+              teletran: data?.teletran,
+              suspendido: data?.suspendido,
+              finalizado: data?.finalizado,
+              trabajador_id: data?.trabajador_id,
+              tareo:data?.tareo
+            };
+          }),
+      };
+    });
 
-    res.status(200).json({ data: user });
+    res.status(200).json({ data: format });
 
     next();
   } catch (error) {
@@ -58,9 +94,36 @@ const getContratoAsociacionById = async (req, res, next) => {
       where: { asociacion_id: id },
     });
 
-    // const obj = user
+    const format = user.map(item => {
 
-    res.status(200).json({ data: user });
+      return{
+        id: item?.id,
+        fecha_inicio: dayjs(item?.fecha_inicio)?.format("YYYY-MM-DD"),
+        fecha_inicio: dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
+        codigo_contrato: item?.codigo_contrato,
+        tipo_contrato: item?.tipo_contrato,
+        periodo_trabajo: item?.periodo_trabajo,
+        fecha_fin: item?.fecha_fin,
+        gerencia: item?.gerencia,
+        area: item?.area,
+        jefe_directo: item?.jefe_directo,
+        base: item?.base,
+        termino_contrato: item?.termino_contrato,
+        nota_contrato: item?.nota_contrato,
+        puesto: item?.puesto,
+        campamento_id: item?.campamento_id,
+        empresa_id: item?.empresa_id,
+        asociacion_id: item?.asociacion_id,
+        estado: item?.estado,
+        volquete: item?.volquete,
+        teletran: item?.teletran,
+        suspendido: item?.suspendido,
+        finalizado: item?.finalizado
+      }
+
+    })
+
+    res.status(200).json({ data: format });
 
     next();
   } catch (error) {
