@@ -9,6 +9,7 @@ const {
   trabajador,
   contrato,
   asociacion,
+  requerimiento_pedido,
 } = require("../../config/db");
 const { Op, Sequelize } = require("sequelize");
 
@@ -18,6 +19,7 @@ const getRequerimiento = async (req, res, next) => {
     const get = await requerimiento.findAll({
       include: [
         { model: almacen },
+        { model: requerimiento_pedido },
         {
           model: requerimiento_producto,
           include: [
@@ -39,7 +41,11 @@ const getRequerimiento = async (req, res, next) => {
           fecha_entrega: dayjs(item?.fecha_entrega).format("YYYY-MM-DD"),
           solicitante: item?.solicitante,
           area: item?.area,
-          area_id: getArea?.filter(data => data.nombre === item?.area).at(-1)?.id,
+          area_id: getArea?.filter((data) => data.nombre === item?.area).at(-1)
+            ?.id,
+          pedido_id: item.requerimiento_pedidos
+            .map((data) => data.pedido_id)
+            .toString(),
           celular: item?.celular,
           proyecto: item?.proyecto,
           codigo_requerimiento: item?.codigo_requerimiento,
@@ -65,42 +71,24 @@ const getRequerimiento = async (req, res, next) => {
   }
 };
 
-// const getRequerimientoById = async (req, res, next) => {
-//   let id = req.params.id;
-
-//   try {
-//     const getById = await requerimiento.findAll({
-//       where: { id: id },
-//     });
-//     res.status(200).json({ data: getById });
-//     next();
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ error: "No se pudo obtenre el id" });
-//   }
-// };
-
 const postARequerimiento = async (req, res, next) => {
-  let data = req?.body?.map((item) => {
-    return {
-      dni: item.dni,
-      codigo: item.codigo,
-      fecha_pedido: item.fecha_pedido,
-      fecha_entrega: item.fecha_entrega,
-      solicitante: item.solicitante,
-      area: item.area,
-      celular: item.celular,
-      proyecto: item.proyecto,
-      almacen_id: item.almacen_id,
-      completado: "Pendiente",
-      estado: "Pendiente",
-    };
-  });
-
+  let data = {
+    dni: req.body.dni,
+    codigo: req.body.codigo,
+    fecha_pedido: req.body.fecha_pedido,
+    fecha_entrega: req.body.fecha_entrega,
+    solicitante: req.body.solicitante,
+    area: req.body.area,
+    celular: req.body.celular,
+    proyecto: req.body.proyecto,
+    almacen_id: req.body.almacen_id,
+    completado: "Pendiente",
+    estado: "Pendiente",
+  };
   try {
-    const post = await requerimiento.create(data.at(-1));
+    const post = await requerimiento.create(data);
 
-    const productoRequerimiento = req.body.map((item) => {
+    const productoRequerimiento = req.body.requerimientos.map((item) => {
       return {
         requerimiento_id: post.id,
         producto_id: item.producto_id,
@@ -165,35 +153,29 @@ const updateRequerimiento = async (req, res, next) => {
 
 const updateRequerimientoProducto = async (req, res, next) => {
   let id = req.params.id;
-  const format = req.body
-    .map((item) => {
-      return {
-        area: item.area,
-        celular: item.celular,
-        dni: item.dni,
-        fecha_entrega: item.fecha_entrega,
-        fecha_pedido: item.fecha_pedido,
-        proyecto: item.proyecto,
-        solicitante: item.solicitante,
-        dni: item.dni,
-      };
-    })
-    .at(-1);
+
+  let data = {
+    dni: req.body.dni,
+    fecha_pedido: req.body.fecha_pedido,
+    fecha_entrega: req.body.fecha_entrega,
+    solicitante: req.body.solicitante,
+    area: req.body.area,
+    celular: req.body.celular,
+    proyecto: req.body.proyecto,
+  };
   console.log(req.body);
   try {
-    let update = await requerimiento.update(format, {
+    let update = await requerimiento.update(data, {
       where: { id: id },
     });
 
-    const updateRequerimientoProducto = req.body.map((item) => {
+    const updateRequerimientoProducto = req.body.requerimientos.map((item) => {
       return {
         requerimiento_id: id,
         producto_id: item.codigo_producto,
         cantidad: item.cantidad,
       };
     });
-
-    console.log(updateRequerimientoProducto);
 
     const delReqProducto = await requerimiento_producto.destroy({
       where: { requerimiento_id: id },

@@ -592,7 +592,8 @@ const entrada_salida = sequelize.define(
     area_id: DataTypes.INTEGER,
     dni: DataTypes.STRING,
     costo_total: DataTypes.STRING, 
-    codigo_pedido: DataTypes.STRING
+    codigo_pedido: DataTypes.STRING,
+    retornable: DataTypes.BOOLEAN
   },
   {
     tableName: "entrada_salida",

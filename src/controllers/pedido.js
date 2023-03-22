@@ -118,7 +118,9 @@ const getPedido = async (req, res, next) => {
             .flat()
             .reduce((acc, value) => {
               const product = acc.find(
-                (ele) => ele.producto_id === value.producto_id
+                (ele) =>
+                  value.producto.codigo_interno !== "" &&
+                  ele.producto.codigo_interno === value.producto.codigo_interno
               );
               if (product) {
                 product.cantidad =
