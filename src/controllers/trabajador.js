@@ -5,6 +5,7 @@ const {
   contrato,
   evaluacion,
   area,
+  trabajador_contrato,
 } = require("../../config/db");
 const { Op, Sequelize } = require("sequelize");
 const XLSX = require("xlsx");
@@ -21,17 +22,24 @@ const getTrabajador = async (req, res, next) => {
           { eliminar: { [Op.not]: true } },
         ],
       },
-      attributes: { exclude: ["usuarioId"] },
+      attributes: { exclude: ["usuarioId", "trabajador_dni"] },
       order: [[Sequelize.literal("codigo_trabajador"), "DESC"]],
       include: [
         {
           model: evaluacion,
         },
         {
-          model: contrato,
-          include: [{ model: area }],
+          model: trabajador_contrato,
           attributes: { exclude: ["contrato_id"] },
-          include: [{ model: campamento }],
+
+          include: [
+            {
+              model: contrato,
+              include: [{ model: area }],
+              attributes: { exclude: ["contrato_id"] },
+              include: [{ model: campamento }],
+            },
+          ],
         },
       ],
     });
@@ -57,19 +65,37 @@ const getTrabajador = async (req, res, next) => {
           evaluacion: item?.evaluacions.filter(
             (item) => item.finalizado === false
           ),
-          campamento: !item?.contratos
-            ?.filter((item) => item?.finalizado === false)
-            ?.at(-1)?.campamento.nombre
-            ? "Por asignar"
-            : item?.contratos
-                ?.filter((item) => item?.finalizado === false)
-                ?.at(-1)?.campamento.nombre,
-          contrato: item?.contratos.filter(
-            (item) => item?.finalizado === false
-          ),
+          contrato: item?.trabajador_contratos
+            ?.map((data) => {
+              return {
+                id: data?.contrato?.id,
+                fecha_inicio: data?.contrato?.fecha_inicio,
+                codigo_contrato: data?.contrato?.codigo_contrato,
+                tipo_contrato: data?.contrato?.tipo_contrato,
+                periodo_trabajo: data?.contrato?.periodo_trabajo,
+                fech_fin: data?.contrato?.fech_fin,
+                gerencia: data?.contrato?.gerencia,
+                area: data?.contrato?.area,
+                jefe_directo: data?.contrato?.jefe,
+                base: data?.contrato?.base,
+                termino_contrato: data?.contrato?.termino_contrato,
+                nota_contrato: data?.contrato?.nota_contrato,
+                puesto: data?.contrato?.puesto,
+                campamento_id: data?.contrato?.campamento_id,
+                asociacion_id: data?.contrato?.asociacion_id,
+                estado: data?.contrato?.estado,
+                volquete: data?.contrato?.volquete,
+                teletran: data?.contrato?.teletran,
+                suspendido: data?.contrato?.suspendido,
+                finalizado: data?.contrato?.finalizado,
+                tareo: data?.contrato?.tareo,
+                campamento: data?.contrato?.campamento?.nombre,
+              };
+            })
+            .filter((item) => item?.finalizado === false),
         };
       })
-      .sort((a, b) => a.codigo_trabajador.localeCompare(b.codigo_trabajador));
+      .sort((a, b) => b.codigo_trabajador.localeCompare(a.codigo_trabajador));
     res.status(200).json({ data: obj });
     next();
   } catch (error) {
@@ -105,7 +131,7 @@ const getTrabajadorById = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: obj });
+    res.status(200).json({ data: get });
     next();
   } catch (error) {
     res.status(500).json();
@@ -304,7 +330,6 @@ const updateTrabajador = async (req, res, next) => {
       ? process.env.LOCAL_IMAGE + req.file.filename
       : req.body.foto,
   };
-  console.log(info);
 
   try {
     const putTrabajador = await trabajador.update(info, {
@@ -357,6 +382,37 @@ const softDeleteTrabajador = async (req, res, next) => {
   }
 };
 
+const getLastId = async (req, res, next) => {
+  try {
+    const get = await trabajador.findOne({
+      attributes: {
+        exclude: [
+          "usuarioId",
+          "eliminar",
+          "foto",
+          "asociacion_id",
+          "deshabilitado",
+          "direccion",
+          "genero",
+          "estado_civil",
+          "email",
+          "telefono",
+          "fecha_nacimiento",
+          "apellido_paterno",
+          "apellido_materno",
+          "nombre",
+        ],
+      },
+      order: [["codigo_trabajador", "DESC"]],
+    });
+    res.status(200).json([get]);
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "No se pudo obtener", status: 500 });
+  }
+};
+
 module.exports = {
   getTrabajador,
   postTrabajador,
@@ -365,4 +421,5 @@ module.exports = {
   getTrabajadorById,
   postMultipleTrabajador,
   softDeleteTrabajador,
+  getLastId,
 };

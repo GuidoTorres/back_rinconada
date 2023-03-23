@@ -165,7 +165,7 @@ const postSalida = async (req, res, next) => {
     fecha: req?.body?.fecha,
     dni: req?.body?.dni,
     encargado: req?.body?.encargado,
-    area_id: req?.body?.area_id,
+    area_id: req?.body?.area_id ,
     codigo_requerimiento: req?.body?.codigo_requerimiento,
     almacen_id: req?.body?.almacen_id,
     costo_total: req?.body?.costo_total,

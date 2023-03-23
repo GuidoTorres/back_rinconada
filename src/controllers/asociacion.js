@@ -88,7 +88,7 @@ const getAsociacion = async (req, res, next) => {
             };
           })
           .sort((a, b) =>
-            a.codigo_trabajador.localeCompare(b.codigo_trabajador)
+            b.codigo_trabajador.localeCompare(a.codigo_trabajador)
           ),
       };
     });
@@ -292,7 +292,6 @@ const uploadFile = async (req, res, next) => {
     const filterDni = filtered.filter(
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
-    console.log(dnis);
     if (dnis.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
       return res
@@ -305,7 +304,6 @@ const uploadFile = async (req, res, next) => {
     }
     next();
   } catch (error) {
-    console.log(error);
     res
       .status(500)
       .json({ data: "No se pudo registrar a los trabajadores", status: 500 });

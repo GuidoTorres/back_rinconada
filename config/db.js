@@ -73,6 +73,24 @@ const trabajador = sequelize.define(
   }
 );
 
+const trabajador_contrato = sequelize.define(
+  "trabajador_contrato",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    contrato_id: DataTypes.INTEGER,
+    trabajador_dni: DataTypes.STRING,
+  },
+  {
+    tableName: "trabajador_contrato",
+    timestamp: false,
+  }
+);
+
 const rol = sequelize.define(
   "rol",
   {
@@ -188,7 +206,6 @@ const contrato = sequelize.define(
     suspendido: DataTypes.BOOLEAN,
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
-    trabajador_id: DataTypes.STRING,
     tareo: DataTypes.STRING,
   },
   {
@@ -489,7 +506,7 @@ const ingresos_egresos = sequelize.define(
     sucursal_transferencia: DataTypes.STRING,
     nro_comprobante: DataTypes.STRING,
     precio: DataTypes.STRING,
-    categoria: DataTypes.STRING
+    categoria: DataTypes.STRING,
   },
   {
     tableName: "ingresos_egresos",
@@ -591,9 +608,9 @@ const entrada_salida = sequelize.define(
     codigo_requerimiento: DataTypes.STRING,
     area_id: DataTypes.INTEGER,
     dni: DataTypes.STRING,
-    costo_total: DataTypes.STRING, 
+    costo_total: DataTypes.STRING,
     codigo_pedido: DataTypes.STRING,
-    retornable: DataTypes.BOOLEAN
+    retornable: DataTypes.BOOLEAN,
   },
   {
     tableName: "entrada_salida",
@@ -646,7 +663,7 @@ const requerimiento = sequelize.define(
     aprobacion_gerente: DataTypes.BOOLEAN,
     aprobacion_superintendente: DataTypes.BOOLEAN,
     completado: DataTypes.STRING,
-    dni: DataTypes.STRING
+    dni: DataTypes.STRING,
   },
   {
     tableName: "requerimiento",
@@ -727,7 +744,7 @@ const requerimiento_pedido = sequelize.define(
     },
     requerimiento_id: DataTypes.INTEGER,
     pedido_id: DataTypes.INTEGER,
-    estado: DataTypes.STRING
+    estado: DataTypes.STRING,
   },
   {
     tableName: "requerimiento_pedido",
@@ -1038,8 +1055,11 @@ trabajador.belongsTo(asociacion, {
 trabajador.hasMany(evaluacion, { foreignKey: "trabajador_id" });
 evaluacion.belongsTo(trabajador, { foreignKey: "trabajador_id" });
 
-trabajador.hasMany(contrato, { foreignKey: "trabajador_id" });
-contrato.belongsTo(trabajador, { foreignKey: "trabajador_id" });
+trabajador.hasMany(trabajador_contrato, { foreignKey: "trabajador_dni" });
+trabajador_contrato.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
+
+contrato.hasMany(trabajador_contrato, { foreignKey: "contrato_id" });
+trabajador_contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
 
 asociacion.hasMany(contrato, { foreignKey: "asociacion_id" });
 contrato.belongsTo(asociacion, { foreignKey: "asociacion_id" });
@@ -1206,4 +1226,5 @@ module.exports = {
   destino,
   destino_pago,
   pago_asociacion,
+  trabajador_contrato,
 };

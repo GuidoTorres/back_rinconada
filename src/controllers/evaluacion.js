@@ -3,6 +3,7 @@ const {
   trabajador,
   contrato,
   contratoEvaluacion,
+  trabajador_contrato,
 } = require("../../config/db");
 const dayjs = require("dayjs");
 
@@ -27,7 +28,12 @@ const getEvaluacionById = async (req, res, next) => {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
           include: [
-            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+            {
+              model: trabajador_contrato,
+              include: [
+                { model: contrato, attributes: { exclude: ["contrato_id"] } },
+              ],
+            },
           ],
         },
       ],

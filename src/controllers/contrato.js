@@ -3,8 +3,8 @@ const {
   trabajador,
   evaluacion,
   teletrans,
+  trabajador_contrato,
 } = require("../../config/db");
-const date = require("date-and-time");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
 
@@ -28,7 +28,14 @@ const getContratoById = async (req, res, next) => {
     const user = await trabajador.findAll({
       where: { dni: id },
       attributes: { exclude: ["usuarioId"] },
-      include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
+      include: [
+        {
+          model: trabajador_contrato,
+          include: [
+            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+          ],
+        },
+      ],
     });
 
     const format = user.map((item) => {
@@ -47,34 +54,35 @@ const getContratoById = async (req, res, next) => {
         asociacion_id: item?.asociacion_id,
         deshabilitado: item?.deshabilitado,
         foto: item?.foto,
-        contratos: item?.contratos
-          ?.filter((data) => data?.finalizado === false)
-          ?.map((data) => {
-            return {
-              id: data?.id,
-              fecha_inicio: dayjs(data?.fecha_inicio)?.format("YYYY-MM-DD"),
-              fecha_fin: dayjs(data?.fecha_fin)?.format("YYYY-MM-DD"),
-              codigo_contrato:data?.codigo_contrato,
-              tipo_contrato:data?.tipo_contrato,
-              periodo_trabajo: data?.periodo_trabajo,
-              gerencia: data?.gerencia,
-              area:data?.area,
-              puesto:data?.puesto,
-              jefe_directo: data?.jefe_directo,
-              base:data?.base,
-              termino_contrato: data?.termino_contrato,
-              nota_contrato: data?.nota_contrato,
-              campamento_id: data?.campamento_id,
-              asociacion_id: data?.asociacion_id,
-              estado: data?.estado,
-              volquete: data?.volquete,
-              teletran: data?.teletran,
-              suspendido: data?.suspendido,
-              finalizado: data?.finalizado,
-              trabajador_id: data?.trabajador_id,
-              tareo:data?.tareo
-            };
-          }),
+        contratos: item.trabajador_contratos.map((data) => {
+          return {
+            id: data?.contrato_id,
+            codigo_contrato: data?.contrato_id,
+            fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
+              "YYYY-MM-DD"
+            ),
+            fecha_fin: dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
+            codigo_contrato: data?.contrato?.codigo_contrato,
+            tipo_contrato: data?.contrato?.tipo_contrato,
+            periodo_trabajo: data?.contrato?.periodo_trabajo,
+            gerencia: data?.contrato?.gerencia,
+            area: data?.contrato?.area,
+            puesto: data?.contrato?.puesto,
+            jefe_directo: data?.contrato?.jefe_directo,
+            base: data?.contrato?.base,
+            termino_contrato: data?.contrato?.termino_contrato,
+            nota_contrato: data?.contrato?.nota_contrato,
+            campamento_id: data?.contrato?.campamento_id,
+            asociacion_id: data?.contrato?.asociacion_id,
+            estado: data?.contrato?.estado,
+            volquete: data?.contrato?.volquete,
+            teletran: data?.contrato?.teletran,
+            suspendido: data?.contrato?.suspendido,
+            finalizado: data?.contrato?.finalizado,
+            trabajador_id: data?.contrato?.trabajador_id,
+            tareo: data?.contrato?.tareo,
+          };
+        }),
       };
     });
 
@@ -82,6 +90,7 @@ const getContratoById = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };
@@ -94,9 +103,8 @@ const getContratoAsociacionById = async (req, res, next) => {
       where: { asociacion_id: id },
     });
 
-    const format = user.map(item => {
-
-      return{
+    const format = user.map((item) => {
+      return {
         id: item?.id,
         fecha_inicio: dayjs(item?.fecha_inicio)?.format("YYYY-MM-DD"),
         fecha_inicio: dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
@@ -118,10 +126,9 @@ const getContratoAsociacionById = async (req, res, next) => {
         volquete: item?.volquete,
         teletran: item?.teletran,
         suspendido: item?.suspendido,
-        finalizado: item?.finalizado
-      }
-
-    })
+        finalizado: item?.finalizado,
+      };
+    });
 
     res.status(200).json({ data: format });
 
@@ -134,15 +141,22 @@ const getContratoAsociacionById = async (req, res, next) => {
 const postContrato = async (req, res, next) => {
   try {
     if (req.body.trabajador_id) {
-      const get = await contrato.findAll({
-        where: { trabajador_id: req.body.trabajador_id },
-        attributes: { exclude: ["contrato_id"] },
+      const get = await trabajador_contrato.findAll({
+        where: { trabajador_dni: req.body.trabajador_id },
+        include: [
+          {
+            model: contrato,
+            attributes: { exclude: ["contrato_id", "trabajador_id"] },
+          },
+        ],
       });
       const getEva = await evaluacion.findAll({
         where: { trabajador_id: req.body.trabajador_id },
         attributes: { exclude: ["contrato_id"] },
       });
-      const filter = get.filter((item) => item.finalizado === false);
+      const filter = get
+        .map((item) => item.contrato)
+        .filter((item) => item.finalizado === false);
       const filterEva = getEva.filter((item) => item.finalizado === false);
       if (filter.length > 0) {
         return res.status(500).json({
@@ -152,6 +166,13 @@ const postContrato = async (req, res, next) => {
       } else {
         if (filterEva.length > 0) {
           const post = await contrato.create(req.body);
+
+          const contraPago = {
+            contrato_id: post.id,
+            trabajador_dni: req.body.trabajador_id,
+          };
+
+          const createContraPago = await trabajador_contrato.create(contraPago);
 
           let volquete = parseInt(req.body?.volquete);
           let teletran = parseInt(req.body?.teletran);
@@ -232,11 +253,22 @@ const postContratoAsociacion = async (req, res, next) => {
     suspendido: false,
     finalizado: false,
   };
-  console.log(req.body.evaluacion_id);
   try {
-    console.log(req.body);
-    if (req.body.evaluacion_id.length > 0) {
+    if (req.body.trabajadores.length > 0) {
       const post = await contrato.create(info);
+      const contraPago = req.body.trabajadores.map((item) => {
+        return {
+          trabajador_dni: item,
+          contrato_id: post.id,
+        };
+      });
+
+      const createContraPago = await trabajador_contrato.bulkCreate(
+        contraPago,
+        {
+          ignoreDuplicates: false,
+        }
+      );
       if (post) {
         let volquete = parseInt(req.body?.volquete);
         let teletran = parseInt(req.body?.teletran);
@@ -269,12 +301,11 @@ const postContratoAsociacion = async (req, res, next) => {
 const updateContrato = async (req, res, next) => {
   let id = req.params.id;
 
+  console.log(req.body);
   try {
     const put = await contrato.update(req.body, {
       where: { id: id },
     });
-
-    console.log(id);
 
     if (req?.body?.volquete && req?.body?.teletran) {
       let volquete = parseInt(req.body?.volquete);
@@ -309,10 +340,14 @@ const deleteContrato = async (req, res, next) => {
   let id = req.params.id;
   try {
     let removeTtrans = await teletrans.destroy({ where: { contrato_id: id } });
+    let removeTrabajadorContrato = await trabajador_contrato.destroy({
+      where: { contrato_id: id },
+    });
     let remove = await contrato.destroy({ where: { id: id } });
     res.status(200).json({ msg: "Contrato eliminado con éxito", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo eliminar el contrato", status: 500 });

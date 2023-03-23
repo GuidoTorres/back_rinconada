@@ -10,6 +10,7 @@ const {
   contrato,
   asociacion,
   requerimiento_pedido,
+  trabajador_contrato,
 } = require("../../config/db");
 const { Op, Sequelize } = require("sequelize");
 
@@ -248,8 +249,10 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
       attributes: ["dni", "apellido_paterno", "apellido_materno", "nombre"],
       include: [
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
+          model: trabajador_contrato,
+          include: [
+            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+          ],
         },
       ],
     });
@@ -259,21 +262,21 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
         dni: item?.dni,
         nombre:
           item?.apellido_paterno +
-          "" +
+          " " +
           item?.apellido_materno +
           " " +
           item?.nombre,
-        contrato: item.contratos,
-        area: getArea
-          .filter(
-            (data) =>
-              data?.nombre ===
-              item?.contratos
-                ?.filter((data) => data?.finalizado === false)
-                ?.map((data) => data?.area)
-                ?.toString()
-          )
-          .at(-1)?.id,
+        contrato: item?.trabajador_contratos
+          ?.map((data) => data?.contrato)
+          ?.filter((data) => data?.finalizado === false),
+        area: getArea?.filter(
+          (data) =>
+            data?.nombre ===
+            item?.trabajador_contratos
+              ?.map((data) => data?.contrato)
+              ?.filter((data) => data?.finalizado === false)
+              ?.at(-1)?.area
+        ).at(-1),
       };
     });
 

@@ -5,6 +5,7 @@ const images = require("../middleware/multerImage")
 const multer = require("../middleware/multer")
 
 router.get("/", trabajador.getTrabajador);
+router.get("/last/id", trabajador.getLastId);
 router.get("/:id", trabajador.getTrabajadorById);
 router.post("/bulk",  multer(),trabajador.postMultipleTrabajador);
 router.post("/",  images(),trabajador.postTrabajador);
