@@ -84,11 +84,11 @@ const getAsociacion = async (req, res, next) => {
               deshabilitado: data.deshabilitado,
               foto: data.foto,
               eliminar: data.eliminar,
-              evaluacions: data.evaluacions[data.evaluacions.length - 1],
+              evaluacions: data.evaluacions.filter(dat => dat.finalizado === false),
             };
           })
           .sort((a, b) =>
-            b.codigo_trabajador.localeCompare(a.codigo_trabajador)
+            a.codigo_trabajador.localeCompare(b.codigo_trabajador)
           ),
       };
     });

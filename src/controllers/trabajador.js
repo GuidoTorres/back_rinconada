@@ -95,7 +95,7 @@ const getTrabajador = async (req, res, next) => {
             .filter((item) => item?.finalizado === false),
         };
       })
-      .sort((a, b) => b.codigo_trabajador.localeCompare(a.codigo_trabajador));
+      .sort((a, b) => a.codigo_trabajador.localeCompare(b.codigo_trabajador));
     res.status(200).json({ data: obj });
     next();
   } catch (error) {
