@@ -6,7 +6,7 @@ const sequelize = new Sequelize({
   database: "rinconada",
   username: "root",
   password: "root",
-  host: "13.58.131.42",
+  host: "172.31.26.99",
   dialect: "mysql",
   port: 3306,
   define: { timestamps: false, freezeTableName: true },
