@@ -8,7 +8,7 @@ const sequelize = new Sequelize({
   password: "root",
   host: "172.31.26.99",
   dialect: "mysql",
-  port: 22,
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
 });
 const dbConnect = async () => {
