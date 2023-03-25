@@ -6,9 +6,9 @@ const sequelize = new Sequelize({
   database: "rinconada",
   username: "root",
   password: "root",
-  host: "172.31.26.99",
+  host: "localhost",
   dialect: "mysql",
-  port: 3306,
+  port: "3306",
   define: { timestamps: false, freezeTableName: true },
 });
 const dbConnect = async () => {

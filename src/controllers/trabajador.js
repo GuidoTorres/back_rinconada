@@ -283,8 +283,8 @@ const postMultipleTrabajador = async (req, res, next) => {
         .json({ msg: "Trabajadores registrados con éxito!", status: 200 });
     } else {
       return res
-        .status(200)
-        .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
+        .status(500)
+        .json({ msg: "Trabajadores actualmente registrados!", status: 500 });
     }
 
     next();
