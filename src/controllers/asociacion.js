@@ -84,7 +84,9 @@ const getAsociacion = async (req, res, next) => {
               deshabilitado: data.deshabilitado,
               foto: data.foto,
               eliminar: data.eliminar,
-              evaluacions: data.evaluacions.filter(dat => dat.finalizado === false),
+              evaluacions: data.evaluacions.filter(
+                (dat) => dat.finalizado === false
+              ),
             };
           })
           .sort((a, b) =>
@@ -210,28 +212,31 @@ const deleteAsociacion = async (req, res, next) => {
 
 const uploadFile = async (req, res, next) => {
   let id = req.params.id;
-  console.log(req.file);
   try {
     const workbook = XLSX.readFile("./upload/data.xlsx");
     const workbookSheets = workbook.SheetNames;
     const sheet = workbookSheets[0];
     const dataExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
 
-    const result = dataExcel.map((v) =>
-      Object.entries(v).reduce(
-        (acc, [key, value]) =>
-          Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
-        {}
+    const result = dataExcel
+      .map((v) =>
+        Object.entries(v).reduce(
+          (acc, [key, value]) =>
+            Object.assign(acc, { [key.replace(/\s+/g, "_")]: value }),
+          {}
+        )
       )
-    );
+      .filter((item) => !isNaN(item.dni) && item.dni.toString().length === 8);
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },
       order: [["codigo_trabajador", "DESC"]],
     });
 
-    codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCMRL0000";
-    const getNumber = codigo_final.includes("CCMRL000")
+    const codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCMRL00000";
+    const getNumber = codigo_final.includes("CCMRL0000")
+      ? codigo_final.split("CCMRL0000")[1]
+      : codigo_final.includes("CCMRL000")
       ? codigo_final.split("CCMRL000")[1]
       : codigo_final.includes("CCMRL00")
       ? codigo_final.split("CCMRL00")[1]
@@ -247,12 +252,15 @@ const uploadFile = async (req, res, next) => {
           dni: item?.dni,
           codigo_trabajador:
             parseInt(getNumber) + i + 1 < 10
-              ? "CCMRL000" + (parseInt(getNumber) + i + 1)
+              ? "CCMRL0000" + (parseInt(getNumber) + i + 1)
               : parseInt(getNumber) + i + 1 > 9 &&
                 parseInt(getNumber) + i + 1 < 100
-              ? "CCMRL00" + (parseInt(getNumber) + i + 1)
+              ? "CCMRL000" + (parseInt(getNumber) + i + 1)
               : parseInt(getNumber) + i + 1 > 99 &&
                 parseInt(getNumber) + i + 1 < 1000
+              ? "CCMRL00" + (parseInt(getNumber) + i + 1)
+              : parseInt(getNumber) + i + 1 > 999 &&
+                parseInt(getNumber) + i + 1 < 10000
               ? "CCMRL0" + (parseInt(getNumber) + i + 1)
               : "CCMRL" + (parseInt(getNumber) + i + 1),
           fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
@@ -288,26 +296,28 @@ const uploadFile = async (req, res, next) => {
 
     //listado de dnis del excel
     const dnis = filtered.map((item) => item.dni);
+    console.log(dnis);
     // filtrar
     const filterDni = filtered.filter(
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
-    if (dnis.length !== 0) {
+
+    if (filterDni.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
       return res
         .status(200)
-        .json({ msg: "Trabajadores registrados con éxito!", status: 200 });
+        .json({ msg: `Se registraron ${filterDni.length} trabajadores con éxito!`, status: 200 });
     } else {
       return res
         .status(200)
-        .json({ msg: "Trabajadores actualmente registrados!", status: 200 });
+        .json({ msg: "No se pudo registrar a los trabajadores!", status: 500 });
     }
     next();
   } catch (error) {
     res
       .status(500)
-      .json({ data: "No se pudo registrar a los trabajadores", status: 500 });
-  }
+      .json({ msg: "No se pudo registrar a los trabajadores!", status: 500 });
+    }
 };
 
 module.exports = {

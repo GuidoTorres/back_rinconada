@@ -36,8 +36,6 @@ const incentivoRouter = require("./src/routes/incentivo");
 const casaRouter = require("./src/routes/casa");
 const ayudaRouter = require("./src/routes/ayuda");
 const buscadorRouter = require("./src/routes/buscador");
-
-
 const authRouter = require("./src/routes/auth");
 
 const app = express();
@@ -85,9 +83,7 @@ app.use("/api/v1/incentivo", incentivoRouter);
 app.use("/api/v1/casa", casaRouter);
 app.use("/api/v1/ayuda", ayudaRouter);
 app.use("/api/v1/filtros", buscadorRouter);
-
 app.use("/api/v1/auth", authRouter);
-
 app.listen(PORT, () => {
   console.log("server funcionando en puerto", PORT);
 });
