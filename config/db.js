@@ -3,12 +3,12 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "rinconada",
-  username: "root",
-  password: "root",
-  host: "localhost",
+  database: "heroku_30cfe8f0814e57f",
+  username: "bcbf9d2c2227ee",
+  password: "011e52da",
+  host: "us-cdbr-east-06.cleardb.net",
   dialect: "mysql",
-  port: "3306",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
 });
 const dbConnect = async () => {
