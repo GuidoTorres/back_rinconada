@@ -56,7 +56,7 @@ const postIngresoEgreso = async (req, res, next) => {
       cantidad: req.body.cantidad,
       medida: req.body.medida,
       descripcion: req.body.descripcion,
-      monto: parseFloat(req.body.monto).toFixed(2),
+      monto: parseFloat(req.body.monto),
       proveedor: req.body.proveedor,
       comprobante: req.body.comprobante,
       sucursal_transferencia: req.body.sucursal_transferencia,
@@ -97,7 +97,6 @@ const postIngresoEgreso = async (req, res, next) => {
       egresos: getSaldo?.at(-1)?.egresos + parseFloat(req.body.monto),
       saldo_final: getSaldo?.at(-1)?.saldo_final - parseFloat(req.body.monto),
     };
-    console.log(newSaldoIngreso);
     // para registrar ingresos y egresos
     if (!req.body.sucursal_transferencia && req.body.sucursal_id) {
       if (req.body.movimiento === "Ingreso") {
@@ -140,9 +139,7 @@ const postIngresoEgreso = async (req, res, next) => {
         comprobante: req.body.comprobante,
         sucursal_transferencia: req.body.sucursal_transferencia,
         dni: req.body.dni,
-        ingresos: null,
-        egresos:
-          parseFloat(getSaldo?.at(-1)?.egresos) + parseFloat(req.body.monto),
+        egresos: getSaldo?.at(-1)?.egresos + parseFloat(req.body.monto),
         saldo_final:
           getSaldo?.at(-1)?.saldo_final - -parseFloat(req.body.monto),
       };
@@ -161,32 +158,18 @@ const postIngresoEgreso = async (req, res, next) => {
         comprobante: req.body.comprobante,
         sucursal_transferencia: req.body.sucursal_transferencia,
         dni: req.body.dni,
-        ingresos:
-          parseFloat(getSaldoEgreso?.at(-1)?.ingresos) +
-          parseInt(req.body.monto),
-        egresos: null,
+        ingresos: getSaldoEgreso?.at(-1)?.ingresos + parseInt(req.body.monto),
         saldo_final:
-          getSaldoEgreso?.at(-1)?.saldo_final === 0
-            ? parseFloat(getSaldoEgreso?.at(-1)?.saldo_inicial) +
-              parseFloat(req.body.monto)
-            : parseFloat(getSaldoEgreso?.at(-1)?.saldo_final) +
-              parseFloat(req.body.monto),
+          getSaldoEgreso?.at(-1)?.saldo_final + parseFloat(req.body.monto),
       };
       let newSaldoEgresoTransferencia = {
-        saldo_inicial: parseFloat(getSaldo[getSaldo.length - 1]?.saldo_inicial),
-        egresos:
-          parseFloat(getSaldo?.at(-1)?.egresos) + parseFloat(req.body.monto),
+        egresos: getSaldo?.at(-1)?.egresos + parseFloat(req.body.monto),
         saldo_final: getSaldo?.at(-1)?.saldo_final - parseFloat(req.body.monto),
       };
       let newSaldoIngresoTransferencia = {
-        saldo_inicial: parseFloat(
-          getSaldoEgreso[getSaldoEgreso.length - 1]?.saldo_inicial
-        ),
-        ingresos:
-          parseFloat(getSaldoEgreso?.at(-1)?.ingresos) +
-          parseFloat(req.body.monto),
+        ingresos: getSaldoEgreso?.at(-1)?.ingresos + parseFloat(req.body.monto),
         saldo_final:
-          getSaldoEgreso?.at(-1)?.saldo_final + +parseFloat(req.body.monto),
+          getSaldoEgreso?.at(-1)?.saldo_final + parseFloat(req.body.monto),
       };
       const postEgreso = await ingresos_egresos.create(objEgresoTransferencia);
       const postIngreso = await ingresos_egresos.create(
@@ -224,7 +207,10 @@ const updateIngresoEgreso = async (req, res, next) => {
     let getIngresos = await ingresos_egresos.findAll({
       where: { id: req.body.id },
     });
-    let getSaldo = await saldo.findAll({
+    const getSaldoDestino = await saldo.findAll({
+      where: { sucursal_id: getIngresos?.at(-1)?.sucursal_transferencia },
+    });
+    let getSaldoOrigen = await saldo.findAll({
       where: { sucursal_id: id },
     });
 
@@ -249,7 +235,7 @@ const updateIngresoEgreso = async (req, res, next) => {
         .status(200)
         .json({ msg: "Movimiento actualizado con éxito!", status: 200 });
     }
-    if (req.body.movimiento === "Egreso"&& !req.body.sucursal_transferencia) {
+    if (req.body.movimiento === "Egreso" && !req.body.sucursal_transferencia) {
       let saldoInicial = parseFloat(getSaldo?.at(-1)?.saldo_inicial);
       let saldoFinal = parseFloat(getSaldo?.at(-1)?.saldo_final);
       let egresoActual = parseFloat(getSaldo?.at(-1)?.egresos);
@@ -270,27 +256,39 @@ const updateIngresoEgreso = async (req, res, next) => {
         .status(200)
         .json({ msg: "Movimiento actualizado con éxito!", status: 200 });
     }
-    // if (req.body.movimiento === "Egreso" && req.body.sucursal_transferencia) {
-    //   let saldoInicial = parseFloat(getSaldo?.at(-1)?.saldo_inicial);
-    //   let saldoFinal = parseFloat(getSaldo?.at(-1)?.saldo_final);
-    //   let egresoActual = parseFloat(getSaldo?.at(-1)?.egresos);
-    //   let montoAnterior = parseFloat(getIngresos?.at(-1)?.monto);
-    //   let montoNuevo = parseFloat(req.body.monto);
-    //   let newSaldoEgreso = {
-    //     egresos: egresoActual - montoAnterior + montoNuevo,
-    //     saldo_final: saldoFinal + montoAnterior - montoNuevo,
-    //   };
+    if (req.body.movimiento === "Egreso" && req.body.sucursal_transferencia) {
+      let saldoFinalOrigen = getSaldoOrigen?.at(-1)?.saldo_final;
+      let egresoActualOrigen = getSaldoOrigen?.at(-1)?.egresos;
+      let montoAnterior = getIngresos?.at(-1)?.monto;
+      let montoNuevo = parseFloat(req.body.monto);
+      let newSaldoOrigen = {
+        egresos: parseFloat(egresoActualOrigen) - parseFloat(montoAnterior) + montoNuevo,
+        saldo_final: parseFloat(saldoFinalOrigen) + parseFloat(montoAnterior) - montoNuevo,
+      };
+      let saldoFinalDestino = getSaldoDestino?.at(-1)?.saldo_final;
+      let ingresoActualDestino = getSaldoDestino?.at(-1)?.ingresos;
+      let newSaldoDestino = {
+        ingresos: (ingresoActualDestino - montoAnterior) + montoNuevo,
+        saldo_final: (saldoFinalDestino - montoAnterior) + montoNuevo,
+      };
 
-    //   let update = await ingresos_egresos.update(req.body, {
-    //     where: { id: req.body.id },
-    //   });
-    //   const updateSaldo = await saldo.update(newSaldoEgreso, {
-    //     where: { sucursal_id: req.body.sucursal_id },
-    //   });
-    //   return res
-    //     .status(200)
-    //     .json({ msg: "Movimiento actualizado con éxito!", status: 200 });
-    // }
+      console.log(newSaldoOrigen);
+      console.log(newSaldoDestino)
+  
+
+      let update = await ingresos_egresos.update(req.body, {
+        where: { id: req.body.id },
+      });
+      const updateSaldo = await saldo.update(newSaldoOrigen, {
+        where: { sucursal_id: req.body.sucursal_id },
+      });
+      const updateSaldo1 = await saldo.update(newSaldoDestino, {
+        where: { sucursal_id: req.body.sucursal_id },
+      });
+      return res
+        .status(200)
+        .json({ msg: "Movimiento actualizado con éxito!", status: 200 });
+    }
     next();
   } catch (error) {
     console.log(error);

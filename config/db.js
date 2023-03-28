@@ -10,6 +10,7 @@ const sequelize = new Sequelize({
   dialect: "mysql",
   port: "3306",
   define: { timestamps: false, freezeTableName: true },
+  dialectOptions: { decimalNumbers: true },
 });
 const dbConnect = async () => {
   try {
@@ -498,10 +499,10 @@ const ingresos_egresos = sequelize.define(
     proveedor: DataTypes.STRING,
     comprobante: DataTypes.STRING,
     sucursal_id: DataTypes.INTEGER,
-    saldo_inicial: DataTypes.FLOAT,
-    ingresos: DataTypes.FLOAT,
-    egresos: DataTypes.FLOAT,
-    saldo_final: DataTypes.FLOAT,
+    saldo_inicial: DataTypes.DECIMAL(10,2),
+    ingresos: DataTypes.DECIMAL(10,2),
+    egresos: DataTypes.DECIMAL(10,2),
+    saldo_final: DataTypes.DECIMAL(10,2),
     dni: DataTypes.STRING,
     sucursal_transferencia: DataTypes.STRING,
     nro_comprobante: DataTypes.STRING,
@@ -524,10 +525,10 @@ const saldo = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    saldo_inicial: DataTypes.FLOAT,
-    ingresos: DataTypes.FLOAT,
-    egresos: DataTypes.FLOAT,
-    saldo_final: DataTypes.FLOAT,
+    saldo_inicial: DataTypes.DECIMAL(10,2),
+    ingresos: DataTypes.DECIMAL(10,2),
+    egresos: DataTypes.DECIMAL(10,2),
+    saldo_final: DataTypes.DECIMAL(10,2),
     sucursal_id: DataTypes.INTEGER,
   },
   {
