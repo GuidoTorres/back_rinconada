@@ -1,5 +1,5 @@
 const { where } = require("sequelize");
-const { sucursal, saldo } = require("../../config/db");
+const { sucursal, saldo, ingresos_egresos } = require("../../config/db");
 
 const getsucursal = async (req, res, next) => {
   try {
@@ -32,7 +32,7 @@ const postSucursal = async (req, res, next) => {
       saldo_inicial: parseInt(req.body.saldo_inicial),
       ingresos: 0,
       egresos: 0,
-      saldo_final: 0
+      saldo_final: parseInt(req.body.saldo_inicial)
     };
     const postSaldo = await saldo.create(info);
     res.status(200).json({ msg: "Sucursal creada con éxito!", status: 200 });
@@ -64,6 +64,8 @@ const updateSucursal = async (req, res, next) => {
 const deleteSucursal = async (req, res, next) => {
   let id = req.params.id;
   try {
+
+    let destroyIngresos = await ingresos_egresos.destroy({where: {sucursal_id: id}})
     let destroySaldo = await saldo.destroy({
       where: {sucursal_id: id}
     })
@@ -71,6 +73,7 @@ const deleteSucursal = async (req, res, next) => {
     res.status(200).json({ msg: "Sucursal eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };

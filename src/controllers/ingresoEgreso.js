@@ -9,6 +9,7 @@ const path = require("path");
 const XLSX = require("xlsx");
 const fs = require("fs");
 const _ = require("lodash");
+const { log } = require("console");
 
 const getIngresoEgresos = async (req, res, next) => {
   try {
@@ -63,14 +64,11 @@ const postIngresoEgreso = async (req, res, next) => {
       precio: req.body.precio,
       categoria: req.body.categoria,
       nro_comprobante: req.body.nro_comprobante,
-      saldo_inicial: parseFloat(getSaldo?.at(-1)?.saldo_inicial),
       ingresos:
         parseFloat(getSaldo?.at(-1)?.ingresos) + parseFloat(req.body.monto),
-      saldo_final: parseFloat(
-        getSaldo?.at(-1)?.saldo_final + parseFloat(req.body.monto)
-      ),
+      saldo_final:
+        parseFloat(getSaldo?.at(-1)?.saldo_final) + parseFloat(req.body.monto),
     };
-
     let objEgreso = {
       sucursal_id: req.body.sucursal_id,
       fecha: req.body.fecha,
@@ -89,7 +87,6 @@ const postIngresoEgreso = async (req, res, next) => {
       categoria: req.body.categoria,
       nro_comprobante: req.body.nro_comprobante,
       sucursal_transferencia: req.body.sucursal_transferencia,
-      saldo_inicial: parseFloat(getSaldo?.at(-1)?.saldo_inicial),
       egresos:
         parseFloat(getSaldo?.at(-1)?.egresos) + parseFloat(req.body.monto),
       saldo_final:
@@ -99,10 +96,10 @@ const postIngresoEgreso = async (req, res, next) => {
       saldo_inicial: parseFloat(parseFloat(getSaldo?.at(-1)?.saldo_inicial)),
       ingresos:
         parseFloat(getSaldo?.at(-1)?.ingresos) + parseFloat(req.body.monto),
-      saldo_final: parseFloat(
-        parseFloat(getSaldo?.at(-1)?.saldo_final) + parseFloat(req.body.monto)
-      ),
+      saldo_final:
+        parseFloat(getSaldo?.at(-1)?.saldo_final) + parseFloat(req.body.monto),
     };
+    console.log(newSaldoIngreso);
 
     let newSaldoEgreso = {
       saldo_inicial: parseFloat(getSaldo?.at(-1)?.saldo_inicial),
@@ -111,7 +108,7 @@ const postIngresoEgreso = async (req, res, next) => {
       saldo_final:
         parseFloat(getSaldo?.at(-1)?.saldo_final) - parseFloat(req.body.monto),
     };
-
+    console.log(newSaldoEgreso);
     // para registrar ingresos y egresos
     if (!req.body.sucursal_transferencia && req.body.sucursal_id) {
       if (req.body.movimiento === "Ingreso") {
@@ -270,12 +267,8 @@ const updateIngresoEgreso = async (req, res, next) => {
       let montoAnterior = parseFloat(getIngresos?.at(-1)?.monto);
       let montoNuevo = parseFloat(req.body.monto);
       let newSaldoIngreso = {
-        saldo_inicial: saldoInicial,
         ingresos: ingresoActual - montoAnterior + montoNuevo,
-        saldo_final:
-          getSaldo?.at(-1)?.saldo_final === 0
-            ? saldoInicial - montoAnterior + montoNuevo
-            : saldoFinal - montoAnterior + montoNuevo,
+        saldo_final: saldoFinal - montoAnterior + montoNuevo,
       };
 
       let update = await ingresos_egresos.update(req.body, {
@@ -290,21 +283,16 @@ const updateIngresoEgreso = async (req, res, next) => {
       next();
     }
     if (req.body.movimiento === "Egreso") {
+      let saldoInicial = parseFloat(getSaldo?.at(-1)?.saldo_inicial);
+      let saldoFinal = parseFloat(getSaldo?.at(-1)?.saldo_final);
+      let egresoActual = parseFloat(getSaldo?.at(-1)?.egresos);
+      let montoAnterior = parseFloat(getIngresos?.at(-1)?.monto);
+      let montoNuevo = parseFloat(req.body.monto);
       let newSaldoEgreso = {
-        saldo_inicial: getSaldo?.at(-1)?.saldo_inicial,
-        egresos:
-          parseFloat(getSaldo?.at(-1)?.egresos) -
-          parseFloat(getIngresos?.at(-1)?.egresos) +
-          parseFloat(req.body.monto),
-        saldo_final:
-          getSaldo?.at(-1)?.saldo_final === 0
-            ? parseFloat(getSaldo?.at(-1)?.saldo_inicial) -
-              parseFloat(getIngresos?.at(-1)?.monto) +
-              parseFloat(req.body.monto)
-            : parseFloat(getSaldo?.at(-1)?.saldo_final) +
-              parseFloat(getIngresos?.at(-1)?.monto) -
-              parseFloat(req.body.monto),
+        egresos: egresoActual - montoAnterior + montoNuevo,
+        saldo_final: saldoFinal + montoAnterior - montoNuevo,
       };
+
       let update = await ingresos_egresos.update(req.body, {
         where: { id: req.body.id },
       });
@@ -354,7 +342,10 @@ const deleteIngresoEgreso = async (req, res, next) => {
       });
     }
 
-    if (movimiento === "Egreso") {
+    if (
+      movimiento === "Egreso" &&
+      !getIngresos?.at(-1)?.sucursal_transferencia
+    ) {
       newSaldoEgreso = {
         egresos:
           parseInt(getSaldo?.at(-1)?.egresos) -
@@ -376,29 +367,29 @@ const deleteIngresoEgreso = async (req, res, next) => {
     }
     if (
       movimiento === "Egreso" &&
-      getIngresos[getIngresos.length - 1]?.sucursal_transferencia
+      getIngresos?.at(-1)?.sucursal_transferencia
     ) {
       newSaldoEgreso = {
         egresos:
-          parseInt(getSaldo[getSaldo.length - 1]?.egresos) +
-          parseInt(getIngresos[getIngresos.length - 1]?.monto),
+          parseInt(getSaldo?.at(-1)?.egresos) +
+          parseInt(getIngresos?.at(-1)?.monto),
 
         saldo_final:
-          parseInt(getSaldo[getSaldo.length - 1]?.saldo_final) +
-          parseInt(getIngresos[getIngresos.length - 1]?.monto),
+          parseInt(getSaldo?.at(-1)?.saldo_final) +
+          parseInt(getIngresos?.at(-1)?.monto),
       };
 
-      let destroy = await ingresos_egresos.destroy({ where: { id: id } });
+      console.log(getIngresos?.at(-1)?.sucursal_transferencia);
+
       let destroyTranferencia = await ingresos_egresos.destroy({
         where: {
-          sucursal_transferencia:
-            getIngresos[getIngresos.length - 1]?.sucursal_transferencia,
+          sucursal_transferencia: getIngresos?.at(-1)?.sucursal_transferencia,
         },
       });
 
       const updateSaldo = await saldo.update(newSaldoEgreso, {
         where: {
-          sucursal_id: getIngresos[getIngresos.length - 1]?.sucursal_id,
+          sucursal_id: getIngresos?.at(-1)?.sucursal_id,
         },
       });
       return res.status(200).json({
@@ -408,6 +399,7 @@ const deleteIngresoEgreso = async (req, res, next) => {
       next();
     }
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };
@@ -441,7 +433,6 @@ const reporteIngreso = async (req, res, next) => {
       acc[currentValue["fecha"]].push(currentValue);
       return acc;
     }, {});
-
     const final2 = [newObj].map((item) => Object.values(item)).flat();
 
     const final3 = final2
@@ -456,7 +447,8 @@ const reporteIngreso = async (req, res, next) => {
             return acc;
           }, [])
       )
-      .flat();
+      .flat()
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
     const getLabels = [...new Set(final3.map((item) => item.fecha))];
 
@@ -466,18 +458,21 @@ const reporteIngreso = async (req, res, next) => {
     let ingresos = {
       label: "Ingresos",
       type: "line",
-      data: getLabels.map((item, i) =>
-        final3
-          .filter((data, index) => data.movimiento === "Ingreso")
-          .filter((dat) => dat.fecha === item).length === 0
-          ? 0
-          : parseInt(
-              final3
-                .filter((data, index) => data.movimiento === "Ingreso")
-                .filter((dat) => dat.fecha === item)
-                .map((da) => da.monto)
-            )
-      ),
+      data: getLabels.map((item, i) => {
+        let result = final3.find(
+          (data, index) => data.movimiento === "Ingreso" && data.fecha === item
+        );
+        if (result) {
+          return parseInt(
+            final3
+              .filter((data, index) => data.movimiento === "Ingreso")
+              .filter((dat) => dat.fecha === item)
+              .map((da) => da.monto)
+          );
+        } else {
+          return 0;
+        }
+      }),
       fill: false,
       borderColor: "rgb(75, 110, 185)",
       tension: 0.1,
@@ -486,18 +481,21 @@ const reporteIngreso = async (req, res, next) => {
     let egresos = {
       label: "Egresos",
       type: "line",
-      data: getLabels.map((item, i) =>
-        final3
-          .filter((data, index) => data.movimiento === "Egreso")
-          .filter((dat) => dat.fecha === item).length === 0
-          ? 0
-          : parseInt(
-              final3
-                .filter((data, index) => data.movimiento === "Egreso")
-                .filter((dat) => dat.fecha === item)
-                .map((da) => da.monto)
-            )
-      ),
+      data: getLabels.map((item, i) => {
+        let result = final3.find(
+          (data, index) => data.movimiento === "Egreso" && data.fecha === item
+        );
+        if (result) {
+          return parseInt(
+            final3
+              .filter((data, index) => data.movimiento === "Egreso")
+              .filter((dat) => dat.fecha === item)
+              .map((da) => da.monto)
+          );
+        } else {
+          return 0;
+        }
+      }),
       fill: false,
       borderColor: "rgb(222, 101, 92)",
       tension: 0.1,
@@ -685,9 +683,9 @@ const convertJsonToExcel = async (req, res, next) => {
         item?.area,
         item?.movimiento,
         "Tesorería",
-        item?.ingresos ? parseFloat(item?.monto) : "",
-        item?.egresos ? parseFloat(item?.monto) : "",
-        parseFloat(item?.saldo_final),
+        item?.ingresos ? parseFloat(item?.monto).toFixed(2) : "",
+        item?.egresos ? parseFloat(item?.monto).toFixed(2) : "",
+        parseFloat(item?.saldo_final).toFixed(2),
       ];
     });
 
@@ -793,8 +791,54 @@ const getSaldoMensual = async (req, res, next) => {
         [Sequelize.literal(`MONTH(fecha)`), "fecha"],
       ],
     });
+    const egresos = getById
+      ?.filter((item) => item.movimiento === "Egreso")
+      .reduce((acc, curr) => {
+        const findData = acc.find((ele) => ele.fecha === curr.fecha);
+        if (findData) {
+          findData.monto = parseFloat(findData.monto) + parseFloat(curr.monto);
+        } else {
+          acc.push({
+            area: curr.area,
+            egresos: curr.egresos,
+            fecha: curr.fecha,
+            monto: parseFloat(curr.monto),
+            movimiento: curr.movimiento,
+          });
+        }
 
-    res.status(200).json({ data: getById });
+        return acc;
+      }, [])
+      .map((item) => {
+        return {
+          ...item,
+          monto: item.monto * -1,
+        };
+      });
+
+    const ingresos = getById
+      ?.filter((item) => item.movimiento === "Ingreso")
+      .reduce((acc, curr) => {
+        const findData = acc.find((ele) => ele.fecha === curr.fecha);
+
+        if (findData) {
+          findData.monto = parseFloat(findData.monto) + parseFloat(curr.monto);
+        } else {
+          acc.push({
+            area: curr.area,
+            egresos: curr.egresos,
+            fecha: curr.fecha,
+            monto: parseFloat(curr.monto),
+            movimiento: curr.movimiento,
+          });
+        }
+
+        return acc;
+      }, []);
+
+    const concat = ingresos?.concat(egresos);
+
+    res.status(200).json({ data: concat });
     next();
   } catch (error) {
     console.log(error);

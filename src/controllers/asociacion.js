@@ -227,6 +227,8 @@ const uploadFile = async (req, res, next) => {
         )
       )
       .filter((item) => !isNaN(item.dni) && item.dni.toString().length === 8);
+    
+    console.log(result);
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },
@@ -277,6 +279,7 @@ const uploadFile = async (req, res, next) => {
       })
       .filter((item) => item.asociacion_id !== undefined);
 
+      console.log(obj);
     const unique = obj.reduce((acc, current) => {
       if (!acc.find((ele) => ele.dni === current.dni)) {
         acc.push(current);
@@ -301,7 +304,7 @@ const uploadFile = async (req, res, next) => {
     const filterDni = filtered.filter(
       ({ dni }, index) => !dnis.includes(dni, index + 1)
     );
-
+      console.log(filterDni);
     if (filterDni.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
       return res
@@ -314,6 +317,7 @@ const uploadFile = async (req, res, next) => {
     }
     next();
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo registrar a los trabajadores!", status: 500 });
