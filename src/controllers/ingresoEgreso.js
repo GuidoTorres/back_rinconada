@@ -261,29 +261,107 @@ const updateIngresoEgreso = async (req, res, next) => {
       let egresoActualOrigen = getSaldoOrigen?.at(-1)?.egresos;
       let montoAnterior = getIngresos?.at(-1)?.monto;
       let montoNuevo = parseFloat(req.body.monto);
-      let newSaldoOrigen = {
-        egresos: parseFloat(egresoActualOrigen) - parseFloat(montoAnterior) + montoNuevo,
-        saldo_final: parseFloat(saldoFinalOrigen) + parseFloat(montoAnterior) - montoNuevo,
-      };
       let saldoFinalDestino = getSaldoDestino?.at(-1)?.saldo_final;
       let ingresoActualDestino = getSaldoDestino?.at(-1)?.ingresos;
-      let newSaldoDestino = {
-        ingresos: (ingresoActualDestino - montoAnterior) + montoNuevo,
-        saldo_final: (saldoFinalDestino - montoAnterior) + montoNuevo,
+      let newSaldoOrigen = {
+        egresos:
+          parseFloat(egresoActualOrigen) -
+          parseFloat(montoAnterior) +
+          montoNuevo,
+        saldo_final:
+          parseFloat(saldoFinalOrigen) + parseFloat(montoAnterior) - montoNuevo,
       };
 
-      console.log(newSaldoOrigen);
-      console.log(newSaldoDestino)
-  
+      let newSaldoDestino = {
+        ingresos: ingresoActualDestino - montoAnterior + montoNuevo,
+        saldo_final: saldoFinalDestino - montoAnterior + montoNuevo,
+      };
 
-      let update = await ingresos_egresos.update(req.body, {
-        where: { id: req.body.id },
+      console.log(req.body);
+
+      const objOrigen = {
+        fecha: req?.body?.fecha,
+        movimiento: req?.body?.movimiento,
+        forma_pago: req?.body?.forma_pago,
+        encargado: req?.body?.encargado,
+        area: req?.body?.area,
+        cantidad: req?.body?.cantidad,
+        medida: req?.body?.medida,
+        descripcion: req?.body?.descripcion,
+        monto: req?.body?.monto,
+        proveedor: req?.body?.proveedor,
+        comprobante: req?.body?.comprobante,
+        sucursal_id: req?.body?.sucursal_id,
+        saldo_inicial: req?.body?.saldo_inicial,
+        ingresos: req?.body?.ingresos,
+        egresos: req?.body?.egresos,
+        saldo_final: req?.body?.saldo_final,
+        dni: req?.body?.dni,
+        sucursal_transferencia: req?.body?.sucursal_transferencia,
+        nro_comprobante: req?.body?.nro_comprobante,
+        precio: req?.body?.precio,
+        categoria: req?.body?.categoria,
+      };
+      const objDestino
+       = {
+        fecha: req?.body?.fecha,
+        movimiento: req?.body?.movimiento,
+        forma_pago: req?.body?.forma_pago,
+        encargado: req?.body?.encargado,
+        area: req?.body?.area,
+        cantidad: req?.body?.cantidad,
+        medida: req?.body?.medida,
+        descripcion: req?.body?.descripcion,
+        monto: req?.body?.monto,
+        proveedor: req?.body?.proveedor,
+        comprobante: req?.body?.comprobante,
+        sucursal_id: req?.body?.sucursal_transferencia,
+        saldo_inicial: req?.body?.saldo_inicial,
+        ingresos: req?.body?.ingresos,
+        egresos: req?.body?.egresos,
+        saldo_final: req?.body?.saldo_final,
+        dni: req?.body?.dni,
+        sucursal_transferencia: req?.body?.sucursal_transferencia,
+        nro_comprobante: req?.body?.nro_comprobante,
+        precio: req?.body?.precio,
+        categoria: req?.body?.categoria,
+      };
+
+      let updateTransferencia = await ingresos_egresos.update(objOrigen, {
+        where: {
+          [Op.and]: [
+            { monto: getIngresos?.at(-1)?.monto },
+            { area: getIngresos?.at(-1)?.area },
+            { sucursal_id: getIngresos?.at(-1)?.sucursal_id },
+            {
+              sucursal_transferencia:
+                getIngresos?.at(-1)?.sucursal_transferencia,
+            },
+          ],
+        },
       });
+      let updateTransferencia2 = await ingresos_egresos.update(objDestino, {
+        where: {
+          [Op.and]: [
+            { monto: getIngresos?.at(-1)?.monto },
+            { area: getIngresos?.at(-1)?.area },
+            { sucursal_id: getIngresos?.at(-1)?.sucursal_transferencia },
+            {
+              sucursal_transferencia:
+                getIngresos?.at(-1)?.sucursal_transferencia,
+            },
+          ],
+          [Op.not]: [{ id: id }],
+        },
+      });
+
+      console.log(updateTransferencia2);
+
       const updateSaldo = await saldo.update(newSaldoOrigen, {
         where: { sucursal_id: req.body.sucursal_id },
       });
       const updateSaldo1 = await saldo.update(newSaldoDestino, {
-        where: { sucursal_id: req.body.sucursal_id },
+        where: { sucursal_id: getIngresos?.at(-1)?.sucursal_transferencia },
       });
       return res
         .status(200)
@@ -391,7 +469,6 @@ const deleteIngresoEgreso = async (req, res, next) => {
           ],
         },
       });
-      console.log(destroyTransferencia);
       const updateSaldo = await saldo.update(newSaldoEgreso, {
         where: {
           sucursal_id: getIngresos?.at(-1)?.sucursal_id,
