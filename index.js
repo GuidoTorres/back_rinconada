@@ -45,7 +45,7 @@ app.use(express.json());
 app.use(cors({ origin: "*" }));
 
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.static(path.join(__dirname, "./rinconada-build/build")));
+app.use(express.static(path.join(__dirname, "./rinconada-build/build", "index.html")));
 app.use("/img", express.static(path.join(__dirname, "upload/images")));
 
 app.use("/api/v1/trabajador", trabajadorRouter);
