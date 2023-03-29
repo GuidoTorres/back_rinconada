@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "/static/css/main.ee814ea9.css",
+    "main.js": "/static/js/main.c223abbb.js",
+    "static/css/233.cc5328ff.chunk.css": "/static/css/233.cc5328ff.chunk.css",
+    "static/js/233.11792cc7.chunk.js": "/static/js/233.11792cc7.chunk.js",
+    "static/media/fondo-login.jpeg": "/static/media/fondo-login.3a8f647b17f50c9010fc.jpeg",
+    "static/media/cecomirl.jpeg": "/static/media/cecomirl.67dec2e0f79233a357f7.jpeg",
+    "index.html": "/index.html",
+    "main.ee814ea9.css.map": "/static/css/main.ee814ea9.css.map",
+    "main.c223abbb.js.map": "/static/js/main.c223abbb.js.map",
+    "233.cc5328ff.chunk.css.map": "/static/css/233.cc5328ff.chunk.css.map",
+    "233.11792cc7.chunk.js.map": "/static/js/233.11792cc7.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ee814ea9.css",
+    "static/js/main.c223abbb.js"
+  ]
+}
