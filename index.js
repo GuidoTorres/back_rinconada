@@ -46,9 +46,7 @@ app.use(cors({ origin: "*" }));
 
 app.use(express.static(path.join(__dirname, "public")));
 app.get("*", (req, res) => {
-  res.sendFile(
-    path.join(path.join(__dirname, "./rinconada-build/build", "index.html"))
-  );
+  res.sendFile(path.join(path.join(__dirname + "./rinconada-build/build")));
 });
 app.use("/img", express.static(path.join(__dirname, "upload/images")));
 
