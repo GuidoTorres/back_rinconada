@@ -45,7 +45,6 @@ app.use(express.json());
 app.use(cors({ origin: "*" }));
 
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.static(path.join(__dirname, "build")));
 // app.use("/*", express.static(path.join(__dirname,"build")));
 
 // app.get('*', function(req, res) {
@@ -91,6 +90,8 @@ app.use("/api/v1/casa", casaRouter);
 app.use("/api/v1/ayuda", ayudaRouter);
 app.use("/api/v1/filtros", buscadorRouter);
 app.use("/api/v1/auth", authRouter);
+
+app.use(express.static(path.join(__dirname, "build")));
 
 // app.use("*", express.static(path.join(__dirname,"build")));
 app.get("/*", function (req, res) {
