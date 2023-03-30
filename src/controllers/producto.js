@@ -30,7 +30,7 @@ const getProducto = async (req, res, next) => {
         categoria: item?.categorium?.descripcion,
       };
     });
-    res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -46,7 +46,7 @@ const getProductoById = async (req, res, next) => {
       where: { id: id },
       attributes: { exclude: ["categoria_id"] },
     });
-    res.status(200).json({ data: getById });
+    return res.status(200).json({ data: getById });
     next();
   } catch (error) {
     res.status(500).json({ error: error });
@@ -129,7 +129,7 @@ const updateProducto = async (req, res, next) => {
 
   try {
     let update = await producto.update(info, { where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Producto actualizado con éxito!", status: 200 });
     next();
@@ -146,7 +146,7 @@ const deleteProducto = async (req, res, next) => {
   try {
     console.log(id);
     let camp = await producto.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Producto eliminado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Producto eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);

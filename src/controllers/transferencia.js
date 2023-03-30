@@ -25,7 +25,7 @@ const getTransferenciaRealizada = async (req, res, next) => {
       ],
     });
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -51,7 +51,7 @@ const getTransferenciaRecibida = async (req, res, next) => {
       ],
     });
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -106,7 +106,7 @@ const updateTransferencia = async (req, res, next) => {
       )
     );
 
-    res.status(200).json({ msg: "Actualizado con éxito.", status: 200 });
+    return res.status(200).json({ msg: "Actualizado con éxito.", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -138,7 +138,7 @@ const retornarTransferencia = async (req, res, next) => {
       }
     );
 
-    res.status(200).json({ msg: "Retornado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Retornado con éxito!", status: 200 });
     next();
   } catch (error) {
     res
@@ -155,7 +155,7 @@ const deleteTransferencia = async (req, res, next) => {
     let destroyProducto = await transferencia_producto.destroy({ where: { transferencia_id: id } });
 
     let destroy = await transferencia.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Transferencia eliminada con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Transferencia eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar", status: 500 });

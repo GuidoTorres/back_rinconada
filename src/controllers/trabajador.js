@@ -96,7 +96,7 @@ const getTrabajador = async (req, res, next) => {
         };
       })
       .sort((a, b) => a.codigo_trabajador.localeCompare(b.codigo_trabajador));
-    res.status(200).json({ data: obj });
+    return res.status(200).json({ data: obj });
     next();
   } catch (error) {
     console.log(error);
@@ -131,7 +131,7 @@ const getTrabajadorById = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     res.status(500).json();
@@ -174,18 +174,18 @@ const postTrabajador = async (req, res, next) => {
       const nuevoTrabajador = await trabajador.update(actualizar, {
         where: { dni: info.dni },
       });
-      res
+      return res
         .status(200)
         .json({ msg: "Trabajador registrado con éxito!", status: 200 });
       next();
     } else if (filterRepeated.length > 0) {
-      res
+      return res
         .status(200)
         .json({ msg: "El trabajador ya esta registrado.", status: 403 });
       next();
     } else {
       const nuevoTrabajador = await trabajador.create(info);
-      res
+      return  res
         .status(200)
         .json({ msg: "Trabajador registrado con éxito!", status: 200 });
       next();
@@ -344,7 +344,7 @@ const updateTrabajador = async (req, res, next) => {
     const putTrabajador = await trabajador.update(info, {
       where: { dni: id },
     });
-    res
+    return res
       .status(200)
       .json({ msg: "Trabajador actualizado con éxito!", status: 200 });
     next();
@@ -362,7 +362,7 @@ const deleteTrabajador = async (req, res, next) => {
     // let deleteEvaluacion = await evaluacion.destroy({where: {trabajador_id: id}})
     // let deleteContrato = await contrato.destroy({where : {trabajador_id: id}})
     let response = await trabajador.destroy({ where: { dni: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Trabajador eliminado con éxito!", status: 200 });
     next();
@@ -379,7 +379,7 @@ const softDeleteTrabajador = async (req, res, next) => {
   try {
     let response = await trabajador.update(req.body, { where: { dni: id } });
     console.log(id);
-    res
+    return res
       .status(200)
       .json({ msg: "Trabajador eliminado con éxito", status: 200 });
     next();

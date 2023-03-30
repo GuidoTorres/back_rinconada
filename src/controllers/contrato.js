@@ -13,7 +13,7 @@ const getContrato = async (req, res, next) => {
     const get = await contrato.findAll({
       attributes: { exclude: ["contrato_id"] },
     });
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -86,7 +86,7 @@ const getContratoById = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: format });
+    return res.status(200).json({ data: format });
 
     next();
   } catch (error) {
@@ -130,7 +130,7 @@ const getContratoAsociacionById = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: format });
+    return res.status(200).json({ data: format });
 
     next();
   } catch (error) {
@@ -281,17 +281,17 @@ const postContratoAsociacion = async (req, res, next) => {
           contrato_id: post.id,
         };
         const createtTrans = await teletrans.create(ttransInfo);
-        res
+        return res
           .status(200)
           .json({ msg: "Contrato creado con éxito!", status: 200 });
         next();
       }
     } else {
-      res
+      return res
         .status(200)
         .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });
+      }
       next();
-    }
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo crear el contrato.", status: 500 });
@@ -324,7 +324,7 @@ const updateContrato = async (req, res, next) => {
       });
     }
 
-    res
+    return res
       .status(200)
       .json({ msg: "Contrato actualizado con éxito", status: 200 });
     next();
@@ -344,7 +344,7 @@ const deleteContrato = async (req, res, next) => {
       where: { contrato_id: id },
     });
     let remove = await contrato.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Contrato eliminado con éxito", status: 200 });
+    return res.status(200).json({ msg: "Contrato eliminado con éxito", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -362,7 +362,7 @@ const getLastId = async (req, res, next) => {
     });
 
     const getId = get ? get?.id + 1 : 1;
-    res.status(200).json({ data: getId });
+    return res.status(200).json({ data: getId });
     next();
   } catch (error) {
     console.log(error);

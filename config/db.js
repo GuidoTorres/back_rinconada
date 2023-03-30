@@ -3,12 +3,12 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "rinconada",
+  database: "heroku_30cfe8f0814e57f",
   username: "root",
-  password: "root",
+  password: "Tupapi00",
   host: "localhost",
   dialect: "mysql",
-  port: "3306",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
   dialectOptions: { decimalNumbers: true },
 });
@@ -499,10 +499,10 @@ const ingresos_egresos = sequelize.define(
     proveedor: DataTypes.STRING,
     comprobante: DataTypes.STRING,
     sucursal_id: DataTypes.INTEGER,
-    saldo_inicial: DataTypes.DECIMAL(10,2),
-    ingresos: DataTypes.DECIMAL(10,2),
-    egresos: DataTypes.DECIMAL(10,2),
-    saldo_final: DataTypes.DECIMAL(10,2),
+    saldo_inicial: DataTypes.DECIMAL(10, 2),
+    ingresos: DataTypes.DECIMAL(10, 2),
+    egresos: DataTypes.DECIMAL(10, 2),
+    saldo_final: DataTypes.DECIMAL(10, 2),
     dni: DataTypes.STRING,
     sucursal_transferencia: DataTypes.STRING,
     nro_comprobante: DataTypes.STRING,
@@ -525,10 +525,10 @@ const saldo = sequelize.define(
       autoIncrement: true,
       allowNull: false,
     },
-    saldo_inicial: DataTypes.DECIMAL(10,2),
-    ingresos: DataTypes.DECIMAL(10,2),
-    egresos: DataTypes.DECIMAL(10,2),
-    saldo_final: DataTypes.DECIMAL(10,2),
+    saldo_inicial: DataTypes.DECIMAL(10, 2),
+    ingresos: DataTypes.DECIMAL(10, 2),
+    egresos: DataTypes.DECIMAL(10, 2),
+    saldo_final: DataTypes.DECIMAL(10, 2),
     sucursal_id: DataTypes.INTEGER,
   },
   {
@@ -665,6 +665,9 @@ const requerimiento = sequelize.define(
     aprobacion_superintendente: DataTypes.BOOLEAN,
     completado: DataTypes.STRING,
     dni: DataTypes.STRING,
+    firma_gerente: DataTypes.STRING,
+    firma_jefe:DataTypes.STRING,
+    firma_superintendente: DataTypes.STRING
   },
   {
     tableName: "requerimiento",
@@ -856,7 +859,17 @@ const permisos = sequelize.define(
     finanzas_sucursal: DataTypes.BOOLEAN,
     rol_id: DataTypes.INTEGER,
     personal_contrato: DataTypes.BOOLEAN,
-    personal_evaluacion: DataTypes.BOOLEAN,
+    personal_trapiche: DataTypes.BOOLEAN,
+    personal_volquete: DataTypes.BOOLEAN,
+    planillas_programacion: DataTypes.BOOLEAN,
+    planillas_realizar_pagos: DataTypes.BOOLEAN,
+    planillas_historial: DataTypes.BOOLEAN,
+    planillas_incentivos: DataTypes.BOOLEAN,
+    planillas_casa: DataTypes.BOOLEAN,
+    planillas_asociacion: DataTypes.BOOLEAN,
+    logistica_aprobacion_jefe: DataTypes.BOOLEAN,
+    logistica_aprobacion_gerente: DataTypes.BOOLEAN,
+    logistica_aprobacion_superintendente: DataTypes.BOOLEAN,
   },
   {
     tableName: "permisos",
@@ -1007,6 +1020,9 @@ cargo.belongsTo(area, {
 
 rol.hasMany(usuario, { foreignKey: "rol_id" });
 usuario.belongsTo(rol, { foreignKey: "rol_id" });
+
+usuario.hasOne(cargo, {foreignKey: "cargo_id"})
+cargo.belongsTo(usuario, {foreignKey: "cargo_id"})
 
 usuario.hasOne(trabajador, {
   through: "trabajador_usuario",

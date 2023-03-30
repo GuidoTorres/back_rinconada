@@ -15,7 +15,7 @@ const getEvaluacionContrato = async (req, res, next) => {
       ],
     });
     console.log("getEvaluacionContrato");
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -32,7 +32,7 @@ const getContratoById = async (req, res, next) => {
     });
     console.log("getContratoById");
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -51,7 +51,7 @@ const getContratoEvaluacionById = async (req, res, next) => {
 
     console.log("getEvaluacionContratoByID");
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);

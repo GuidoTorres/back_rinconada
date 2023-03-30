@@ -115,7 +115,7 @@ const createProgramacionMultiple = async (req, res, next) => {
         const asociPago = await pago_asociacion.bulkCreate(asociacionPago, {
           ignoreDuplicates: false,
         });
-        res
+        return res
           .status(200)
           .json({ msg: "Programación registrada con éxito!", status: 200 });
       }
@@ -149,12 +149,12 @@ const updateProgramacion = async (req, res, next) => {
       let updateContratoPago = await contrato_pago.update(data, {
         where: { pago_id: id },
       });
-      res
+      return res
         .status(200)
         .json({ msg: "Programación actualizada con éxito!", status: 200 });
       next();
     } else {
-      res.status(400).json({
+      return res.status(400).json({
         msg: "Error! La cantidad de teletrans debe ser equivalente a 1 o mas volquetes.",
         status: 400,
       });
@@ -418,7 +418,7 @@ const postMultiplePagos = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({ msg: "Pago realizado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Pago realizado con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -564,7 +564,7 @@ const getPagoFecha = async (req, res, next) => {
       .concat(formatPagoNormal)
       .filter((item) => item.estado === "programado");
 
-    res.status(200).json({ data: concat2, status: 200 });
+      return res.status(200).json({ data: concat2, status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -742,7 +742,7 @@ const historialProgramacion = async (req, res, next) => {
     const concatData = formatAsociacion.concat(formatAyuda);
     const concat2 = concatData.concat(formatPagoNormal);
 
-    res.status(200).json({ data: concat2, status: 200 });
+    return res.status(200).json({ data: concat2, status: 200 });
     next();
   } catch (error) {
     console.log(error);

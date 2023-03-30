@@ -16,7 +16,7 @@ const getEmpresa = async (req, res, next) => {
 
       }
     })
-    res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -33,7 +33,7 @@ const getEmpresaById = async (req, res, next) => {
       include: [{ model: contrato, attributes: { exclude: ["contrato_id"] } }],
     });
     const filterContrato = all?.filter((item) => item.contratos.length !== 0);
-    res.status(200).json({ data: filterContrato });
+    return res.status(200).json({ data: filterContrato });
     next();
   } catch (error) {
     console.log(error);
@@ -53,13 +53,13 @@ const postEmpresa = async (req, res, next) => {
     });
 
     if (getRuc.length > 0) {
-      res.status(409).json({
+      return res.status(409).json({
         msg: "Ruc actualmente registrado, intente con otro!",
         status: 409,
       });
     } else {
       const empre = await empresa.create(info);
-      res
+      return res
         .status(200)
         .json({ msg: "Empresa registrada correctamente!", status: 200 });
     }
@@ -75,7 +75,7 @@ const updateEmpresa = async (req, res, next) => {
 
   try {
     let camp = await empresa.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Empresa actualizada con éxito", status: 200 });
+    return res.status(200).json({ msg: "Empresa actualizada con éxito", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
@@ -86,7 +86,7 @@ const deleteEmpresa = async (req, res, next) => {
   let id = req.params.id;
   try {
     let camp = await empresa.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Empresa eliminada con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Empresa eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });

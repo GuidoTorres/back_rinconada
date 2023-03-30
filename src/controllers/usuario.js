@@ -5,7 +5,7 @@ const fs = require("fs");
 const getUsuario = async (req, res, next) => {
   try {
     const all = await usuario.findAll();
-    res.status(200).json({ data: all });
+    return res.status(200).json({ data: all });
     next();
   } catch (error) {
     res.status(500).json();
@@ -17,7 +17,7 @@ const getUsuarioById = async (req, res, next) => {
 
   try {
     const user = await usuario.findAll({ where: { id: id } });
-    res.status(200).json({ data: user });
+    return res.status(200).json({ data: user });
 
     next();
   } catch (error) {
@@ -45,13 +45,13 @@ const postUsuario = async (req, res, next) => {
     });
 
     if (getUser.length > 0) {
-      res.status(200).json({
+      return res.status(200).json({
         msg: "El nombre de usuario ya existe, intente con otro!",
         status: 500,
       });
     } else {
       const nuevoUsuario = await usuario.create(info);
-      res.status(200).json({
+      return res.status(200).json({
         data: nuevoUsuario,
         msg: "Usuario creado con éxito!",
         status: 200,
@@ -94,7 +94,7 @@ const updateUsuario = async (req, res, next) => {
       });
     }
     let user = await usuario.update(info, { where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Usuario actualizado con éxito!", status: 200 });
     next();
@@ -108,7 +108,7 @@ const deleteUsuario = async (req, res, next) => {
   let id = req.params.id;
   try {
     let user = await usuario.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Usuario eliminado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Usuario eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar", status: 500 });
@@ -123,7 +123,7 @@ const getPermiso = async (req, res, next) => {
       where: { rol_id: id },
       attributes: { exclude: ["usuario_id"] },
     });
-    res.status(200).json({ data: user });
+    return res.status(200).json({ data: user });
 
     next();
   } catch (error) {
@@ -161,10 +161,21 @@ const updatePermisos = async (req, res, next) => {
     finanzas_sucursal: req?.body?.finanzas_sucursal,
     personal_contrato: req?.body?.personal_contrato,
     personal_evaluacion: req?.body?.personal_evaluacion,
+    personal_trapiche: req?.body?.personal_trapiche,
+    personal_volquete: req?.body?.personal_volquete,
+    planillas_programacion: req?.body?.planillas_programacion,
+    planillas_realizar_pagos: req?.body?.planillas_realizar_pagos,
+    planillas_historial: req?.body?.planillas_historial,
+    planillas_incentivos: req?.body?.planillas_incentivos,
+    planillas_casa: req?.body?.planillas_casa,
+    planillas_asociacion: req?.body?.planillas_asociacion,
+    logistica_aprobacion_jefe: req?.body?.logistica_aprobacion_jefe,
+    logistica_aprobacion_gerente: req?.body?.logistica_aprobacion_gerente,
+    logistica_aprobacion_superintendente: req?.body?.logistica_aprobacion_superintendente,
   };
   try {
     let user = await permisos.update(info, { where: { rol_id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Permisos actualizados con éxito!", status: 200 });
     next();

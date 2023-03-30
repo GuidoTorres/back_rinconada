@@ -95,7 +95,7 @@ const getAsociacion = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -152,7 +152,7 @@ const getAsociacionById = async (req, res, next) => {
 
     const resultJson = obj.filter((item) => item.contrato.length !== 0);
 
-    res.status(200).json({ data: resultJson });
+    return res.status(200).json({ data: resultJson });
     next();
   } catch (error) {
     console.log(error);
@@ -169,7 +169,7 @@ const postAsociacion = async (req, res, next) => {
 
   try {
     const camp = await asociacion.create(info);
-    res.status(200).json({ msg: "Asociación creada con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Asociación creada con éxito!", status: 200 });
     next();
   } catch (error) {
     res
@@ -183,7 +183,7 @@ const updateAsociacion = async (req, res, next) => {
 
   try {
     let update = await asociacion.update(req.body, { where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Asociacion actualizada con éxito!", status: 200 });
     next();
@@ -198,7 +198,7 @@ const deleteAsociacion = async (req, res, next) => {
   let id = req.params.id;
   try {
     let deletes = await asociacion.destroy({ where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Asociación eliminada con éxito!", status: 200 });
     next();
@@ -228,7 +228,6 @@ const uploadFile = async (req, res, next) => {
       )
       .filter((item) => !isNaN(item.dni) && item.dni.toString().length === 8);
     
-    console.log(result);
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },

@@ -4,7 +4,7 @@ const { sucursal, saldo, ingresos_egresos } = require("../../config/db");
 const getsucursal = async (req, res, next) => {
   try {
     const get = await sucursal.findAll();
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     res.status(500).json();
@@ -16,7 +16,7 @@ const getSucursalById = async (req, res, next) => {
 
   try {
     const get = await sucursal.findAll({ where: { id: id } });
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
 
     next();
   } catch (error) {
@@ -35,7 +35,7 @@ const postSucursal = async (req, res, next) => {
       saldo_final: parseInt(req.body.saldo_inicial)
     };
     const postSaldo = await saldo.create(info);
-    res.status(200).json({ msg: "Sucursal creada con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Sucursal creada con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -52,7 +52,7 @@ const updateSucursal = async (req, res, next) => {
       saldo_inicial: parseFloat(req.body.saldo_inicial).toFixed(2),
     };
     let updateSaldo = await saldo.update(info, { where: { sucursal_id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Sucursal actualizada con éxito!", status: 200 });
     next();
@@ -70,7 +70,7 @@ const deleteSucursal = async (req, res, next) => {
       where: {sucursal_id: id}
     })
     let destroy = await sucursal.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Sucursal eliminada con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Sucursal eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);

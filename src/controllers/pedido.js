@@ -57,7 +57,7 @@ const getPedidoId = async (req, res, next) => {
       .sort((a, b) => {
         return b.id - a.id;
       });
-    res.status(200).json({ data: formatData });
+      return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -141,7 +141,7 @@ const getPedido = async (req, res, next) => {
       });
 
     //corregir los productos por categoria
-    res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -181,7 +181,7 @@ const postPedido = async (req, res, next) => {
         },
       }
     );
-    res.status(200).json({ msg: "Pedido realizado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Pedido realizado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -194,7 +194,7 @@ const updatePedido = async (req, res, next) => {
 
   try {
     let update = await pedido.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
@@ -274,7 +274,7 @@ const getPedidoProducto = async (req, res, next) => {
       ],
     });
 
-    res.status(200).json({ data: getPedido });
+    return res.status(200).json({ data: getPedido });
     next();
   } catch (error) {
     console.log(error);
@@ -308,7 +308,7 @@ const descargarPedido = async (req, res, next) => {
 
     const response = generarPdfRequerimiento(get);
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);

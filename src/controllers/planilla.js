@@ -133,7 +133,7 @@ const getPlanilla = async (req, res, next) => {
 
     const final = mapAsociacion.concat(mapTrabajador);
 
-    res.status(200).json({ data: final });
+    return res.status(200).json({ data: final });
     next();
   } catch (error) {
     console.log(error);
@@ -295,7 +295,7 @@ const getListaPago = async (req, res, next) => {
     //   .flat();
 
     // let concat = duplicate.concat(formatAsociacion);
-    res.status(200).json({ data: formatAsociacion });
+    return res.status(200).json({ data: formatAsociacion });
     next();
   } catch (error) {
     console.log(error);
@@ -367,7 +367,7 @@ const getListaAsociacionProgramada = async (req, res, next) => {
         (item) => item?.estado === "programado" && item.trabajadores.length > 0
       );
 
-    res.status(200).json({ data: formatData });
+      return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -572,7 +572,7 @@ const getPlanillaPago = async (req, res, next) => {
     let concat = duplicate
       .concat(formatAsociacion)
       .filter((item) => item?.contrato?.contrato_pagos?.length > 0);
-    res.status(200).json({ data: concat });
+    return res.status(200).json({ data: concat });
     next();
   } catch (error) {
     res.status(500).json();
@@ -583,7 +583,7 @@ const campamentoPlanilla = async (req, res, next) => {
   try {
     const trabajadoresCapamento = await campamento.findAll({});
 
-    res.status(200).json({ data: trabajadoresCapamento });
+    return res.status(200).json({ data: trabajadoresCapamento });
     next();
   } catch (error) {
     console.log(error);
@@ -614,7 +614,7 @@ const getTareoTrabajador = async (req, res, next) => {
 
     const obj = getTareo.map((item) => item.trabajador_asistencia).flat();
 
-    res.status(200).json({ data: obj });
+    return res.status(200).json({ data: obj });
     next();
   } catch (error) {
     console.log(error);
@@ -693,7 +693,7 @@ const getTareoAsociacion = async (req, res, next) => {
     });
 
     const concat = finalJson.concat(fecha1);
-    res.status(200).json({ data: concat });
+    return res.status(200).json({ data: concat });
     next();
   } catch (error) {
     console.log(error);
@@ -782,7 +782,7 @@ const juntarTeletrans = async (req, res, next) => {
       })
       .flat();
 
-    res.status(200).json({ data: filter });
+      return res.status(200).json({ data: filter });
     next();
   } catch (error) {
     console.log(error);

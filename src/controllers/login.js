@@ -1,11 +1,10 @@
-const { usuario, rol, permisos } = require("../../config/db");
+const { usuario, rol, permisos, cargo } = require("../../config/db");
 const { tokenSign } = require("../helpers/generateToken");
 const { compare } = require("../helpers/handleBcrypt");
 
 const authLogin = async (req, res, next) => {
   try {
     const { user, contrasenia } = req.body;
-
     const get = await usuario.findOne({
       where: { usuario: user },
       include: [{ model: rol, include: [{ model: permisos }] }],
@@ -16,9 +15,9 @@ const authLogin = async (req, res, next) => {
         .status(404)
         .send({ msg: "Usuario no encontrado!", status: 404 });
     }
+
     const checkPassword = await compare(contrasenia, get.contrasenia);
     const tokenSession = await tokenSign(get);
-    console.log(checkPassword);
     if (get.estado === false) {
       return res.status(500).send({ msg: "Usuario inactivo!", status: 500 });
     }

@@ -3,7 +3,7 @@ const { trapiche } = require("../../config/db");
 const getTrapiche = async (req, res, next) => {
   try {
     const all = await trapiche.findAll();
-    res.status(200).json({ data: all });
+    return res.status(200).json({ data: all });
     next();
   } catch (error) {
     res.status(500).json();
@@ -15,7 +15,7 @@ const getTrapicheById = async (req, res, next) => {
 
   try {
     const get = await trapiche.findAll({ where: { id: id } });
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
 
     next();
   } catch (error) {
@@ -26,7 +26,7 @@ const getTrapicheById = async (req, res, next) => {
 const postTrapiche = async (req, res, next) => {
   try {
     const camp = await trapiche.create(req.body);
-    res.status(200).json({ msg: "Trapiche creado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Trapiche creado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -39,7 +39,7 @@ const updateTrapiche = async (req, res, next) => {
 
   try {
     let camp = await trapiche.update(req.body, { where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Trapiche actualizado con éxito", status: 200 });
     next();

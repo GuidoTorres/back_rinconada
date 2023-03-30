@@ -25,7 +25,7 @@ const getTrabajadorAyuda = async (req, res, next) => {
           item.apellido_materno,
       };
     });
-    res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -67,7 +67,7 @@ const getAyuda = async (req, res, next) => {
     //   })
     //   .filter((item) => Object.keys(item.pago).length > 0);
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -114,7 +114,7 @@ const postPagoExtraordinario = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({ msg: "Pago registrado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Pago registrado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -140,17 +140,17 @@ const updateProgramacionAyuda = async (req, res, next) => {
         where: { pago_id: id },
       });
 
-      res
+      return res
         .status(200)
         .json({ msg: "Programación actualizada con éxito!", status: 200 });
-      next();
+      
     } else {
-      res.status(400).json({
+      return res.status(400).json({
         msg: "Error! La cantidad de teletrans debe ser equivalente a 1 o mas volquetes.",
         status: 400,
       });
-      next();
     }
+    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });

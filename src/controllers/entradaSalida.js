@@ -14,7 +14,7 @@ const dayjs = require("dayjs");
 const getEntradaSalida = async (req, res, next) => {
   try {
     const all = await entrada_salida.findAll();
-    res.status(200).json({ data: all });
+    return res.status(200).json({ data: all });
     next();
   } catch (error) {
     res.status(500).json();
@@ -47,7 +47,7 @@ const getEntradaByAlmacen = async (req, res, next) => {
       ],
     });
 
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log(error);
@@ -143,7 +143,7 @@ const postEntrada = async (req, res, next) => {
       );
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       msg: `Entrada registrada con éxito!`,
       status: 200,
     });
@@ -237,7 +237,7 @@ const postSalida = async (req, res, next) => {
       }
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       msg: `Salida registrada con éxito!`,
       status: 200,
     });
@@ -271,7 +271,7 @@ const updateEntradaSalida = async (req, res, next) => {
   });
   try {
     let update = await entrada_salida.update(obj, { where: { id: id } });
-    res.status(200).json({ msg: "Actualizado con éxito !", status: 200 });
+    return res.status(200).json({ msg: "Actualizado con éxito !", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -368,7 +368,7 @@ const deleteEntradaSalida = async (req, res, next) => {
         );
       }
     }
-    res.status(200).json({ msg: "Eliminado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Eliminado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -421,7 +421,7 @@ const entradaSalidaEstadistica = async (req, res, next) => {
       return value;
     }, []);
 
-    res.status(200).json({ data: reduce });
+    return res.status(200).json({ data: reduce });
     next();
   } catch (error) {
     console.log(error);

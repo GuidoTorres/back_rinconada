@@ -40,16 +40,22 @@ const authRouter = require("./src/routes/auth");
 
 const app = express();
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors({ origin: "*" }));
 
 app.use(express.static(path.join(__dirname, "public")));
-app.get("/*", (req, res) => {
-  res.sendFile(path.join(path.join(__dirname, "./rinconada-build/build")));
-});
-app.use("/img", express.static(path.join(__dirname, "upload/images")));
+app.use(express.static(path.join(__dirname, "build")));
+// app.use("/*", express.static(path.join(__dirname,"build")));
 
+// app.get('*', function(req, res) {
+//   res.sendFile(path.join(__dirname, 'rinconada-build/build/', "index.html"), function(err) {
+//     if (err) {
+//       console.log(error);
+//     }
+//   })
+// })
+app.use("/img", express.static(path.join(__dirname, "upload/images")));
 app.use("/api/v1/trabajador", trabajadorRouter);
 app.use("/api/v1/usuario", usuarioRouter);
 app.use("/api/v1/campamento", campamentoRouter);
@@ -86,8 +92,9 @@ app.use("/api/v1/ayuda", ayudaRouter);
 app.use("/api/v1/filtros", buscadorRouter);
 app.use("/api/v1/auth", authRouter);
 
-app.get("*", async (req, res) => {
-  res.sendFile(path.join(__dirname, "./rinconada-build/build"));
+// app.use("*", express.static(path.join(__dirname,"build")));
+app.get("/*", function (req, res) {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
 app.listen(PORT, () => {

@@ -128,7 +128,7 @@ const getIncentivo = async (req, res, next) => {
       })
       ?.filter((item) => item?.estado === "programado");
 
-    res.status(200).json({ data: format });
+      return res.status(200).json({ data: format });
     next();
   } catch (error) {
     console.log(error);
@@ -183,7 +183,7 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -196,7 +196,7 @@ const getIncentivoById = async (req, res, next) => {
 
   try {
     const camp = await campamento.findAll({ where: { id: id } });
-    res.status(200).json({ data: camp });
+    return res.status(200).json({ data: camp });
 
     next();
   } catch (error) {
@@ -311,17 +311,17 @@ const postIncentivoMultiple = async (req, res, next) => {
         };
       });
       const pagoContrato = await contrato_pago.create(contra_pago);
-      res
+      return res
         .status(200)
         .json({ msg: "Incentivo registrado con éxito!", status: 200 });
-      next();
+      
     } else {
-      res.status(400).json({
+      return res.status(400).json({
         msg: "Error! La cantidad de teletrans debe ser equivalente a 1 volquete.",
         status: 400,
       });
-      next();
     }
+    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo crear.", status: 500 });
@@ -343,7 +343,7 @@ const deleteIncentivo = async (req, res, next) => {
       where: { pago_id: id },
     });
     let del = await pago.destroy({ where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Incentivo eliminado con éxito!", status: 200 });
     next();

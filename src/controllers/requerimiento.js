@@ -59,12 +59,15 @@ const getRequerimiento = async (req, res, next) => {
           completado: item?.completado,
           requerimiento_productos: item?.requerimiento_productos,
           dni: item?.dni,
+          firma_jefe: item?.firma_jefe,
+          firma_gerente: item?.firma_gerente,
+          firma_superintendente: item?.firma_superintendente,
         };
       })
       .sort((a, b) => {
         return b.id - a.id;
       });
-    res.status(200).json({ data: formatData });
+      return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -101,7 +104,7 @@ const postARequerimiento = async (req, res, next) => {
       productoRequerimiento
     );
 
-    res
+    return res
       .status(200)
       .json({ msg: "Requerimiento creado con éxito!", status: 200 });
 
@@ -189,7 +192,7 @@ const updateRequerimientoProducto = async (req, res, next) => {
       }
     );
 
-    res
+    return res
       .status(200)
       .json({ msg: "Requerimiento actualizado con éxito!", status: 200 });
     next();
@@ -231,7 +234,7 @@ const getLastId = async (req, res, next) => {
     });
 
     const getId = get ? get?.id + 1 : 1;
-    res.status(200).json({ data: getId });
+    return res.status(200).json({ data: getId });
     next();
   } catch (error) {
     console.log(error);
@@ -269,18 +272,20 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
         contrato: item?.trabajador_contratos
           ?.map((data) => data?.contrato)
           ?.filter((data) => data?.finalizado === false),
-        area: getArea?.filter(
-          (data) =>
-            data?.nombre ===
-            item?.trabajador_contratos
-              ?.map((data) => data?.contrato)
-              ?.filter((data) => data?.finalizado === false)
-              ?.at(-1)?.area
-        ).at(-1),
+        area: getArea
+          ?.filter(
+            (data) =>
+              data?.nombre ===
+              item?.trabajador_contratos
+                ?.map((data) => data?.contrato)
+                ?.filter((data) => data?.finalizado === false)
+                ?.at(-1)?.area
+          )
+          .at(-1),
       };
     });
 
-    res.status(200).json({ data: format });
+    return res.status(200).json({ data: format });
     next();
   } catch (error) {
     console.log(error);

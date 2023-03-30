@@ -7,7 +7,7 @@ const getRol = async (req, res, next) => {
       include: [{ model: permisos }],
     });
 
-    res.status(200).json({ data: all });
+    return res.status(200).json({ data: all });
     next();
   } catch (error) {
     console.log(error);
@@ -20,10 +20,11 @@ const getRolById = async (req, res, next) => {
 
   try {
     const rolByID = await rol.findAll({ where: { id: id } });
-    res.status(200).json({ data: rolByID });
+    return res.status(200).json({ data: rolByID });
 
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };
@@ -34,7 +35,6 @@ const postRol = async (req, res, next) => {
     descripcion: req.body.descripcion,
   };
 
-  console.log(info);
   try {
     const createRol = await rol.create(info);
     if (createRol) {
@@ -67,8 +67,8 @@ const postRol = async (req, res, next) => {
         personal_evaluacion: false
       };
       const agregarPermisos = await permisos.create(accesos);
+      return res.status(200).json({ msg: "Rol creado con éxito!", status: 200 });
     }
-    res.status(200).json({ msg: "Rol creado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -81,7 +81,7 @@ const updateRol = async (req, res, next) => {
 
   try {
     let upRol = await rol.update(req.body, { where: { id: id } });
-    res.status(200).json({ msg: "Rol actualizado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Rol actualizado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
@@ -93,7 +93,7 @@ const deleteRol = async (req, res, next) => {
   try {
     let delPermiso = await permisos.destroy({ where: { rol_id: id } });
     let delRol = await rol.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Rol eliminado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Rol eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });

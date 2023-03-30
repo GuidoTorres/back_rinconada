@@ -14,7 +14,7 @@ const { log } = require("console");
 const getIngresoEgresos = async (req, res, next) => {
   try {
     const get = await ingresos_egresos.findAll();
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     res.status(500).json();
@@ -28,7 +28,7 @@ const getIngresoEgresosById = async (req, res, next) => {
     const getById = await ingresos_egresos.findAll({
       where: { sucursal_id: id },
     });
-    res.status(200).json({ data: getById });
+    return res.status(200).json({ data: getById });
     next();
   } catch (error) {
     res.status(500).json(error);
@@ -215,9 +215,9 @@ const updateIngresoEgreso = async (req, res, next) => {
     });
 
     if (req.body.movimiento === "Ingreso") {
-      let saldoInicial = parseFloat(getSaldo?.at(-1)?.saldo_inicial);
-      let saldoFinal = parseFloat(getSaldo?.at(-1)?.saldo_final);
-      let ingresoActual = parseFloat(getSaldo?.at(-1)?.ingresos);
+      let saldoInicial = parseFloat(getSaldoOrigen?.at(-1)?.saldo_inicial);
+      let saldoFinal = parseFloat(getSaldoOrigen?.at(-1)?.saldo_final);
+      let ingresoActual = parseFloat(getSaldoOrigen?.at(-1)?.ingresos);
       let montoAnterior = parseFloat(getIngresos?.at(-1)?.monto);
       let montoNuevo = parseFloat(req.body.monto);
       let newSaldoIngreso = {
@@ -236,9 +236,9 @@ const updateIngresoEgreso = async (req, res, next) => {
         .json({ msg: "Movimiento actualizado con éxito!", status: 200 });
     }
     if (req.body.movimiento === "Egreso" && !req.body.sucursal_transferencia) {
-      let saldoInicial = parseFloat(getSaldo?.at(-1)?.saldo_inicial);
-      let saldoFinal = parseFloat(getSaldo?.at(-1)?.saldo_final);
-      let egresoActual = parseFloat(getSaldo?.at(-1)?.egresos);
+      let saldoInicial = parseFloat(getSaldoOrigen?.at(-1)?.saldo_inicial);
+      let saldoFinal = parseFloat(getSaldoOrigen?.at(-1)?.saldo_final);
+      let egresoActual = parseFloat(getSaldoOrigen?.at(-1)?.egresos);
       let montoAnterior = parseFloat(getIngresos?.at(-1)?.monto);
       let montoNuevo = parseFloat(req.body.monto);
       let newSaldoEgreso = {
@@ -355,7 +355,6 @@ const updateIngresoEgreso = async (req, res, next) => {
         },
       });
 
-      console.log(updateTransferencia2);
 
       const updateSaldo = await saldo.update(newSaldoOrigen, {
         where: { sucursal_id: req.body.sucursal_id },
@@ -589,7 +588,7 @@ const reporteIngreso = async (req, res, next) => {
     };
 
     const concat = { labels: labels, ingresos: ingresos, egresos: egresos };
-    res.status(200).json({ data: concat });
+    return res.status(200).json({ data: concat });
     next();
   } catch (error) {
     res.status(500).json(error);
@@ -842,7 +841,7 @@ const convertJsonToExcel = async (req, res, next) => {
     XLSX.write(workBook, { bookType: "xlsx", type: "binary" });
     XLSX.writeFile(workBook, "reporte.xlsx");
 
-    res.status(200).sendFile("reporte.xlsx", { root: "." });
+    return res.status(200).sendFile("reporte.xlsx", { root: "." });
   } catch (error) {
     console.log(error);
     res.status(500).json(error);
@@ -854,7 +853,7 @@ const getTrabajadorFinanza = async (req, res, next) => {
     const get = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
     });
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     console.log("===============================");
@@ -925,7 +924,7 @@ const getSaldoMensual = async (req, res, next) => {
 
     const concat = ingresos?.concat(egresos);
 
-    res.status(200).json({ data: concat });
+    return res.status(200).json({ data: concat });
     next();
   } catch (error) {
     console.log(error);

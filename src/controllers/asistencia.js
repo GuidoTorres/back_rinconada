@@ -14,7 +14,7 @@ const date = require("date-and-time");
 const getAsistencia = async (req, res, next) => {
   try {
     const all = await asistencia.findAll();
-    res.status(200).json({ data: all });
+    return res.status(200).json({ data: all });
     next();
   } catch (error) {
     res.status(500).json();
@@ -28,7 +28,7 @@ const updateAsistencia = async (req, res, next) => {
     const updateAsistencia = await asistencia.update(req.body, {
       where: { id: id },
     });
-    res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -175,7 +175,7 @@ const getExcelAsistencia = async (req, res, next) => {
       );
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       msg: "Se registraron las asistencias exitosamente!",
       status: 200,
     });
@@ -233,7 +233,7 @@ const getTrabajadorAsistencia = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ data: jsonFinal });
+    return res.status(200).json({ data: jsonFinal });
     next();
   } catch (error) {
     console.log(error);
@@ -295,7 +295,7 @@ const getTrabajadorByCampamento = async (req, res, next) => {
       item.trabajador_asistencia.filter((data) => data.asistencia_id == id_asis)
     );
     // const filter = obj2.filter((item) => item !== null);
-    res.status(200).json({ data: filterAsistencia });
+    return res.status(200).json({ data: filterAsistencia });
     next();
   } catch (error) {
     console.log(error);
@@ -316,13 +316,13 @@ const postAsistencia = async (req, res, next) => {
     const filter = all.filter((item) => item.fecha === info.fecha);
 
     if (filter.length > 0) {
-      res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
-      next();
+      return res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
+
     } else if (filter.length === 0) {
       const asis = await asistencia.create(info);
-      res.status(200).json({ msg: "Se añadio correctamente.", status: 200 });
-      next();
+      return res.status(200).json({ msg: "Se añadio correctamente.", status: 200 });
     }
+    next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
   }
@@ -354,7 +354,7 @@ const postTrabajadorAsistencia = async (req, res, next) => {
           trabajador_id: info.trabajador_id,
         },
       });
-      res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
+      return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
     } else if (!getAsistencia) {
       const createAsistencia = await trabajadorAsistencia.create(info);
       res.status(200).json({ msg: "Creado con éxito!", status: 200 });
@@ -376,7 +376,7 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
 
   try {
     const updateAsistencia = await trabajadorAsistencia.update(info);
-    res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -392,7 +392,7 @@ const deleteAsistencia = async (req, res, next) => {
       where: { asistencia_id: id },
     });
     let delAsis = await asistencia.destroy({ where: { id: id } });
-    res.status(200).json({ msg: "Eliminada con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Eliminada con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);

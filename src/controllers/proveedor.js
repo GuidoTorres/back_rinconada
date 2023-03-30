@@ -3,7 +3,7 @@ const { proveedor } = require("../../config/db");
 const getProveedor = async (req, res, next) => {
   try {
     const get = await proveedor.findAll();
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     res.status(500).json();
@@ -15,7 +15,7 @@ const getProveedorById = async (req, res, next) => {
 
   try {
     const get = await proveedor.findAll({ where: { id: id } });
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
 
     next();
   } catch (error) {
@@ -26,7 +26,7 @@ const getProveedorById = async (req, res, next) => {
 const postProveedor = async (req, res, next) => {
   try {
     const post = await proveedor.create(req.body);
-    res.status(200).json({ msg: "Proveedor creado con éxito!", status: 200 });
+    return res.status(200).json({ msg: "Proveedor creado con éxito!", status: 200 });
 
     next();
   } catch (error) {
@@ -39,7 +39,7 @@ const updateProveedor = async (req, res, next) => {
 
   try {
     let update = await proveedor.update(req.body, { where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Proveedor actualizado con éxito!", status: 200 });
     next();
@@ -52,7 +52,7 @@ const deleteProveedor = async (req, res, next) => {
   let id = req.params.id;
   try {
     let destroy = await proveedor.destroy({ where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Proveedor eliminado con éxito!", status: 200 });
     next();

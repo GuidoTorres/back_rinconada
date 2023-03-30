@@ -10,7 +10,7 @@ const dayjs = require("dayjs");
 const getEvaluacion = async (req, res, next) => {
   try {
     const get = await evaluacion.findAll();
-    res.status(200).json({ data: get });
+    return res.status(200).json({ data: get });
     next();
   } catch (error) {
     res.status(500).json();
@@ -88,7 +88,7 @@ const getEvaluacionById = async (req, res, next) => {
           .toString(),
       };
     });
-    res.status(200).json({ data: obj });
+    return res.status(200).json({ data: obj });
 
     next();
   } catch (error) {
@@ -177,7 +177,7 @@ const updateEvaluacion = async (req, res, next) => {
     const put = await evaluacion.update(req.body, {
       where: { id: id },
     });
-    res
+    return res
       .status(200)
       .json({ msg: "Evaluacion actualizada con éxito!", status: 200 });
     next();
@@ -190,7 +190,7 @@ const deleteEvaluacion = async (req, res, next) => {
   let id = req.params.id;
   try {
     let response = await evaluacion.destroy({ where: { id: id } });
-    res
+    return res
       .status(200)
       .json({ msg: "Evaluación eliminada con éxito!", status: 200 });
     next();
