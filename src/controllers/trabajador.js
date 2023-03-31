@@ -65,34 +65,34 @@ const getTrabajador = async (req, res, next) => {
           evaluacion: item?.evaluacions.filter(
             (item) => item.finalizado === false
           ),
-          contrato: item?.trabajador_contratos
-            ?.map((data) => {
-              return {
-                id: data?.contrato?.id,
-                fecha_inicio: data?.contrato?.fecha_inicio,
-                codigo_contrato: data?.contrato?.codigo_contrato,
-                tipo_contrato: data?.contrato?.tipo_contrato,
-                periodo_trabajo: data?.contrato?.periodo_trabajo,
-                fech_fin: data?.contrato?.fech_fin,
-                gerencia: data?.contrato?.gerencia,
-                area: data?.contrato?.area,
-                jefe_directo: data?.contrato?.jefe,
-                base: data?.contrato?.base,
-                termino_contrato: data?.contrato?.termino_contrato,
-                nota_contrato: data?.contrato?.nota_contrato,
-                puesto: data?.contrato?.puesto,
-                campamento_id: data?.contrato?.campamento_id,
-                asociacion_id: data?.contrato?.asociacion_id,
-                estado: data?.contrato?.estado,
-                volquete: data?.contrato?.volquete,
-                teletran: data?.contrato?.teletran,
-                suspendido: data?.contrato?.suspendido,
-                finalizado: data?.contrato?.finalizado,
-                tareo: data?.contrato?.tareo,
-                campamento: data?.contrato?.campamento?.nombre,
-              };
-            })
-            .filter((item) => item?.finalizado === false),
+          // contrato: item?.trabajador_contratos
+          //   ?.map((data) => {
+          //     return {
+          //       id: data?.contrato?.id,
+          //       fecha_inicio: data?.contrato?.fecha_inicio,
+          //       codigo_contrato: data?.contrato?.codigo_contrato,
+          //       tipo_contrato: data?.contrato?.tipo_contrato,
+          //       periodo_trabajo: data?.contrato?.periodo_trabajo,
+          //       fech_fin: data?.contrato?.fech_fin,
+          //       gerencia: data?.contrato?.gerencia,
+          //       area: data?.contrato?.area,
+          //       jefe_directo: data?.contrato?.jefe,
+          //       base: data?.contrato?.base,
+          //       termino_contrato: data?.contrato?.termino_contrato,
+          //       nota_contrato: data?.contrato?.nota_contrato,
+          //       puesto: data?.contrato?.puesto,
+          //       campamento_id: data?.contrato?.campamento_id,
+          //       asociacion_id: data?.contrato?.asociacion_id,
+          //       estado: data?.contrato?.estado,
+          //       volquete: data?.contrato?.volquete,
+          //       teletran: data?.contrato?.teletran,
+          //       suspendido: data?.contrato?.suspendido,
+          //       finalizado: data?.contrato?.finalizado,
+          //       tareo: data?.contrato?.tareo,
+          //       campamento: data?.contrato?.campamento?.nombre,
+          //     };
+          //   })
+          //   .filter((item) => item?.finalizado === false),
         };
       })
       .sort((a, b) => a.codigo_trabajador.localeCompare(b.codigo_trabajador));

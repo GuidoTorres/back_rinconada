@@ -10,6 +10,7 @@ const {
   pago,
   contrato_pago,
   pago_asociacion,
+  trabajador_contrato,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -33,14 +34,21 @@ const getPlanilla = async (req, res, next) => {
         },
         { model: evaluacion },
         {
-          model: contrato,
+          model: trabajador_contrato,
           attributes: { exclude: ["contrato_id"] },
-          where: {
-            [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          },
+
           include: [
-            { model: teletrans },
-            { model: campamento, include: [{ model: asistencia }] },
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+              include: [
+                { model: teletrans },
+                { model: campamento, include: [{ model: asistencia }] },
+              ],
+            },
           ],
         },
       ],
@@ -97,37 +105,37 @@ const getPlanilla = async (req, res, next) => {
           " " +
           item?.apellido_materno,
         email: item?.email,
-        campamento: item?.contratos
-          ?.map((item) => item?.campamento?.nombre)
-          ?.toString(),
+        // campamento: item?.contratos
+        //   ?.map((item) => item?.campamento?.nombre)
+        //   ?.toString(),
         estado_civil: item?.estado_civil,
         genero: item?.genero,
         direccion: item?.direccion,
         asociacion_id: item?.asociacion_id,
         deshabilitado: item?.deshabilitado,
         eliminar: item?.e,
-        contratos: item?.contratos?.at(-1),
-        puesto: item?.contratos?.at(-1)?.puesto,
-        fecha_inicio: item?.contratos?.at(-1)?.fecha_inicio,
-        fecha_fin: String(
-          item?.contratos?.map((acc, curr) => {
-            const trabajador_asistencia = item?.trabajador_asistencia?.filter(
-              (data) => data?.asistencia !== "Asistio"
-            ).length;
+        // contratos: item?.contratos?.at(-1),
+        // puesto: item?.contratos?.at(-1)?.puesto,
+        // fecha_inicio: item?.contratos?.at(-1)?.fecha_inicio,
+        // fecha_fin: String(
+        //   item?.contratos?.map((acc, curr) => {
+        //     const trabajador_asistencia = item?.trabajador_asistencia?.filter(
+        //       (data) => data?.asistencia !== "Asistio"
+        //     ).length;
 
-            return dayjs(acc.fecha_fin)
-              .add(trabajador_asistencia, "day")
-              .toISOString();
-          })
-        ),
+        //     return dayjs(acc.fecha_fin)
+        //       .add(trabajador_asistencia, "day")
+        //       .toISOString();
+        //   })
+        // ),
         asistencia: item.trabajador_asistencia.filter(
           (data) => data.asistencia === "Asistio"
         ).length,
         evaluacion: item.evaluacions,
-        volquete: item?.contratos?.at(-1)?.volquete,
-        teletran: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.teletrans),
-        total: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.total),
-        saldo: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.saldo),
+        // volquete: item?.contratos?.at(-1)?.volquete,
+        // teletran: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.teletrans),
+        // total: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.total),
+        // saldo: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.saldo),
       };
     });
 
@@ -367,7 +375,7 @@ const getListaAsociacionProgramada = async (req, res, next) => {
         (item) => item?.estado === "programado" && item.trabajadores.length > 0
       );
 
-      return res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -782,7 +790,7 @@ const juntarTeletrans = async (req, res, next) => {
       })
       .flat();
 
-      return res.status(200).json({ data: filter });
+    return res.status(200).json({ data: filter });
     next();
   } catch (error) {
     console.log(error);
