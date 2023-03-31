@@ -158,7 +158,6 @@ const postPedido = async (req, res, next) => {
     proyecto: req.body.proyecto,
     solicitante: req.body.solicitante,
   };
-  console.log(req.body.req_id);
   try {
     const post = await pedido.create(info);
 
