@@ -78,9 +78,7 @@ const updateUsuario = async (req, res, next) => {
       : req.body.foto,
   };
 
-
   try {
-    console.log(req.body.foto);
     if (req?.body?.foto !== undefined && req.body.foto !== "") {
       const fileDir = require("path").resolve(__dirname, `./public/images/`);
 
@@ -108,7 +106,9 @@ const deleteUsuario = async (req, res, next) => {
   let id = req.params.id;
   try {
     let user = await usuario.destroy({ where: { id: id } });
-    return res.status(200).json({ msg: "Usuario eliminado con éxito!", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Usuario eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar", status: 500 });
@@ -171,7 +171,8 @@ const updatePermisos = async (req, res, next) => {
     planillas_asociacion: req?.body?.planillas_asociacion,
     logistica_aprobacion_jefe: req?.body?.logistica_aprobacion_jefe,
     logistica_aprobacion_gerente: req?.body?.logistica_aprobacion_gerente,
-    logistica_aprobacion_superintendente: req?.body?.logistica_aprobacion_superintendente,
+    logistica_aprobacion_superintendente:
+      req?.body?.logistica_aprobacion_superintendente,
   };
   try {
     let user = await permisos.update(info, { where: { rol_id: id } });
@@ -184,6 +185,24 @@ const updatePermisos = async (req, res, next) => {
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
+const changePassword = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    const { contrasenia } = req.body;
+    const passwordHash = await encrypt(contrasenia);
+    let user = await usuario.update(
+      { contrasenia: passwordHash },
+      { where: { id: id } }
+    );
+    return res
+      .status(200)
+      .json({ msg: "Contraseña actualizada con éxito!", status: 200 });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "No se pudo actualizar", status: 500 });
+  }
+};
 
 module.exports = {
   postUsuario,
@@ -193,4 +212,5 @@ module.exports = {
   getUsuarioById,
   updatePermisos,
   getPermiso,
+  changePassword,
 };

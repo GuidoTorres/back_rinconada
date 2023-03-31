@@ -9,7 +9,6 @@ const sequelize = new Sequelize({
   host: "localhost",
   dialect: "mysql",
   port: "3306",
-  port: 3306,
   define: { timestamps: false, freezeTableName: true },
   dialectOptions: { decimalNumbers: true },
 });
@@ -667,8 +666,8 @@ const requerimiento = sequelize.define(
     completado: DataTypes.STRING,
     dni: DataTypes.STRING,
     firma_gerente: DataTypes.STRING,
-    firma_jefe:DataTypes.STRING,
-    firma_superintendente: DataTypes.STRING
+    firma_jefe: DataTypes.STRING,
+    firma_superintendente: DataTypes.STRING,
   },
   {
     tableName: "requerimiento",
@@ -860,6 +859,7 @@ const permisos = sequelize.define(
     finanzas_sucursal: DataTypes.BOOLEAN,
     rol_id: DataTypes.INTEGER,
     personal_contrato: DataTypes.BOOLEAN,
+    personal_evaluacion: DataTypes.BOOLEAN,
     personal_trapiche: DataTypes.BOOLEAN,
     personal_volquete: DataTypes.BOOLEAN,
     planillas_programacion: DataTypes.BOOLEAN,
@@ -1022,8 +1022,8 @@ cargo.belongsTo(area, {
 rol.hasMany(usuario, { foreignKey: "rol_id" });
 usuario.belongsTo(rol, { foreignKey: "rol_id" });
 
-usuario.hasOne(cargo, {foreignKey: "cargo_id"})
-cargo.belongsTo(usuario, {foreignKey: "cargo_id"})
+usuario.hasOne(cargo, { foreignKey: "cargo_id" });
+cargo.belongsTo(usuario, { foreignKey: "cargo_id" });
 
 usuario.hasOne(trabajador, {
   through: "trabajador_usuario",
