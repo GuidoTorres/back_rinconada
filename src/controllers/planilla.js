@@ -15,6 +15,7 @@ const {
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
 
+//lista de trabajadores y planillas para la vista de planillas
 const getPlanilla = async (req, res, next) => {
   try {
     const traba = await trabajador.findAll({
@@ -78,64 +79,102 @@ const getPlanilla = async (req, res, next) => {
         id: item?.id,
         nombre: item?.nombre,
         codigo: item?.codigo,
-        fecha_inicio: item?.contratos?.at(-1)?.fecha_inicio,
-        fecha_fin: item?.contratos?.at(-1)?.fecha_fin,
-        contratos: item?.contratos.at(-1),
-        volquete: item?.contratos?.at(-1)?.volquete,
+        fecha_inicio: dayjs(
+          item?.contratos?.filter((data) => data.finalizado === false)?.at(-1)
+            ?.fecha_inicio
+        ).format("YYYY-MM-DD"),
+        fecha_fin: dayjs(
+          item?.contratos?.filter((data) => data.finalizado === false)?.at(-1)
+            ?.fecha_fin
+        ).format("YYYY-MM-DD"),
+        contratos: item?.contratos
+          .filter((data) => data.finalizado === false)
+          .at(-1),
+        volquete: item?.contratos
+          .filter((data) => data.finalizado === false)
+          .at(-1)
+          ?.teletrans.at(-1)?.volquete,
         puesto: "",
         campamento: item.contratos
           .map((item) => item.campamento.nombre)
           .toString(),
-        teletran: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.teletrans),
-        total: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.total),
-        saldo: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.saldo),
+        teletran: item?.contratos
+          .filter((data) => data.finalizado === false)
+          .at(-1)
+          ?.teletrans.at(-1)?.teletrans,
+        total: item?.contratos
+          .filter((data) => data.finalizado === false)
+          .at(-1)
+          ?.teletrans.at(-1)?.total,
+        saldo: item?.contratos
+          .filter((data) => data.finalizado === false)
+          .at(-1)
+          ?.teletrans.at(-1)?.saldo,
       };
     });
 
     const mapTrabajador = filterTrabajador.map((item) => {
+      const contratoFiltrado = item?.trabajador_contratos?.filter(
+        (data) => data.contrato.finalizado === false
+      );
       return {
         dni: item?.dni,
         codigo_trabajador: item?.codigo_trabajador,
         fecha_nacimiento: item?.fecha_nacimiento,
         telefono: item?.telefono,
         nombre:
-          item?.nombre +
-          " " +
           item?.apellido_paterno +
           " " +
-          item?.apellido_materno,
+          item?.apellido_materno +
+          " " +
+          item?.nombre,
         email: item?.email,
-        // campamento: item?.contratos
-        //   ?.map((item) => item?.campamento?.nombre)
-        //   ?.toString(),
         estado_civil: item?.estado_civil,
         genero: item?.genero,
         direccion: item?.direccion,
         asociacion_id: item?.asociacion_id,
         deshabilitado: item?.deshabilitado,
-        eliminar: item?.e,
-        // contratos: item?.contratos?.at(-1),
-        // puesto: item?.contratos?.at(-1)?.puesto,
-        // fecha_inicio: item?.contratos?.at(-1)?.fecha_inicio,
-        // fecha_fin: String(
-        //   item?.contratos?.map((acc, curr) => {
-        //     const trabajador_asistencia = item?.trabajador_asistencia?.filter(
-        //       (data) => data?.asistencia !== "Asistio"
-        //     ).length;
+        contratos: contratoFiltrado,
+        puesto: contratoFiltrado
+          ?.map((dat) => dat?.contrato?.puesto)
+          .toString(),
+        fecha_inicio: dayjs(
+          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
+        ).format("YYYY-MM-DD"),
+        campamento: contratoFiltrado
+          ?.map((dat) => dat?.contrato?.campamento?.nombre)
+          .toString(),
+        fecha_fin: contratoFiltrado
+          .map((acc) => {
+            const trabajador_asistencia = item?.trabajador_asistencia?.filter(
+              (data) => data?.asistencia !== "Asistio"
+            ).length;
 
-        //     return dayjs(acc.fecha_fin)
-        //       .add(trabajador_asistencia, "day")
-        //       .toISOString();
-        //   })
-        // ),
+            return dayjs(acc.fecha_fin)
+              .add(trabajador_asistencia, "day")
+              .format("YYYY-DD-MM");
+          })
+          .toString(),
         asistencia: item.trabajador_asistencia.filter(
           (data) => data.asistencia === "Asistio"
         ).length,
         evaluacion: item.evaluacions,
-        // volquete: item?.contratos?.at(-1)?.volquete,
-        // teletran: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.teletrans),
-        // total: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.total),
-        // saldo: parseInt(item?.contratos.at(-1)?.teletrans.at(-1)?.saldo),
+        volquete:
+          contratoFiltrado
+            ?.map((dat) => dat?.contrato?.teletrans?.at(-1)?.volquete)
+            .toString() || 0,
+        teletran:
+          contratoFiltrado
+            ?.map((dat) => dat?.contrato?.teletrans?.at(-1)?.teletrans)
+            .toString() || 0,
+        total:
+          contratoFiltrado
+            ?.map((dat) => dat?.contrato?.teletrans?.at(-1)?.total)
+            .toString() || 0,
+        saldo:
+          contratoFiltrado
+            ?.map((dat) => dat?.contrato?.teletrans?.at(-1)?.saldo)
+            .toString() || 0,
       };
     });
 
@@ -615,14 +654,40 @@ const getTareoTrabajador = async (req, res, next) => {
             exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
           },
           where: { trabajador_id: id },
-          include: [{ model: asistencia }],
+          include: [{ model: asistencia, order: [["fecha", "DESC"]] }],
         },
       ],
     });
 
-    const obj = getTareo.map((item) => item.trabajador_asistencia).flat();
-
-    return res.status(200).json({ data: obj });
+    const newData = [];
+    for (let i = 0; i < getTareo.length; i++) {
+      const chunk = getTareo.slice(i, i + 14);
+      newData.push(chunk);
+    }
+    const obj = newData
+      .flat()
+      .map((item) => item.trabajador_asistencia)
+      .flat()
+      .reverse();
+    const result = obj
+      ?.map((dat) => {
+        return {
+          [dat?.asistencium?.fecha]:
+            dat.asistencia === "Permiso"
+              ? "P"
+              : dat.asistencia === "Asistio"
+              ? "X"
+              : dat.asistencia === "Falto"
+              ? "F"
+              : dat.asistencia === "Dia libre"
+              ? "DL"
+              : dat.asistencia === "Comision"
+              ? "C"
+              : "F",
+        };
+      })
+    const newObj = Object.assign({}, ...result);
+    return res.status(200).json({ data: [newObj] });
     next();
   } catch (error) {
     console.log(error);

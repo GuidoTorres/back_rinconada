@@ -6,10 +6,10 @@ const {
   trabajador,
   contratoEvaluacion,
   trabajadorAsistencia,
+  trabajador_contrato,
 } = require("../../config/db");
 const XLSX = require("xlsx");
 const date = require("date-and-time");
-
 
 const getAsistencia = async (req, res, next) => {
   try {
@@ -197,22 +197,26 @@ const getTrabajadorAsistencia = async (req, res, next) => {
     const get = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
       include: [
+        // {
+        //   model: trabajadorAsistencia,
+        //   // where: { asistencia_id: id },
+        //   attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+        // },
         {
-          model: trabajadorAsistencia,
-          // where: { asistencia_id: id },
-          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-        },
-        {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
+          model: trabajador_contrato,
+          include: [
+            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+          ],
         },
       ],
     });
     const filterDeshabilitado = get.filter(
       (item) =>
-        item?.contratos?.length > 0 &&
+        item?.trabajador_contratos?.length > 0 &&
         !item?.deshabilitado &&
-        item?.contratos?.at(-1)?.finalizado === false
+        item?.trabajador_contratos?.filter(
+          (data) => data.contrato.finalizado === false
+        )
     );
     const jsonFinal = filterDeshabilitado.map((item) => {
       return {
@@ -316,11 +320,14 @@ const postAsistencia = async (req, res, next) => {
     const filter = all.filter((item) => item.fecha === info.fecha);
 
     if (filter.length > 0) {
-      return res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
-
+      return res
+        .status(500)
+        .json({ msg: "No se pudo registrar.", status: 500 });
     } else if (filter.length === 0) {
       const asis = await asistencia.create(info);
-      return res.status(200).json({ msg: "Se añadio correctamente.", status: 200 });
+      return res
+        .status(200)
+        .json({ msg: "Se añadio correctamente.", status: 200 });
     }
     next();
   } catch (error) {
@@ -354,7 +361,9 @@ const postTrabajadorAsistencia = async (req, res, next) => {
           trabajador_id: info.trabajador_id,
         },
       });
-      return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
+      return res
+        .status(200)
+        .json({ msg: "Actualizado con éxito!", status: 200 });
     } else if (!getAsistencia) {
       const createAsistencia = await trabajadorAsistencia.create(info);
       res.status(200).json({ msg: "Creado con éxito!", status: 200 });
