@@ -280,7 +280,7 @@ const uploadFile = async (req, res, next) => {
         };
       })
       .filter((item) => item.asociacion_id !== undefined);
-
+      console.log("prueba");
     const unique = obj.reduce((acc, current) => {
       if (!acc.find((ele) => ele.dni === current.dni)) {
         acc.push(current);
