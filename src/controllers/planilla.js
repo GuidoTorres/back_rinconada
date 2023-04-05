@@ -32,6 +32,7 @@ const getPlanilla = async (req, res, next) => {
           attributes: {
             exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
           },
+          include: [{ model: asistencia }],
         },
         { model: evaluacion },
         {
@@ -155,6 +156,7 @@ const getPlanilla = async (req, res, next) => {
               .format("YYYY-DD-MM");
           })
           .toString(),
+        trabajador_asistencia: item.trabajador_asistencia,
         asistencia: item.trabajador_asistencia.filter(
           (data) => data.asistencia === "Asistio"
         ).length,
@@ -659,35 +661,39 @@ const getTareoTrabajador = async (req, res, next) => {
       ],
     });
 
-    const newData = [];
-    for (let i = 0; i < getTareo.length; i++) {
-      const chunk = getTareo.slice(i, i + 14);
-      newData.push(chunk);
-    }
-    const obj = newData
+    const obj = getTareo
       .flat()
       .map((item) => item.trabajador_asistencia)
       .flat()
       .reverse();
-    const result = obj
-      ?.map((dat) => {
-        return {
-          [dat?.asistencium?.fecha]:
-            dat.asistencia === "Permiso"
-              ? "P"
-              : dat.asistencia === "Asistio"
-              ? "X"
-              : dat.asistencia === "Falto"
-              ? "F"
-              : dat.asistencia === "Dia libre"
-              ? "DL"
-              : dat.asistencia === "Comision"
-              ? "C"
-              : "F",
-        };
-      })
-    const newObj = Object.assign({}, ...result);
-    return res.status(200).json({ data: [newObj] });
+    // const newData = [];
+    // for (let i = 0; i < getTareo.length; i++) {
+    //   const chunk = getTareo.slice(i, i + 14);
+    //   newData.push(chunk);
+    // }
+    // const obj = newData
+    //   .flat()
+    //   .map((item) => item.trabajador_asistencia)
+    //   .flat()
+    //   .reverse();
+    // const result = obj?.map((dat) => {
+    //   return {
+    //     [dat?.asistencium?.fecha]:
+    //       dat.asistencia === "Permiso"
+    //         ? "P"
+    //         : dat.asistencia === "Asistio"
+    //         ? "X"
+    //         : dat.asistencia === "Falto"
+    //         ? "F"
+    //         : dat.asistencia === "Dia libre"
+    //         ? "DL"
+    //         : dat.asistencia === "Comision"
+    //         ? "C"
+    //         : "F",
+    //   };
+    // });
+    // const newObj = Object.assign({}, ...result);
+    return res.status(200).json({ data: obj });
     next();
   } catch (error) {
     console.log(error);

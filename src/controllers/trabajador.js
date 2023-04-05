@@ -10,6 +10,7 @@ const {
 const { Op, Sequelize } = require("sequelize");
 const XLSX = require("xlsx");
 const dayjs = require("dayjs");
+require("dayjs/locale/es");
 const fs = require("fs");
 
 const getTrabajador = async (req, res, next) => {
@@ -185,7 +186,7 @@ const postTrabajador = async (req, res, next) => {
       next();
     } else {
       const nuevoTrabajador = await trabajador.create(info);
-      return  res
+      return res
         .status(200)
         .json({ msg: "Trabajador registrado con éxito!", status: 200 });
       next();
@@ -217,7 +218,6 @@ const postMultipleTrabajador = async (req, res, next) => {
       attributes: { exclude: ["usuarioId"] },
       order: [["codigo_trabajador", "DESC"]],
     });
-
     const codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCMRL00000";
     const getNumber = codigo_final.includes("CCMRL0000")
       ? codigo_final.split("CCMRL0000")[1]
@@ -246,7 +246,9 @@ const postMultipleTrabajador = async (req, res, next) => {
               parseInt(getNumber) + i + 1 < 1000
             ? "CCMRL0" + (parseInt(getNumber) + i + 1)
             : "CCMRL" + (parseInt(getNumber) + i + 1),
-        fecha_nacimiento: dayjs(item?.fecha_nacimiento)?.format("YYYY-MM-DD"),
+        fecha_nacimiento: dayjs(
+          new Date(item.fecha_nacimiento.replace(/(\d+[/])(\d+[/])/, "$2$1"))
+        ).format("YYYY-MM-DD"),
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,
         apellido_materno: item?.apellido_materno,
@@ -257,6 +259,7 @@ const postMultipleTrabajador = async (req, res, next) => {
         direccion: item?.direccion,
       };
     });
+    console.log(obj);
 
     const unique = obj.reduce((acc, current) => {
       if (!acc.find((ele) => ele.dni === current.dni)) {
@@ -266,30 +269,34 @@ const postMultipleTrabajador = async (req, res, next) => {
       return acc;
     }, []);
 
-    const getTrabajador = await trabajador.findAll({
-      attributes: { exclude: ["usuarioId"] },
-    });
+    // const getTrabajador = await trabajador.findAll({
+    //   attributes: { exclude: ["usuarioId"] },
+    // });
 
-    //filtrar a los trabajadores que ya estan registrados en la bd
-    const filtered = unique.filter(
-      ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
-    );
+    // //filtrar a los trabajadores que ya estan registrados en la bd
+    // const filtered = unique.filter(
+    //   ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
+    // );
 
-    //listado de dnis del excel
-    const dnis = filtered.map((item) => item.dni);
-    // filtrar
-    const filterDni = filtered.filter(
-      ({ dni }, index) => !dnis.includes(dni, index + 1)
-    );
-
-    if (filterDni.length !== 0) {
-      const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
-      return res
-        .status(200)
-        .json({
-          msg: `Se registraron ${filterDni.length} trabajadores con éxito!`,
-          status: 200,
-        });
+    // //listado de dnis del excel
+    // const dnis = filtered.map((item) => item.dni);
+    // // filtrar
+    // const filterDni = filtered.filter(
+    //   ({ dni }, index) => !dnis.includes(dni, index + 1)
+    // );
+    if (unique.length !== 0) {
+      const nuevoTrabajador = await trabajador.bulkCreate(unique, {
+        updateOnDuplicate: [
+          "fecha_nacimiento",
+          "telefono",
+          "email",
+          "apellido_paterno", "apellido_materno", "nombre", "email", "estado_civil", "direccion"
+        ],
+      });
+      return res.status(200).json({
+        msg: `Se registraron ${unique.length} trabajadores con éxito!`,
+        status: 200,
+      });
     } else {
       return res
         .status(500)

@@ -169,7 +169,9 @@ const postAsociacion = async (req, res, next) => {
 
   try {
     const camp = await asociacion.create(info);
-    return res.status(200).json({ msg: "Asociación creada con éxito!", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Asociación creada con éxito!", status: 200 });
     next();
   } catch (error) {
     res
@@ -227,7 +229,6 @@ const uploadFile = async (req, res, next) => {
         )
       )
       .filter((item) => !isNaN(item.dni) && item.dni.toString().length === 8);
-    
 
     const getCodigoTrabajador = await trabajador.findOne({
       attributes: { exclude: ["usuarioId"] },
@@ -264,7 +265,9 @@ const uploadFile = async (req, res, next) => {
                 parseInt(getNumber) + i + 1 < 10000
               ? "CCMRL0" + (parseInt(getNumber) + i + 1)
               : "CCMRL" + (parseInt(getNumber) + i + 1),
-          fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("YYYY-MM-DD"),
+          fecha_nacimiento: dayjs(
+            new Date(item.fecha_nacimiento.replace(/(\d+[/])(\d+[/])/, "$2$1"))
+          ).format("YYYY-MM-DD"),
           telefono: item?.telefono,
           apellido_paterno: item?.apellido_paterno,
           apellido_materno: item?.apellido_materno,
@@ -278,7 +281,6 @@ const uploadFile = async (req, res, next) => {
       })
       .filter((item) => item.asociacion_id !== undefined);
 
-      console.log(obj);
     const unique = obj.reduce((acc, current) => {
       if (!acc.find((ele) => ele.dni === current.dni)) {
         acc.push(current);
@@ -287,28 +289,41 @@ const uploadFile = async (req, res, next) => {
       return acc;
     }, []);
 
-    const getTrabajador = await trabajador.findAll({
-      attributes: { exclude: ["usuarioId"] },
-    });
+    // const getTrabajador = await trabajador.findAll({
+    //   attributes: { exclude: ["usuarioId"] },
+    // });
 
-    //filtrar a los trabajadores que ya estan registrados en la bd
-    const filtered = unique.filter(
-      ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
-    );
+    // //filtrar a los trabajadores que ya estan registrados en la bd
+    // const filtered = unique.filter(
+    //   ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
+    // );
 
-    //listado de dnis del excel
-    const dnis = filtered.map((item) => item.dni);
-    console.log(dnis);
-    // filtrar
-    const filterDni = filtered.filter(
-      ({ dni }, index) => !dnis.includes(dni, index + 1)
-    );
-      console.log(filterDni);
-    if (filterDni.length !== 0) {
-      const nuevoTrabajador = await trabajador.bulkCreate(filterDni);
-      return res
-        .status(200)
-        .json({ msg: `Se registraron ${filterDni.length} trabajadores con éxito!`, status: 200 });
+    // //listado de dnis del excel
+    // const dnis = filtered.map((item) => item.dni);
+    // console.log(dnis);
+    // // filtrar
+    // const filterDni = filtered.filter(
+    //   ({ dni }, index) => !dnis.includes(dni, index + 1)
+    // );
+    // console.log(filterDni);
+    if (unique.length !== 0) {
+      const nuevoTrabajador = await trabajador.bulkCreate(unique, {
+        updateOnDuplicate: [
+          "fecha_nacimiento",
+          "telefono",
+          "email",
+          "apellido_paterno",
+          "apellido_materno",
+          "nombre",
+          "email",
+          "estado_civil",
+          "direccion",
+        ],
+      });
+      return res.status(200).json({
+        msg: `Se registraron ${unique.length} trabajadores con éxito!`,
+        status: 200,
+      });
     } else {
       return res
         .status(200)
@@ -320,7 +335,7 @@ const uploadFile = async (req, res, next) => {
     res
       .status(500)
       .json({ msg: "No se pudo registrar a los trabajadores!", status: 500 });
-    }
+  }
 };
 
 module.exports = {
