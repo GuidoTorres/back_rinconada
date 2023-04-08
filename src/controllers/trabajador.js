@@ -199,6 +199,7 @@ const postTrabajador = async (req, res, next) => {
   }
 };
 
+
 const postMultipleTrabajador = async (req, res, next) => {
   try {
     const workbook = XLSX.readFile("./upload/data.xlsx");
@@ -219,36 +220,61 @@ const postMultipleTrabajador = async (req, res, next) => {
       order: [["codigo_trabajador", "DESC"]],
     });
     const codigo_final = getCodigoTrabajador?.codigo_trabajador || "CCMRL00000";
-    const getNumber = codigo_final.includes("CCMRL0000")
-      ? codigo_final.split("CCMRL0000")[1]
-      : codigo_final.includes("CCMRL000")
-      ? codigo_final.split("CCMRL000")[1]
-      : codigo_final.includes("CCMRL00")
-      ? codigo_final.split("CCMRL00")[1]
-      : codigo_final.includes("CCMRL0")
-      ? codigo_final.split("CCMRL0")[1]
-      : codigo_final.includes("CCMRL")
-      ? codigo_final.split("CCMRL")[1]
-      : "";
+
+    const getNumber = codigo_final.match(/(\d+)$/)?.[1] || "00000";
     const obj = result.map((item, i) => {
+      let fechaNacimiento;
+      const fechaRegex = /(\d{1,2})[-/](\d{1,2})[-/](\d{4})/;
+
+      if (!isNaN(item.fecha_nacimiento)) {
+        // Si la fecha es un número de serie
+        const dateObj = XLSX.SSF.parse_date_code(item.fecha_nacimiento);
+        fechaNacimiento = `${dateObj.y}-${dateObj.m
+          .toString()
+          .padStart(2, "0")}-${dateObj.d.toString().padStart(2, "0")}`;
+      } else {
+        // Si la fecha ya está en formato de fecha válido
+        const match = item.fecha_nacimiento?.match(fechaRegex);
+        if (match) {
+          const year = match[3];
+          const month = match[1].length === 1 ? `0${match[1]}` : match[1];
+          const day = match[2].length === 1 ? `0${match[2]}` : match[2];
+          fechaNacimiento = `${year}-${month}-${day}`;
+        } else {
+          const parsedDate = dayjs(item.fecha_nacimiento, [
+            "DD/MM/YYYY",
+            "D/MM/YYYY",
+            "DD/M/YYYY",
+            "D/M/YYYY",
+            "MM/DD/YYYY",
+            "M/DD/YYYY",
+            "MM/D/YYYY",
+            "M/D/YYYY",
+            "YYYY-MM-DD",
+            "YYYY/MM/DD",
+            "YYYY/M/DD",
+            "YYYY/MM/D",
+            "YYYY/M/D",
+            "DD-MM-YYYY",
+            "D-MM-YYYY",
+            "DD-M-YYYY",
+            "D-M-YYYY",
+            "MM-DD-YYYY",
+            "M-DD-YYYY",
+            "MM-D-YYYY",
+            "M-D-YYYY",
+          ]);
+          if (parsedDate.isValid()) {
+            fechaNacimiento = parsedDate.format("YYYY-MM-DD");
+          } else {
+            console.log(`La fecha ${item.fecha_nacimiento} es inválida`);
+          }
+        }
+      }
       return {
         dni: item?.dni,
-        codigo_trabajador:
-          parseInt(getNumber) + i + 1 < 10
-            ? "CCMRL0000" + (parseInt(getNumber) + i + 1)
-            : parseInt(getNumber) + i + 1 > 9 &&
-              parseInt(getNumber) + i + 1 < 100
-            ? "CCMRL000" + (parseInt(getNumber) + i + 1)
-            : parseInt(getNumber) + i + 1 > 99 &&
-              parseInt(getNumber) + i + 1 < 1000
-            ? "CCMRL00" + (parseInt(getNumber) + i + 1)
-            : parseInt(getNumber) + i + 1 > 99 &&
-              parseInt(getNumber) + i + 1 < 1000
-            ? "CCMRL0" + (parseInt(getNumber) + i + 1)
-            : "CCMRL" + (parseInt(getNumber) + i + 1),
-        fecha_nacimiento: dayjs(
-          new Date(item.fecha_nacimiento.replace(/(\d+[/])(\d+[/])/, "$2$1"))
-        ).format("YYYY-MM-DD"),
+        codigo_trabajador: `CCMRL${(parseInt(getNumber) + i + 1).toString().padStart(5, "0")}`,
+        fecha_nacimiento: fechaNacimiento,
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,
         apellido_materno: item?.apellido_materno,
@@ -269,28 +295,19 @@ const postMultipleTrabajador = async (req, res, next) => {
       return acc;
     }, []);
 
-    // const getTrabajador = await trabajador.findAll({
-    //   attributes: { exclude: ["usuarioId"] },
-    // });
-
-    // //filtrar a los trabajadores que ya estan registrados en la bd
-    // const filtered = unique.filter(
-    //   ({ dni }) => !getTrabajador.some((x) => x.dni == dni)
-    // );
-
-    // //listado de dnis del excel
-    // const dnis = filtered.map((item) => item.dni);
-    // // filtrar
-    // const filterDni = filtered.filter(
-    //   ({ dni }, index) => !dnis.includes(dni, index + 1)
-    // );
     if (unique.length !== 0) {
       const nuevoTrabajador = await trabajador.bulkCreate(unique, {
         updateOnDuplicate: [
           "fecha_nacimiento",
           "telefono",
           "email",
-          "apellido_paterno", "apellido_materno", "nombre", "email", "estado_civil", "direccion"
+          "apellido_paterno",
+          "apellido_materno",
+          "nombre",
+          "email",
+          "estado_civil",
+          "direccion",
+          "asociacion_id",
         ],
       });
       return res.status(200).json({
@@ -421,10 +438,9 @@ const getLastId = async (req, res, next) => {
       },
       order: [["codigo_trabajador", "DESC"]],
     });
-    res.status(200).json([get]);
+    return res.status(200).json([get]);
     next();
   } catch (error) {
-    console.log(error);
     res.status(500).json({ msg: "No se pudo obtener", status: 500 });
   }
 };

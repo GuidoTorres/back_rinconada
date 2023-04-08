@@ -73,7 +73,7 @@ const getPlanilla = async (req, res, next) => {
       (item) => item?.contratos?.length !== 0
     );
     const filterTrabajador = traba?.filter(
-      (item) => item?.contratos?.length !== 0
+      (item) => item?.trabajador_contratos?.length !== 0
     );
     const mapAsociacion = filterAsociacion.map((item, i) => {
       return {
@@ -183,6 +183,148 @@ const getPlanilla = async (req, res, next) => {
     const final = mapAsociacion.concat(mapTrabajador);
 
     return res.status(200).json({ data: final });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+
+const getPlanillaHistoriaTrabajador = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    const traba = await trabajador.findOne({
+      where: {
+        dni: id,
+        asociacion_id: { [Op.is]: null },
+        deshabilitado: { [Op.not]: true },
+      },
+      attributes: { exclude: ["usuarioId"] },
+      include: [
+        {
+          model: trabajadorAsistencia,
+          attributes: {
+            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
+          },
+          include: [{ model: asistencia }],
+        },
+        {
+          model: trabajador_contrato,
+          attributes: { exclude: ["contrato_id"] },
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: { finalizado: { [Op.not]: true } },
+              include: [{ model: teletrans }],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Filtramos las asistencias para solo obtener las que tienen asistencia: "Asistio"
+    const asistencias = traba?.trabajador_asistencia?.filter(
+      (asistencia) => asistencia.asistencia === "Asistio"
+    );
+    
+    // Separamos las asistencias en sub-arrays de máximo 15 elementos
+    const asistenciasDivididas = [];
+    let asistenciasValidas = 0;
+    let asistenciasActuales = [];
+
+    for (let i = 0; i < asistencias?.length; i++) {
+      if (asistencias[i].asistencia === "Asistio") {
+        asistenciasValidas++;
+        asistenciasActuales.push(asistencias[i]);
+      }
+
+      if (asistenciasValidas === 15 || i === asistencias.length - 1) {
+        asistenciasDivididas.push(asistenciasActuales);
+        asistenciasValidas = 0;
+        asistenciasActuales = [];
+      }
+    }
+
+    // Construimos los objetos finales por cada bloque de 15 asistencias
+    const trabaFinal = asistenciasDivididas.map((asistenciasBloque) => {
+      const trabajadorData = { ...traba.dataValues };
+      delete trabajadorData.trabajador_asistencias;
+
+      return {
+        ...trabajadorData,
+        trabajador_asistencias: asistenciasBloque.sort(
+          (a, b) =>
+            new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
+        ),
+      };
+    });
+
+    return res.status(200).json({ data: trabaFinal });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+};
+//lista de trabajadores y planillas para la vista de planillas
+const getPlanillaAprobacion = async (req, res, next) => {
+  try {
+    const traba = await trabajador.findAll({
+      where: {
+        deshabilitado: { [Op.not]: true },
+      },
+      attributes: { exclude: ["usuarioId"] },
+      include: [
+        {
+          model: trabajador_contrato,
+          attributes: { exclude: ["contrato_id"] },
+
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+              include: [{ model: teletrans }],
+            },
+          ],
+        },
+        {
+          model: trabajadorAsistencia,
+          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+        },
+      ],
+    });
+
+    const filterContrato = traba.filter(
+      (item) =>
+        item.trabajador_contratos.length > 0 &&
+        item.trabajador_asistencia.length > 14
+    );
+    const aprobacionFilter = filterContrato.map((item) => {
+      const contratoActivo = item?.trabajador_contratos
+        ?.filter((data) => data?.contrato?.finalizado === false)
+        .at(-1).contrato;
+      return {
+        nombre:
+          item?.apellido_paterno +
+          " " +
+          item?.apellido_materno +
+          " " +
+          item?.nombre,
+        celular: item?.telefono,
+        fecha_inicio: dayjs(contratoActivo.fecha_inicio).format("DD-MM-YYYY"),
+        fecha_fin: dayjs(contratoActivo.fecha_fin).format("DD-MM-YYYY"),
+        volquete: contratoActivo?.teletrans?.at(-1)?.volquete,
+        teletran: contratoActivo?.teletrans?.at(-1)?.teletrans,
+        total: contratoActivo?.teletrans?.at(-1)?.total,
+        trabajador_asistencia: item?.trabajador_asistencia,
+      };
+    });
+
+
+    return res.status(200).json({ data: aprobacionFilter });
     next();
   } catch (error) {
     console.log(error);
@@ -641,7 +783,7 @@ const campamentoPlanilla = async (req, res, next) => {
 };
 
 const getTareoTrabajador = async (req, res, next) => {
-  id = req.params.id;
+  let id = req.params.id;
 
   try {
     const getTareo = await trabajador.findAll({
@@ -666,33 +808,7 @@ const getTareoTrabajador = async (req, res, next) => {
       .map((item) => item.trabajador_asistencia)
       .flat()
       .reverse();
-    // const newData = [];
-    // for (let i = 0; i < getTareo.length; i++) {
-    //   const chunk = getTareo.slice(i, i + 14);
-    //   newData.push(chunk);
-    // }
-    // const obj = newData
-    //   .flat()
-    //   .map((item) => item.trabajador_asistencia)
-    //   .flat()
-    //   .reverse();
-    // const result = obj?.map((dat) => {
-    //   return {
-    //     [dat?.asistencium?.fecha]:
-    //       dat.asistencia === "Permiso"
-    //         ? "P"
-    //         : dat.asistencia === "Asistio"
-    //         ? "X"
-    //         : dat.asistencia === "Falto"
-    //         ? "F"
-    //         : dat.asistencia === "Dia libre"
-    //         ? "DL"
-    //         : dat.asistencia === "Comision"
-    //         ? "C"
-    //         : "F",
-    //   };
-    // });
-    // const newObj = Object.assign({}, ...result);
+
     return res.status(200).json({ data: obj });
     next();
   } catch (error) {
@@ -706,7 +822,9 @@ const getTareoAsociacion = async (req, res, next) => {
   try {
     const getAsociacionTareo = await trabajador.findAll({
       where: { asociacion_id: id },
+      attributes: { exclude: ["usuarioId"] },
       include: [
+        { model: trabajador_contrato },
         {
           model: trabajadorAsistencia,
           attributes: {
@@ -768,6 +886,7 @@ const getTareoAsociacion = async (req, res, next) => {
         nombre: item.nombre,
         email: item.email,
         trabajador_asistencia: item.trabajador_asistencia,
+        ...fecha1,
       };
     });
 
@@ -965,6 +1084,67 @@ const updatepagoAsociacion = async (req, res, next) => {
   }
 };
 
+const updateTrabajadorAsistencia = async (req, res, next) => {
+  let id = req.params.id;
+
+  try {
+    const aprobacion = await trabajadorAsistencia.update(req.body, {
+      where: { id: id },
+    });
+    const asistenciaUpdate = await trabajadorAsistencia.findOne({
+      where: { id: id },
+      attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+    });
+    let estado = { estado: false };
+    if (
+      asistenciaUpdate.firma_jefe !== "" &&
+      asistenciaUpdate.firma_gerente !== ""
+    ) {
+      estado.estado = true;
+    }
+    await trabajadorAsistencia.update(estado, { where: { id: id } });
+    return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
+
+    return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
+
+    next();
+  } catch (error) {
+    res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
+  }
+};
+
+const updateHuella = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    let info;
+    if (req.file && req?.body?.huella !== undefined && req.body.huella !== "") {
+      const fileDir = require("path").resolve(__dirname, `./upload/images/`);
+
+      const editFotoLink = req.body.foto.split("/").at(-1);
+      fs.unlink("./upload/images/" + editFotoLink, (err) => {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("eliminado con éxito!");
+        }
+      });
+    }
+    info = {
+      foto: req.file
+        ? process.env.LOCAL_IMAGE + req.file.filename
+        : req.body.foto,
+    };
+    const putAsistencia = await trabajadorAsistencia.update(info, {
+      where: { id: id },
+    });
+    return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
+  }
+};
+
 module.exports = {
   getPlanilla,
   campamentoPlanilla,
@@ -975,4 +1155,8 @@ module.exports = {
   getListaPago,
   getListaAsociacionProgramada,
   updatepagoAsociacion,
+  updateTrabajadorAsistencia,
+  getPlanillaAprobacion,
+  updateHuella,
+  getPlanillaHistoriaTrabajador,
 };
