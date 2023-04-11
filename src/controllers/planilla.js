@@ -119,6 +119,7 @@ const getPlanilla = async (req, res, next) => {
         (data) => data.contrato.finalizado === false
       );
       return {
+        id: item?.dni,
         dni: item?.dni,
         codigo_trabajador: item?.codigo_trabajador,
         fecha_nacimiento: item?.fecha_nacimiento,
@@ -227,7 +228,7 @@ const getPlanillaHistoriaTrabajador = async (req, res, next) => {
     const asistencias = traba?.trabajador_asistencia?.filter(
       (asistencia) => asistencia.asistencia === "Asistio"
     );
-    
+
     // Separamos las asistencias en sub-arrays de máximo 15 elementos
     const asistenciasDivididas = [];
     let asistenciasValidas = 0;
@@ -269,8 +270,9 @@ const getPlanillaHistoriaTrabajador = async (req, res, next) => {
 //lista de trabajadores y planillas para la vista de planillas
 const getPlanillaAprobacion = async (req, res, next) => {
   try {
-    const traba = await trabajador.findAll({
+    const trabajadores = await trabajador.findAll({
       where: {
+        asociacion_id: { [Op.is]: null },
         deshabilitado: { [Op.not]: true },
       },
       attributes: { exclude: ["usuarioId"] },
@@ -278,7 +280,6 @@ const getPlanillaAprobacion = async (req, res, next) => {
         {
           model: trabajador_contrato,
           attributes: { exclude: ["contrato_id"] },
-
           include: [
             {
               model: contrato,
@@ -293,41 +294,154 @@ const getPlanillaAprobacion = async (req, res, next) => {
         {
           model: trabajadorAsistencia,
           attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+          include: [{ model: asistencia, order: [["fecha", "ASC"]] }],
         },
       ],
     });
 
-    const filterContrato = traba.filter(
-      (item) =>
-        item.trabajador_contratos.length > 0 &&
-        item.trabajador_asistencia.length > 14
-    );
-    const aprobacionFilter = filterContrato.map((item) => {
-      const contratoActivo = item?.trabajador_contratos
-        ?.filter((data) => data?.contrato?.finalizado === false)
-        .at(-1).contrato;
-      return {
-        nombre:
-          item?.apellido_paterno +
-          " " +
-          item?.apellido_materno +
-          " " +
-          item?.nombre,
-        celular: item?.telefono,
-        fecha_inicio: dayjs(contratoActivo.fecha_inicio).format("DD-MM-YYYY"),
-        fecha_fin: dayjs(contratoActivo.fecha_fin).format("DD-MM-YYYY"),
-        volquete: contratoActivo?.teletrans?.at(-1)?.volquete,
-        teletran: contratoActivo?.teletrans?.at(-1)?.teletrans,
-        total: contratoActivo?.teletrans?.at(-1)?.total,
-        trabajador_asistencia: item?.trabajador_asistencia,
-      };
+    const asociaciones = await asociacion.findAll({
+      include: [
+        {
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          where: {
+            finalizado: false,
+          },
+          include: [{ model: teletrans }],
+        },
+      ],
+    });
+    const asociacionData = asociaciones.map((asociacion) => {
+      return asociacion.contratos.flatMap((contrato) => {
+        let fechaInicio = dayjs(contrato.fecha_inicio, [
+          "YYYY-MM-DD",
+          "YYYY-MM-DD HH:mm:ss",
+        ]).toDate();
+        let fechaFin = dayjs(contrato.fecha_fin, [
+          "YYYY-MM-DD",
+          "YYYY-MM-DD HH:mm:ss",
+        ]).toDate();
+        let fechaLimite = dayjs(fechaInicio).add(14, "day").toDate();
+        const subarrays = [];
+    
+        if (fechaInicio.getTime() > fechaFin.getTime()) {
+          return subarrays;
+        }
+    
+        while (fechaLimite.getTime() <= fechaFin.getTime()) {
+          if (dayjs(fechaLimite).diff(fechaInicio, 'day') % 15 === 0) {
+            subarrays.push({
+              nombre: asociacion.nombre,
+              fecha_inicio: dayjs(fechaInicio).format("YYYY-MM-DD"),
+              fecha_fin: dayjs(fechaLimite).format("YYYY-MM-DD"),
+              asistencia: 15,
+              volquete: contrato?.teletrans?.at(-1)?.volquete,
+              teletrans: contrato?.teletrans?.at(-1)?.teletrans,
+              total: contrato?.teletrans?.at(-1)?.total,
+            });
+          }
+          fechaInicio.setDate(fechaLimite.getDate() + 1);
+          fechaLimite.setDate(fechaLimite.getDate() + 15);
+        }
+    
+        return subarrays;
+      });
     });
 
+    const filterContrato = trabajadores.filter(
+      (trabajador) =>
+        trabajador.trabajador_contratos.length > 0 &&
+        trabajador.trabajador_asistencia.length > 0
+    );
 
-    return res.status(200).json({ data: aprobacionFilter });
-    next();
+    const aprobacionFilter = [];
+
+    filterContrato.forEach((trabajador) => {
+      const asistencias = trabajador?.trabajador_asistencia?.filter(
+        (asistencia) => asistencia.asistencia === "Asistio"
+      );
+
+      const numAsistencias = asistencias?.length;
+      if (numAsistencias >= 15) {
+        let contador = 0;
+        let subAsistencias = [];
+        let fechaInicio = null;
+        let fechaFin = null;
+        for (let i = 0; i < numAsistencias; i++) {
+          const asistencia = asistencias[i];
+          if (asistencia.asistencia === "Asistio") {
+            contador++;
+            subAsistencias.push(asistencia);
+            if (contador === 1) {
+              fechaFin = asistencia.asistencium.fecha;
+            }
+            if (contador === 15) {
+              fechaInicio = asistencia.asistencium.fecha;
+              subAsistencias.sort((a, b) => {
+                const fechaA = dayjs(a.asistencium.fecha, "YYYY-MM-DD");
+                const fechaB = dayjs(b.asistencium.fecha, "YYYY-MM-DD");
+
+                if (fechaA.isBefore(fechaB)) {
+                  return -1;
+                } else if (fechaA.isAfter(fechaB)) {
+                  return 1;
+                } else {
+                  return 0;
+                }
+              });
+
+              aprobacionFilter.push({
+                nombre:
+                  trabajador.apellido_paterno +
+                  " " +
+                  trabajador.apellido_materno +
+                  " " +
+                  trabajador.nombre,
+                celular: trabajador.telefono,
+                fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
+                fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
+                volquete:
+                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                    ?.volquete,
+                teletran:
+                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                    ?.teletrans,
+                total:
+                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                    ?.total,
+                trabajador_asistencia: subAsistencias,
+                asistencia: contador,
+                asistencia_completa: asistencias.map((item) => {
+                  return {
+                    asistencia: item?.asistencia,
+                    fecha: item?.asistencium?.fecha,
+                    hora_ingreso: item?.asistencium?.hora_ingreso,
+                    tarde: item?.tarde,
+                    observacion: item?.observacion,
+                  };
+                }),
+              });
+              contador = 0;
+              subAsistencias = [];
+              fechaInicio = null;
+              fechaFin = null;
+            }
+          } else {
+            // Ignorar asistencias que no son "Asistió"
+            if (contador > 0) {
+              contador = 0;
+              subAsistencias = [];
+              fechaInicio = null;
+              fechaFin = null;
+            }
+          }
+        }
+      }
+    });
+    const concat = aprobacionFilter.concat(asociacionData).flat();
+    console.log(asociacionData);
+    return res.status(200).json({ data: concat });
   } catch (error) {
-    console.log(error);
     res.status(500).json();
   }
 };
@@ -786,113 +900,212 @@ const getTareoTrabajador = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-    const getTareo = await trabajador.findAll({
-      where: { dni: id },
-      attributes: {
-        exclude: ["usuarioId"],
+    const trabajadores = await trabajador.findAll({
+      where: {
+        dni: id,
+        deshabilitado: { [Op.not]: true },
       },
+      attributes: { exclude: ["usuarioId"] },
       include: [
         {
+          model: trabajador_contrato,
+          attributes: { exclude: ["contrato_id"] },
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+              include: [{ model: teletrans }],
+            },
+          ],
+        },
+        {
           model: trabajadorAsistencia,
-          attributes: {
-            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
-          },
-          where: { trabajador_id: id },
-          include: [{ model: asistencia, order: [["fecha", "DESC"]] }],
+          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+          include: [{ model: asistencia, order: [["fecha", "ASC"]] }],
         },
       ],
     });
 
-    const obj = getTareo
-      .flat()
-      .map((item) => item.trabajador_asistencia)
-      .flat()
-      .reverse();
+    const filterContrato = trabajadores.filter(
+      (trabajador) =>
+        trabajador.trabajador_contratos.length > 0 &&
+        trabajador.trabajador_asistencia.length > 0
+    );
 
-    return res.status(200).json({ data: obj });
-    next();
+    const aprobacionFilter = [];
+
+    filterContrato.forEach((trabajador) => {
+      const asistencias = trabajador?.trabajador_asistencia?.filter(
+        (asistencia) => asistencia.asistencia === "Asistio"
+      );
+
+      const numAsistencias = asistencias?.length;
+      if (numAsistencias >= 15) {
+        let contador = 0;
+        let subAsistencias = [];
+        let fechaInicio = null;
+        let fechaFin = null;
+        for (let i = 0; i < numAsistencias; i++) {
+          const asistencia = asistencias[i];
+          if (asistencia.asistencia === "Asistio") {
+            contador++;
+            subAsistencias.push(asistencia);
+            if (contador === 1) {
+              fechaFin = asistencia.asistencium.fecha;
+            }
+            if (contador === 15) {
+              fechaInicio = asistencia.asistencium.fecha;
+              subAsistencias.sort((a, b) => {
+                const fechaA = dayjs(a.asistencium.fecha, "YYYY-MM-DD");
+                const fechaB = dayjs(b.asistencium.fecha, "YYYY-MM-DD");
+
+                if (fechaA.isBefore(fechaB)) {
+                  return -1;
+                } else if (fechaA.isAfter(fechaB)) {
+                  return 1;
+                } else {
+                  return 0;
+                }
+              });
+
+              aprobacionFilter.push({
+                nombre:
+                  trabajador.apellido_paterno +
+                  " " +
+                  trabajador.apellido_materno +
+                  " " +
+                  trabajador.nombre,
+                celular: trabajador.telefono,
+                fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
+                fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
+                volquete:
+                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                    ?.volquete,
+                teletran:
+                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                    ?.teletrans,
+                total:
+                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                    ?.total,
+                trabajador_asistencia: subAsistencias,
+                asistencia: contador,
+                asistencia_completa: asistencias.map((item) => {
+                  return {
+                    asistencia: item?.asistencia,
+                    fecha: item?.asistencium?.fecha,
+                    hora_ingreso: item?.asistencium?.hora_ingreso,
+                    tarde: item?.tarde,
+                    observacion: item?.observacion,
+                  };
+                }),
+              });
+              contador = 0;
+              subAsistencias = [];
+              fechaInicio = null;
+              fechaFin = null;
+            }
+          } else {
+            // Ignorar asistencias que no son "Asistió"
+            if (contador > 0) {
+              contador = 0;
+              subAsistencias = [];
+              fechaInicio = null;
+              fechaFin = null;
+            }
+          }
+        }
+      }
+    });
+
+    return res.status(200).json({ data: aprobacionFilter });
   } catch (error) {
-    console.log(error);
     res.status(500).json();
   }
 };
 
 const getTareoAsociacion = async (req, res, next) => {
-  id = req.params.id;
+  const id = req.params.id;
+
   try {
-    const getAsociacionTareo = await trabajador.findAll({
-      where: { asociacion_id: id },
+    // Obtener el contrato activo de la asociación
+    const contratoActivo = await contrato.findOne({
+      where: {
+        asociacion_id: id,
+        finalizado: false, // Solo el contrato activo
+      },
+      attributes: { exclude: ["contrato_id"] },
+    });
+
+    if (!contratoActivo) {
+      return res.status(404).json({
+        message: "No se encontró un contrato activo para la asociación.",
+      });
+    }
+
+    // Calcular la fecha de inicio y fin del contrato
+    const fechaInicioContrato = dayjs(contratoActivo.fecha_inicio).startOf(
+      "day"
+    );
+    const fechaFinContrato = dayjs(fechaInicioContrato).add(15, "day");
+
+    // Obtener las asistencias de los trabajadores de la asociación en el rango de fechas del contrato
+    const asistencias = await trabajador.findAll({
+      where: {
+        asociacion_id: id,
+      },
       attributes: { exclude: ["usuarioId"] },
       include: [
-        { model: trabajador_contrato },
         {
           model: trabajadorAsistencia,
-          attributes: {
-            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
-          },
-          include: [{ model: asistencia }],
+          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+
+          include: [
+            {
+              model: asistencia,
+              where: {
+                fecha: {
+                  [Op.between]: [
+                    fechaInicioContrato.format("YYYY-MM-DD"),
+                    fechaFinContrato.format("YYYY-MM-DD"),
+                  ],
+                },
+              },
+            },
+          ],
         },
       ],
     });
 
-    const getContrato = await asociacion.findAll({
-      where: { id: id },
-      include: [
-        {
-          model: contrato,
-          attributes: {
-            exclude: ["contrato_id"],
-          },
-        },
-      ],
+    // Agrupar las asistencias de los trabajadores por fecha
+    const asistenciasPorFecha = {};
+    asistencias.forEach((asistencia) => {
+      const fecha = dayjs(asistencia.fecha).format("YYYY-MM-DD");
+      if (!asistenciasPorFecha[fecha]) {
+        asistenciasPorFecha[fecha] = [];
+      }
+      asistenciasPorFecha[fecha].push(asistencia);
     });
 
-    const fecha_inicio = getContrato
-      .map((item) => item.contratos[item.contratos.length - 1].fecha_inicio)
-      .flat()
-      .toLocaleString("sv-SE", {
-        timeZone: "UTC",
+    if (Object.keys(asistenciasPorFecha).length === 0) {
+      return res.status(404).json({
+        message: "No hay asistencias en el rango de fechas del contrato.",
       });
-
-    const fecha_fin = getContrato
-      .map((item) => item.contratos[item.contratos.length - 1].fecha_fin)
-      .flat()
-      .toLocaleString("sv-SE", {
-        timeZone: "UTC",
-      });
-
-    let fechas = [];
-
-    const formatFechas = getAsociacionTareo.map((item) => {
-      return {
-        fecha: item.trabajador_asistencia.map((data) =>
-          fechas.push(data.asistencium.fecha)
-        ),
-      };
-    });
-
-    const fecha_final = [...new Set(fechas)];
-    const fecha1 = {
-      fecha: fecha_final,
+    }
+    // Crear un objeto con la información de la asociación, el contrato y las asistencias
+    const registro = {
+      id: id,
+      nombre: contratoActivo.nombre,
+      id: contratoActivo.id,
+      fecha_inicio: fechaInicioContrato.format("DD-MM-YYYY"),
+      fecha_fin: fechaFinContrato.format("DD-MM-YYYY"),
+      asistencias: asistenciasPorFecha,
     };
-    const finalJson = getAsociacionTareo.map((item) => {
-      return {
-        dni: item.dni,
-        codigo_trabajador: item.codigo_trabajador,
-        fecha_nacimiento: item.fecha_nacimiento,
-        telefono: item.telefono,
-        apellido_materno: item.apellido_materno,
-        apellido_paterno: item.apellido_paterno,
-        nombre: item.nombre,
-        email: item.email,
-        trabajador_asistencia: item.trabajador_asistencia,
-        ...fecha1,
-      };
-    });
 
-    const concat = finalJson.concat(fecha1);
-    return res.status(200).json({ data: concat });
-    next();
+    // Devolver el registro correspondiente a los 15 días de trabajo
+    return res.status(200).json({ data: [registro] });
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -1088,26 +1301,35 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-    const aprobacion = await trabajadorAsistencia.update(req.body, {
-      where: { id: id },
-    });
     const asistenciaUpdate = await trabajadorAsistencia.findOne({
       where: { id: id },
       attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
     });
+    if (
+      asistenciaUpdate.firma_jefe !== null &&
+      asistenciaUpdate.firma_gerente !== null
+    ) {
+      return res.status(400).json({
+        msg: "No se puede editar, ya fue aprobado por el jefe y el gerente.",
+        status: 400,
+      });
+    }
+
+    const aprobacion = await trabajadorAsistencia.update(req.body, {
+      where: { id: id },
+    });
+
     let estado = { estado: false };
     if (
-      asistenciaUpdate.firma_jefe !== "" &&
-      asistenciaUpdate.firma_gerente !== ""
+      asistenciaUpdate.firma_jefe !== null &&
+      asistenciaUpdate.firma_gerente !== null
     ) {
       estado.estado = true;
     }
+
     await trabajadorAsistencia.update(estado, { where: { id: id } });
-    return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
 
     return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
-
-    next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
   }

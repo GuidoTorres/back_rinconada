@@ -10,6 +10,8 @@ const {
 } = require("../../config/db");
 const XLSX = require("xlsx");
 const date = require("date-and-time");
+const { Op } = require("sequelize");
+const dayjs = require("dayjs");
 
 const getAsistencia = async (req, res, next) => {
   try {
@@ -56,18 +58,15 @@ const getExcelAsistencia = async (req, res, next) => {
     );
 
     const fechaActual = new Date();
-    const fecha = date.format(fechaActual, "YYYY-MM-DD");
-    const fechaBd = fechaActual.toLocaleDateString("es-PE");
-
-    console.log(fecha);
-    console.log(fechaBd);
+    const fecha = dayjs(fechaActual, "YYYY-MM-DD").format("YYYY-MM-DD");
+    const fechaBd = dayjs(fechaActual).format("YYYY-MM-DD");
 
     //para darle un formato usable a la data del excel
     const jsonFormat = result.slice(3).map((item, i) => {
       return {
         dni: item.Reporte_de_Excepciones,
         nombre: item.__EMPTY,
-        fecha: new Date(item.__EMPTY_2).toLocaleDateString("es-PE"),
+        fecha: dayjs(item.__EMPTY_2).format("YYYY-MM-DD"),
         entrada: item.__EMPTY_3 === undefined ? "" : item.__EMPTY_3,
         salida: item.__EMPTY_4 === undefined ? "" : item.__EMPTY_4,
       };
@@ -81,7 +80,6 @@ const getExcelAsistencia = async (req, res, next) => {
 
     //creo array de dnis para hacer busqueda
     const dni = jsonFormat.map((item) => item.dni).flat();
-    const filtereDni = [...new Set(dni)];
     //obtener el id de la fecha para la asistencia
     const idAsistencia = await asistencia.findAll({
       //aqui fechaBD
@@ -90,6 +88,8 @@ const getExcelAsistencia = async (req, res, next) => {
 
     //todos los trabajadores con dni del excel
     const getTrabajadores = await trabajador.findAll({
+      attributes: { exclude: ["usuarioId"] },
+      where: { deshabilitado: { [Op.not]: true } },
       include: [
         {
           model: trabajadorAsistencia,
@@ -97,35 +97,31 @@ const getExcelAsistencia = async (req, res, next) => {
           attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
         },
         {
-          model: evaluacion,
+          model: trabajador_contrato,
+          attributes: { exclude: ["contrato_id"] },
           include: [
-            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+            {
+              model: contrato,
+              where: { finalizado: { [Op.not]: true } },
+              attributes: { exclude: ["contrato_id"] },
+            },
           ],
         },
       ],
     });
-
-    const filterDeshabilitado = getTrabajadores.filter(
-      (item) => item.deshabilitado === false || item.deshabilitado === null
-    );
-    const filter = filterDeshabilitado.filter(
-      (item) => item.evaluacions.length !== 0
-    );
-    const filterContrato = filter.filter((item) =>
-      item.evaluacions.filter((data) => data.contratos.length !== 0)
+    const filterContrato = getTrabajadores?.filter(
+      (item) => item?.trabajador_contratos?.length !== 0
     );
 
     const getAsistenciaId = await asistencia.findAll({
-      raw: true,
       where: { fecha: fechaBd },
     });
 
     const idFechaAsistencia = parseInt(getAsistenciaId.map((item) => item.id));
-
     //para obtener trabajadores que tengan asistencia el dia actual
     const trabajadorTieneAsistencia = await trabajadorAsistencia.findAll({
       attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-      where: { trabajador_id: filtereDni, asistencia_id: idFechaAsistencia },
+      where: { trabajador_id: dni, asistencia_id: idFechaAsistencia },
     });
 
     let hora_bd = idAsistencia.map((item) => item.hora_ingreso).toString();
@@ -143,44 +139,30 @@ const getExcelAsistencia = async (req, res, next) => {
       };
     });
 
-    const updateDnis =
-      trabajadorTieneAsistencia.length > 0 &&
-      trabajadorTieneAsistencia.map((item) => item.trabajador_id);
-
-    const updateAsistencia = asistenciasFechaActualExcel.filter((item1) =>
-      trabajadorTieneAsistencia.some(
-        (item2) => item1.trabajador_id === item2.dni
-      )
-    );
-
-    // asistencia de solo trabajadores que existen en la bd si no tienen asistencia(crear)
-    const update = updateAsistencia.filter((item1) =>
-      filterContrato.some((item2) => item1.trabajador_id === item2.dni)
-    );
-
     // asistencia de solo trabajadores que existen en la bd si no tienen asistencia(crear)
     const create = asistenciasFechaActualExcel.filter((item1) =>
       filterContrato.some((item2) => item1.trabajador_id === item2.dni)
     );
 
-    if (update.length > 0) {
-      const asistenciaTrabajadores = await trabajadorAsistencia.update(update, {
-        where: { trabajador_id: updateDnis },
-      });
-    }
+    console.log(create);
 
     if (create.length > 0) {
       const asistenciaTrabajadores = await trabajadorAsistencia.bulkCreate(
-        create
+        create,
+        {
+          updateOnDuplicate: ["asistencia", "hora_ingreso", "tarde"],
+        }
       );
+      return res.status(200).json({
+        msg: "Se registraron las asistencias exitosamente!",
+        status: 200,
+      });
+    } else {
+      return res.status(500).json({
+        msg: "No se registro ninguna asistencia.",
+        status: 500,
+      });
     }
-
-    return res.status(200).json({
-      msg: "Se registraron las asistencias exitosamente!",
-      status: 200,
-    });
-
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({
@@ -334,25 +316,44 @@ const postAsistencia = async (req, res, next) => {
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
   }
 };
-
 const postTrabajadorAsistencia = async (req, res, next) => {
   const info = {
     asistencia_id: req.body.asistencia_id,
     trabajador_id: req.body.trabajador_id,
     asistencia: req.body.asistencia,
-    // observacion: req.body.observacion,
   };
 
   try {
     const getAsistencia = await trabajadorAsistencia.findOne({
       raw: true,
       attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-
       where: {
         asistencia_id: info.asistencia_id,
         trabajador_id: info.trabajador_id,
       },
     });
+
+    const asistenciaData = await asistencia.findOne({
+      where: { id: info.asistencia_id },
+    });
+
+    if (!asistenciaData) {
+      return res
+        .status(404)
+        .json({ msg: "La asistencia no existe", status: 404 });
+    }
+
+    const fechaAsistencia = new Date(asistenciaData.fecha);
+    const fechaActual = new Date();
+    const diferenciaDias =
+      (fechaActual.getTime() - fechaAsistencia.getTime()) / (1000 * 3600 * 24);
+
+    if (diferenciaDias > 2) {
+      return res.status(403).json({
+        msg: "No se puede registrar la asistencia, han pasado más de 2 días.",
+        status: 403,
+      });
+    }
 
     if (getAsistencia) {
       const updateAsistencia = await trabajadorAsistencia.update(info, {

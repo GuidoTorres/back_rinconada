@@ -58,6 +58,12 @@ const getContratoById = async (req, res, next) => {
           return {
             id: data?.contrato_id,
             codigo_contrato: data?.contrato_id,
+            fecha_inicio_tabla: dayjs(data?.contrato?.fecha_inicio)?.format(
+              "DD-MM-YYYY"
+            ),
+            fecha_fin_tabla: dayjs(data?.contrato?.fecha_fin)?.format(
+              "DD-MM-YYYY"
+            ),
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),
@@ -106,8 +112,10 @@ const getContratoAsociacionById = async (req, res, next) => {
     const format = user.map((item) => {
       return {
         id: item?.id,
+        fecha_inicio_tabla: dayjs(item?.fecha_inicio)?.format("DD-MM-YYYY"),
         fecha_inicio: dayjs(item?.fecha_inicio)?.format("YYYY-MM-DD"),
-        fecha_inicio: dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
+        fecha_fin_tabla: dayjs(item?.fecha_fin)?.format("DD-MM-YYYY"),
+        fecha_fin: dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
         codigo_contrato: item?.codigo_contrato,
         tipo_contrato: item?.tipo_contrato,
         periodo_trabajo: item?.periodo_trabajo,
@@ -174,8 +182,8 @@ const postContrato = async (req, res, next) => {
 
           const createContraPago = await trabajador_contrato.create(contraPago);
 
-          let volquete = parseInt(req.body?.volquete);
-          let teletran = parseInt(req.body?.teletran);
+          let volquete = parseInt(req.body?.volquete) || 0;
+          let teletran = parseInt(req.body?.teletran) || 0;
           let total = parseInt(volquete) * 4 + parseInt(teletran);
 
           const ttransInfo = {
@@ -230,33 +238,33 @@ const postContrato = async (req, res, next) => {
 // terminar
 const postContratoAsociacion = async (req, res, next) => {
   let info = {
-    fecha_inicio: req.body.fecha_inicio,
-    codigo_contrato: req.body.codigo_contrato,
-    tipo_contrato: req.body.tipo_contrato,
-    recomendado_por: req.body.recomendado_por,
-    cooperativa: req.body.cooperativa,
-    condicion_cooperativa: req.body.condicion_cooperativa,
-    periodo_trabajo: req.body.periodo_trabajo,
-    fecha_fin: req.body.fecha_fin,
-    gerencia: req.body.gerencia,
-    area: req.body.area,
-    jefe_directo: req.body.jefe_directo,
-    base: req.body.base,
-    termino_contrato: req.body.termino_contrato,
-    nota_contrato: req.body.nota_contrato,
-    puesto: req.body.puesto,
-    campamento_id: req.body.campamento_id,
-    asociacion_id: req.body.asociacion_id,
-    evaluacion_id: req.body.evaluacion_id,
-    volquete: req.body.volquete,
-    teletran: req.body.teletran,
+    fecha_inicio: dayjs(req?.body?.fecha_inicio)?.format("YYYY-MM-DD"),
+    codigo_contrato: req?.body?.codigo_contrato,
+    tipo_contrato: req?.body?.tipo_contrato,
+    recomendado_por: req?.body?.recomendado_por,
+    cooperativa: req?.body?.cooperativa,
+    condicion_cooperativa: req?.body?.condicion_cooperativa,
+    periodo_trabajo: req?.body?.periodo_trabajo,
+    fecha_fin: dayjs(req?.body?.fecha_fin)?.format("YYYY-MM-DD"),
+    gerencia: req?.body?.gerencia,
+    area: req?.body?.area,
+    jefe_directo: req?.body?.jefe_directo,
+    base: req?.body?.base,
+    termino_contrato: req?.body?.termino_contrato,
+    nota_contrato: req?.body?.nota_contrato,
+    puesto: req?.body?.puesto,
+    campamento_id: req?.body?.campamento_id,
+    asociacion_id: req?.body?.asociacion_id,
+    evaluacion_id: req?.body?.evaluacion_id,
+    volquete: req?.body?.volquete,
+    teletran: req?.body?.teletran,
     suspendido: false,
     finalizado: false,
   };
   try {
     if (req.body.trabajadores.length > 0) {
       const post = await contrato.create(info);
-      const contraPago = req.body.trabajadores.map((item) => {
+      const contraPago = req?.body?.trabajadores?.map((item) => {
         return {
           trabajador_dni: item,
           contrato_id: post.id,
@@ -290,8 +298,8 @@ const postContratoAsociacion = async (req, res, next) => {
       return res
         .status(200)
         .json({ msg: "Evaluación de trabajadores incompletas!", status: 401 });
-      }
-      next();
+    }
+    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo crear el contrato.", status: 500 });
@@ -344,7 +352,9 @@ const deleteContrato = async (req, res, next) => {
       where: { contrato_id: id },
     });
     let remove = await contrato.destroy({ where: { id: id } });
-    return res.status(200).json({ msg: "Contrato eliminado con éxito", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Contrato eliminado con éxito", status: 200 });
     next();
   } catch (error) {
     console.log(error);

@@ -361,6 +361,9 @@ const trabajadorAsistencia = sequelize.define(
     observacion: DataTypes.STRING,
     hora_ingreso: DataTypes.STRING,
     tarde: DataTypes.STRING,
+    firma_gerente: DataTypes.STRING,
+    firma_jefe: DataTypes.STRING,
+    foto: DataTypes.STRING,
   },
   {
     tableName: "trabajador_asistencia",

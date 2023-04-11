@@ -34,11 +34,15 @@ const getAlmacenById = async (req, res, next) => {
 const postAlmacen = async (req, res, next) => {
   try {
     const post = await almacen.create(req.body);
-    return res.status(200).json({ msg: "Almacén registrado con éxito!", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Almacén registrado con éxito!", status: 200 });
 
     next();
   } catch (error) {
-    res.status(500).json({ msg: "No se pudo registrar el almacén.", status: 500 });
+    res
+      .status(500)
+      .json({ msg: "No se pudo registrar el almacén.", status: 500 });
   }
 };
 
@@ -62,7 +66,9 @@ const deleteAlmacen = async (req, res, next) => {
   let id = req.params.id;
   try {
     let camp = await almacen.destroy({ where: { id: id } });
-    return res.status(200).json({ msg: "Almacén eliminado con éxito!", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Almacén eliminado con éxito!", status: 200 });
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
@@ -74,12 +80,10 @@ const getProductsByAlmacen = async (req, res, next) => {
     let get = await producto.findAll({
       where: { almacen_id: id },
       attributes: { exclude: ["categoria_id"] },
-      include:[{model:unidad}, {model:categoria}]
+      include: [{ model: unidad }, { model: categoria }],
     });
-    const formatData = get.map(item => {
-
-      return{
-
+    const formatData = get.map((item) => {
+      return {
         id: item?.id,
         codigo: item?.codigo,
         codigo_interno: item?.codigo_interno,
@@ -90,17 +94,15 @@ const getProductsByAlmacen = async (req, res, next) => {
         nombre: item?.nombre,
         stock: item?.stock,
         unidad_id: item?.unidad?.id,
-        unidad:item?.unidad?.nombre,
+        unidad: item?.unidad?.nombre,
         precio: item?.precio,
         fecha: item?.fecha,
         observacion: item?.observacion,
         costo_total: item?.costo_total,
         categoria_id: item?.categorium?.id,
-        categoria: item?.categorium?.descripcion
-
-      }
-
-    })
+        categoria: item?.categorium?.descripcion,
+      };
+    });
     return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
@@ -116,10 +118,8 @@ const almacenTrasferencia = async (req, res, next) => {
     almacen_origen: req.body.at(-1).almacen_origen,
     almacen_destino: req.body.at(-1).almacen_destino,
     estado_origen: "Pendiente",
-    estado_destino: "Pendiente"
-
+    estado_destino: "Pendiente",
   };
-
 
   try {
     const postTransferencia = await transferencia.create(transferenciaFormat);
@@ -132,14 +132,13 @@ const almacenTrasferencia = async (req, res, next) => {
         transferencia_id: postTransferencia.id,
         producto_destino: item.producto_destino,
         stock_origen: item.stock_origen,
-        stock_destino: item.stock_destino
+        stock_destino: item.stock_destino,
       };
     });
 
     const postTransferenciaAlmacen = await transferencia_producto.bulkCreate(
       transferenciaAlmacen
     );
-
 
     return res
       .status(200)
