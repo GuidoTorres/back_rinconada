@@ -182,7 +182,7 @@ const postContrato = async (req, res, next) => {
 
           const createContraPago = await trabajador_contrato.create(contraPago);
 
-          let volquete = parseInt(req.body?.volquete) || 0;
+          let volquete = parseInt(req.body?.volquete) || 0;
           let teletran = parseInt(req.body?.teletran) || 0;
           let total = parseInt(volquete) * 4 + parseInt(teletran);
 
@@ -278,9 +278,9 @@ const postContratoAsociacion = async (req, res, next) => {
         }
       );
       if (post) {
-        let volquete = parseInt(req.body?.volquete);
-        let teletran = parseInt(req.body?.teletran);
-        let total = parseInt(volquete) * 4 + parseInt(teletran);
+        let volquete = parseFloat(req.body?.volquete);
+        let teletran = parseFloat(req.body?.teletran);
+        let total = parseFloat(volquete) * 4 + parseFloat(teletran);
 
         const ttransInfo = {
           volquete: volquete,
@@ -292,7 +292,6 @@ const postContratoAsociacion = async (req, res, next) => {
         return res
           .status(200)
           .json({ msg: "Contrato creado con éxito!", status: 200 });
-        next();
       }
     } else {
       return res
@@ -309,24 +308,28 @@ const postContratoAsociacion = async (req, res, next) => {
 const updateContrato = async (req, res, next) => {
   let id = req.params.id;
 
-  console.log(req.body);
   try {
     const put = await contrato.update(req.body, {
       where: { id: id },
     });
 
     if (req?.body?.volquete && req?.body?.teletran) {
-      let volquete = parseInt(req.body?.volquete);
-      let teletran = parseInt(req.body?.teletran);
-      let total = parseInt(volquete) * 4 + parseInt(teletran);
+      let volquete = parseFloat(req.body?.volquete);
+      let teletran = parseFloat(req.body?.teletran);
+      let total = parseFloat(volquete) * 4 + parseFloat(teletran);
 
       const ttransInfo = {
-        volquete: volquete,
-        total: total,
-        saldo: total,
-        teletrans: teletran,
+        volquete: volquete.toString(),
+        total: total.toString(),
+        saldo: total.toString(),
+        teletrans: teletran.toString(),
         contrato_id: id,
       };
+      console.log(volquete);
+      console.log(teletran);
+      console.log(total);
+
+      console.log(ttransInfo);
       const createtTrans = await teletrans.update(ttransInfo, {
         where: { contrato_id: id },
       });
@@ -334,8 +337,7 @@ const updateContrato = async (req, res, next) => {
 
     return res
       .status(200)
-      .json({ msg: "Contrato actualizado con éxito", status: 200 });
-    next();
+      .json({ msg: "Contrato actualizado con éxito!", status: 200 });
   } catch (error) {
     console.log(error);
     res
@@ -365,15 +367,25 @@ const deleteContrato = async (req, res, next) => {
 };
 
 const getLastId = async (req, res, next) => {
-  try {
-    const get = await contrato.findOne({
-      attributes: { exclude: ["contrato_id"] },
-      order: [["id", "DESC"]],
-    });
+  const dniTrabajador = req.params.id;
 
-    const getId = get ? get?.id + 1 : 1;
-    return res.status(200).json({ data: getId });
-    next();
+  try {
+    const contratos = await trabajador_contrato.findAll({
+      where: { trabajador_dni: dniTrabajador },
+      include: [
+        {
+          model: contrato,
+          order: [["id", "DESC"]],
+          attributes: { exclude: ["contrato_id"] },
+        },
+      ],
+    });
+    console.log(contratos?.at(0)?.contrato.codigo_contrato);
+    const nuevoId =
+      contratos.length > 0
+        ? parseInt(contratos?.at(0)?.contrato.codigo_contrato) + 1
+        : 1;
+    return res.status(200).json({ data: nuevoId });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo obtener", status: 500 });

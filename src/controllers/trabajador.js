@@ -133,7 +133,6 @@ const getTrabajadorById = async (req, res, next) => {
     });
 
     return res.status(200).json({ data: get });
-    next();
   } catch (error) {
     res.status(500).json();
   }
@@ -183,13 +182,11 @@ const postTrabajador = async (req, res, next) => {
       return res
         .status(200)
         .json({ msg: "El trabajador ya esta registrado.", status: 403 });
-      next();
     } else {
       const nuevoTrabajador = await trabajador.create(info);
       return res
         .status(200)
         .json({ msg: "Trabajador registrado con éxito!", status: 200 });
-      next();
     }
   } catch (error) {
     console.log(error);
@@ -198,7 +195,6 @@ const postTrabajador = async (req, res, next) => {
       .json({ msg: "No se pudo crear el trabajador.", status: 500 });
   }
 };
-
 
 const postMultipleTrabajador = async (req, res, next) => {
   try {
@@ -371,7 +367,6 @@ const updateTrabajador = async (req, res, next) => {
     return res
       .status(200)
       .json({ msg: "Trabajador actualizado con éxito!", status: 200 });
-    next();
   } catch (error) {
     console.log(error);
     res

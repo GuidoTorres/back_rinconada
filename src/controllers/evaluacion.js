@@ -42,7 +42,9 @@ const getEvaluacionById = async (req, res, next) => {
       return {
         evaluacion_id: item?.id,
         trabajador_id: item?.trabajador?.id,
-        fecha_evaluacion_tabla: dayjs(item?.fecha_evaluacion).format("DD-MM-YYYY"),
+        fecha_evaluacion_tabla: dayjs(item?.fecha_evaluacion).format(
+          "DD-MM-YYYY"
+        ),
         fecha_evaluacion: dayjs(item?.fecha_evaluacion),
         evaluacion_laboral: item?.evaluacion_laboral,
         finalizado: item?.finalizado,
@@ -148,21 +150,19 @@ const postEvaluacion = async (req, res, next) => {
         msg: "Ingrese una fecha para registrar la evaluación.",
         status: 500,
       });
-    } else {
-      if (filter.length > 0) {
-        return res.status(500).json({
-          msg: "No se pudo crear la evaluación, el trabajador tiene una evaluación activa.",
-          status: 500,
-        });
-      } else {
-        const post = await evaluacion.create(info);
-        return res
-          .status(200)
-          .json({ msg: "Evaluación creada con éxito!", status: 200 });
-      }
     }
 
-    next();
+    if (filter.length > 0) {
+      return res.status(500).json({
+        msg: "No se pudo crear la evaluación, el trabajador tiene una evaluación activa.",
+        status: 500,
+      });
+    }
+
+    const post = await evaluacion.create(info);
+    return res
+      .status(200)
+      .json({ msg: "Evaluación creada con éxito!", status: 200 });
   } catch (error) {
     console.log(error);
     res
@@ -180,9 +180,9 @@ const updateEvaluacion = async (req, res, next) => {
     });
     return res
       .status(200)
-      .json({ msg: "Evaluacion actualizada con éxito!", status: 200 });
-    next();
+      .json({ msg: "Evaluación actualizada con éxito!", status: 200 });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: error, status: 500 });
   }
 };

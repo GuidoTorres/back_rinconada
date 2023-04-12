@@ -438,8 +438,7 @@ const getPlanillaAprobacion = async (req, res, next) => {
         }
       }
     });
-    const concat = aprobacionFilter.concat(asociacionData).flat();
-    console.log(asociacionData);
+    const concat = asociacionData.concat(aprobacionFilter).flat();
     return res.status(200).json({ data: concat });
   } catch (error) {
     res.status(500).json();
