@@ -346,6 +346,7 @@ const uploadFile = async (req, res, next) => {
         .json({ msg: "No se pudo registrar a los trabajadores!", status: 500 });
     }
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ msg: "No se pudo registrar a los trabajadores!", status: 500 });

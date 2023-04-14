@@ -92,6 +92,29 @@ const trabajador_contrato = sequelize.define(
   }
 );
 
+const aprobacion_contrato_pago = sequelize.define(
+  "aprobacion_contrato_pago",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    firma_jefe: DataTypes.STRING,
+    firma_gerente: DataTypes.STRING,
+    huella: DataTypes.STRING,
+    estado: DataTypes.BOOLEAN,
+    contrato_id: DataTypes.INTEGER,
+    fecha: DataTypes.STRING,
+    subarray_id: DataTypes.STRING,
+  },
+  {
+    tableName: "aprobacion_contrato_pago",
+    timestamp: false,
+  }
+);
+
 const rol = sequelize.define(
   "rol",
   {
@@ -1206,6 +1229,9 @@ pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
 contrato_pago.hasMany(pago_asociacion, { foreignKey: "contrato_pago_id" });
 pago_asociacion.hasMany(contrato_pago, { foreignKey: "contrato_pago_id" });
 
+contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id" });
+contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
+
 module.exports = {
   sequelize,
   DataTypes,
@@ -1250,4 +1276,5 @@ module.exports = {
   destino_pago,
   pago_asociacion,
   trabajador_contrato,
+  aprobacion_contrato_pago,
 };

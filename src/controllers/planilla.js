@@ -11,6 +11,7 @@ const {
   contrato_pago,
   pago_asociacion,
   trabajador_contrato,
+  aprobacion_contrato_pago,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -114,13 +115,14 @@ const getPlanilla = async (req, res, next) => {
       };
     });
 
-    const mapTrabajador = filterTrabajador.map((item) => {
+    const mapTrabajador = filterTrabajador.map((item, i) => {
       const contratoFiltrado = item?.trabajador_contratos?.filter(
         (data) => data.contrato.finalizado === false
       );
       return {
         id: item?.dni,
         dni: item?.dni,
+        index: i + 1,
         codigo_trabajador: item?.codigo_trabajador,
         fecha_nacimiento: item?.fecha_nacimiento,
         telefono: item?.telefono,
@@ -287,7 +289,10 @@ const getPlanillaAprobacion = async (req, res, next) => {
               where: {
                 [Op.and]: [{ finalizado: { [Op.not]: true } }],
               },
-              include: [{ model: teletrans }],
+              include: [
+                { model: teletrans },
+                { model: aprobacion_contrato_pago },
+              ],
             },
           ],
         },
@@ -307,11 +312,12 @@ const getPlanillaAprobacion = async (req, res, next) => {
           where: {
             finalizado: false,
           },
-          include: [{ model: teletrans }],
+          include: [{ model: teletrans }, { model: aprobacion_contrato_pago }],
         },
       ],
     });
     const asociacionData = asociaciones.map((asociacion) => {
+      let subarrayId = 1;
       return asociacion.contratos.flatMap((contrato) => {
         let fechaInicio = dayjs(contrato.fecha_inicio, [
           "YYYY-MM-DD",
@@ -323,27 +329,43 @@ const getPlanillaAprobacion = async (req, res, next) => {
         ]).toDate();
         let fechaLimite = dayjs(fechaInicio).add(14, "day").toDate();
         const subarrays = [];
-    
+
         if (fechaInicio.getTime() > fechaFin.getTime()) {
           return subarrays;
         }
-    
-        while (fechaLimite.getTime() <= fechaFin.getTime()) {
-          if (dayjs(fechaLimite).diff(fechaInicio, 'day') % 15 === 0) {
+
+        let nextStartDate = fechaInicio;
+        while (nextStartDate.getTime() <= fechaFin.getTime()) {
+          if (dayjs().isAfter(fechaLimite)) {
             subarrays.push({
+              subArray_id: subarrayId,
               nombre: asociacion.nombre,
-              fecha_inicio: dayjs(fechaInicio).format("YYYY-MM-DD"),
-              fecha_fin: dayjs(fechaLimite).format("YYYY-MM-DD"),
-              asistencia: 15,
+              fecha_inicio: dayjs(nextStartDate).format("DD-MM-YYYY"),
+              fecha_fin: dayjs(fechaLimite).format("DD-MM-YYYY"),
+              asistencia: dayjs(fechaLimite).diff(nextStartDate, "day") + 1,
               volquete: contrato?.teletrans?.at(-1)?.volquete,
               teletrans: contrato?.teletrans?.at(-1)?.teletrans,
               total: contrato?.teletrans?.at(-1)?.total,
+              contrato_id: contrato?.id,
+              aprobacion_id: contrato?.aprobacion_contrato_pagos
+                ?.filter((item) => item.subarray_id == subarrayId)
+                .at(0)?.id,
+              firma_jefe: contrato?.aprobacion_contrato_pagos
+                ?.filter((item) => item.subarray_id == subarrayId)
+                .at(0)?.firma_jefe,
+              firma_gerente: contrato?.aprobacion_contrato_pagos
+                ?.filter((item) => item.subarray_id == subarrayId)
+                .at(0)?.firma_gerente,
             });
+            nextStartDate = dayjs(fechaLimite).add(1, "day").toDate();
+            fechaLimite = dayjs(nextStartDate).add(14, "day").toDate();
+            subarrayId++;
+          } else {
+            nextStartDate = fechaLimite;
+            fechaLimite = dayjs(fechaLimite).add(15, "day").toDate();
           }
-          fechaInicio.setDate(fechaLimite.getDate() + 1);
-          fechaLimite.setDate(fechaLimite.getDate() + 15);
         }
-    
+
         return subarrays;
       });
     });
@@ -355,7 +377,7 @@ const getPlanillaAprobacion = async (req, res, next) => {
     );
 
     const aprobacionFilter = [];
-
+    let subarrayId = 1;
     filterContrato.forEach((trabajador) => {
       const asistencias = trabajador?.trabajador_asistencia?.filter(
         (asistencia) => asistencia.asistencia === "Asistio"
@@ -391,6 +413,7 @@ const getPlanillaAprobacion = async (req, res, next) => {
               });
 
               aprobacionFilter.push({
+                subArray_id: subarrayId,
                 nombre:
                   trabajador.apellido_paterno +
                   " " +
@@ -409,6 +432,7 @@ const getPlanillaAprobacion = async (req, res, next) => {
                 total:
                   trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
                     ?.total,
+                contrato_id: trabajador.trabajador_contratos[0].contrato?.id,
                 trabajador_asistencia: subAsistencias,
                 asistencia: contador,
                 asistencia_completa: asistencias.map((item) => {
@@ -420,11 +444,24 @@ const getPlanillaAprobacion = async (req, res, next) => {
                     observacion: item?.observacion,
                   };
                 }),
+                aprobacion_id:
+                  trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.id,
+                firma_jefe:
+                  trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.firma_jefe,
+                firma_gerente:
+                  trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.firma_gerente,
               });
               contador = 0;
               subAsistencias = [];
               fechaInicio = null;
               fechaFin = null;
+              subarrayId++;
             }
           } else {
             // Ignorar asistencias que no son "Asistió"
@@ -441,6 +478,7 @@ const getPlanillaAprobacion = async (req, res, next) => {
     const concat = asociacionData.concat(aprobacionFilter).flat();
     return res.status(200).json({ data: concat });
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };
@@ -916,7 +954,10 @@ const getTareoTrabajador = async (req, res, next) => {
               where: {
                 [Op.and]: [{ finalizado: { [Op.not]: true } }],
               },
-              include: [{ model: teletrans }],
+              include: [
+                { model: teletrans },
+                { model: aprobacion_contrato_pago },
+              ],
             },
           ],
         },
@@ -935,6 +976,7 @@ const getTareoTrabajador = async (req, res, next) => {
     );
 
     const aprobacionFilter = [];
+    let subarrayId = 1;
 
     filterContrato.forEach((trabajador) => {
       const asistencias = trabajador?.trabajador_asistencia?.filter(
@@ -971,17 +1013,19 @@ const getTareoTrabajador = async (req, res, next) => {
               });
 
               aprobacionFilter.push({
+                subarray_id: subarrayId,
                 nombre:
-                  trabajador.apellido_paterno +
+                  trabajador?.apellido_paterno +
                   " " +
-                  trabajador.apellido_materno +
+                  trabajador?.apellido_materno +
                   " " +
-                  trabajador.nombre,
-                celular: trabajador.telefono,
-                fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
-                fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
+                  trabajador?.nombre,
+                celular: trabajador?.telefono,
+                dni: trabajador?.dni,
+                fecha_inicio: dayjs(fechaInicio)?.format("DD-MM-YYYY"),
+                fecha_fin: dayjs(fechaFin)?.format("DD-MM-YYYY"),
                 volquete:
-                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
+                  trabajador?.trabajador_contratos[0]?.contrato?.teletrans?.at(-1)
                     ?.volquete,
                 teletran:
                   trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
@@ -990,6 +1034,7 @@ const getTareoTrabajador = async (req, res, next) => {
                   trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
                     ?.total,
                 trabajador_asistencia: subAsistencias,
+                cargo:trabajador?.trabajador_contratos[0]?.contrato?.puesto,
                 asistencia: contador,
                 asistencia_completa: asistencias.map((item) => {
                   return {
@@ -1000,11 +1045,31 @@ const getTareoTrabajador = async (req, res, next) => {
                     observacion: item?.observacion,
                   };
                 }),
+                estado:
+                  trabajador?.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.estado,
+                aprobacion_id:
+                  trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item?.subarray_id == subarrayId)
+                    .at(0)?.id,
+                firma_jefe:
+                  trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.firma_jefe,
+                firma_gerente:
+                  trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.firma_gerente,
+                foto: trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                  ?.filter((item) => item.subarray_id == subarrayId)
+                  .at(0)?.huella,
               });
               contador = 0;
               subAsistencias = [];
               fechaInicio = null;
               fechaFin = null;
+              subarrayId++;
             }
           } else {
             // Ignorar asistencias que no son "Asistió"
@@ -1298,39 +1363,62 @@ const updatepagoAsociacion = async (req, res, next) => {
 
 const updateTrabajadorAsistencia = async (req, res, next) => {
   let id = req.params.id;
+  const {
+    contrato_id,
+    firma_jefe,
+    firma_gerente,
+    huella,
+    tipo,
+    estado,
+    subarray_id,
+  } = req.body;
 
   try {
-    const asistenciaUpdate = await trabajadorAsistencia.findOne({
-      where: { id: id },
-      attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-    });
-    if (
-      asistenciaUpdate.firma_jefe !== null &&
-      asistenciaUpdate.firma_gerente !== null
-    ) {
-      return res.status(400).json({
-        msg: "No se puede editar, ya fue aprobado por el jefe y el gerente.",
-        status: 400,
+    let aprobacionData;
+
+    if (id === "0") {
+      // Si id es 0, crear una nueva aprobación
+      aprobacionData = await aprobacion_contrato_pago.create({
+        contrato_id,
+        tipo,
+        firma_jefe,
+        firma_gerente,
+        estado,
+        subarray_id,
       });
+
+      return res.status(200).json({
+        msg: "Aprobación actualizada con éxito!",
+        status: 200,
+      });
+    } else {
+      // Si id es distinto de 0, actualizar una aprobación existente
+      aprobacionData = await aprobacion_contrato_pago.findOne({
+        where: { id: id },
+      });
+
+      if (aprobacionData) {
+        // Si ya existe, actualizar los valores
+        aprobacionData.firma_jefe = firma_jefe;
+        aprobacionData.firma_gerente = firma_gerente;
+        aprobacionData.estado = estado;
+        aprobacionData.subarray_id = subarray_id;
+
+        await aprobacionData.save();
+
+        return res.status(200).json({
+          msg: "Aprobación actualizada con éxito!",
+          status: 200,
+        });
+      }
     }
 
-    const aprobacion = await trabajadorAsistencia.update(req.body, {
-      where: { id: id },
+    return res.status(404).json({
+      msg: "No se actualizar.",
+      status: 404,
     });
-
-    let estado = { estado: false };
-    if (
-      asistenciaUpdate.firma_jefe !== null &&
-      asistenciaUpdate.firma_gerente !== null
-    ) {
-      estado.estado = true;
-    }
-
-    await trabajadorAsistencia.update(estado, { where: { id: id } });
-
-    return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
   } catch (error) {
-    res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
+    res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
 
@@ -1341,7 +1429,7 @@ const updateHuella = async (req, res, next) => {
     if (req.file && req?.body?.huella !== undefined && req.body.huella !== "") {
       const fileDir = require("path").resolve(__dirname, `./upload/images/`);
 
-      const editFotoLink = req.body.foto.split("/").at(-1);
+      const editFotoLink = req.body.huella.split("/").at(-1);
       fs.unlink("./upload/images/" + editFotoLink, (err) => {
         if (err) {
           console.log(err);
@@ -1351,15 +1439,15 @@ const updateHuella = async (req, res, next) => {
       });
     }
     info = {
-      foto: req.file
+      huella: req.file
         ? process.env.LOCAL_IMAGE + req.file.filename
-        : req.body.foto,
+        : req.body.huella,
+      estado: true,
     };
-    const putAsistencia = await trabajadorAsistencia.update(info, {
+    const putAsistencia = await aprobacion_contrato_pago.update(info, {
       where: { id: id },
     });
     return res.status(200).json({ msg: "Registrado con éxito!", status: 200 });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
