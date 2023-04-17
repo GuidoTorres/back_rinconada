@@ -32,9 +32,14 @@ const getContratoById = async (req, res, next) => {
         {
           model: trabajador_contrato,
           include: [
-            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+            {
+              model: contrato,
+              finalizado: { [Op.not]: true },
+              attributes: { exclude: ["contrato_id"] },
+            },
           ],
         },
+        { model: evaluacion, finalizado: { [Op.not]: true } },
       ],
     });
 
@@ -71,9 +76,9 @@ const getContratoById = async (req, res, next) => {
             codigo_contrato: data?.contrato?.codigo_contrato,
             tipo_contrato: data?.contrato?.tipo_contrato,
             periodo_trabajo: data?.contrato?.periodo_trabajo,
-            gerencia: data?.contrato?.gerencia,
-            area: data?.contrato?.area,
-            puesto: data?.contrato?.puesto,
+            gerencia_id: data?.contrato?.gerencia_id,
+            area_id: data?.contrato?.area_id,
+            puesto_id: data?.contrato?.puesto_id,
             jefe_directo: data?.contrato?.jefe_directo,
             base: data?.contrato?.base,
             termino_contrato: data?.contrato?.termino_contrato,
@@ -89,6 +94,7 @@ const getContratoById = async (req, res, next) => {
             tareo: data?.contrato?.tareo,
           };
         }),
+        evaluacion: item.evaluacions.at(0)
       };
     });
 
@@ -246,13 +252,13 @@ const postContratoAsociacion = async (req, res, next) => {
     condicion_cooperativa: req?.body?.condicion_cooperativa,
     periodo_trabajo: req?.body?.periodo_trabajo,
     fecha_fin: dayjs(req?.body?.fecha_fin)?.format("YYYY-MM-DD"),
-    gerencia: req?.body?.gerencia,
-    area: req?.body?.area,
+    gerencia_id: req?.body?.gerencia_id,
+    area_id: req?.body?.area_id,
     jefe_directo: req?.body?.jefe_directo,
     base: req?.body?.base,
     termino_contrato: req?.body?.termino_contrato,
     nota_contrato: req?.body?.nota_contrato,
-    puesto: req?.body?.puesto,
+    puesto_id: req?.body?.puesto_id,
     campamento_id: req?.body?.campamento_id,
     asociacion_id: req?.body?.asociacion_id,
     evaluacion_id: req?.body?.evaluacion_id,

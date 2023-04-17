@@ -21,13 +21,19 @@ const getAsociacion = async (req, res, next) => {
       include: [
         {
           model: contrato,
-          attributes: { exclude: "contrato_id" },
-          include: [{ model: campamento }],
+          attributes: { exclude: ["contrato_id", "campamento_id"] },
+          include: [
+            { model: campamento, attributes: { exclude: ["campamento_id"] } },
+          ],
         },
         {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
-          include: [{ model: evaluacion }],
+          include: [
+            {
+              model: evaluacion,
+            },
+          ],
         },
       ],
     });
@@ -39,9 +45,9 @@ const getAsociacion = async (req, res, next) => {
         codigo: item?.codigo,
         tipo: item?.tipo,
         campamento: item.contratos
-          .map((data) => data.campamento.nombre)
+          .map((data) => data?.campamento?.nombre)
           .toString(),
-        contrato: item.contratos
+        contrato: item?.contratos
           .map((data) => {
             return {
               id: data.id,
@@ -101,7 +107,6 @@ const getAsociacion = async (req, res, next) => {
     });
 
     return res.status(200).json({ data: formatData });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();

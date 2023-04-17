@@ -179,11 +179,11 @@ const getTrabajadorAsistencia = async (req, res, next) => {
     const get = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
       include: [
-        // {
-        //   model: trabajadorAsistencia,
-        //   // where: { asistencia_id: id },
-        //   attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-        // },
+        {
+          model: trabajadorAsistencia,
+          // where: { asistencia_id: id },
+          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+        },
         {
           model: trabajador_contrato,
           include: [
@@ -348,7 +348,7 @@ const postTrabajadorAsistencia = async (req, res, next) => {
     const diferenciaDias =
       (fechaActual.getTime() - fechaAsistencia.getTime()) / (1000 * 3600 * 24);
 
-    if (diferenciaDias > 2) {
+    if (diferenciaDias > 30) {
       return res.status(403).json({
         msg: "No se puede registrar la asistencia, han pasado más de 2 días.",
         status: 403,

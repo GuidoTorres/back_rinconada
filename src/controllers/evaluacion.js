@@ -51,13 +51,14 @@ const getEvaluacionById = async (req, res, next) => {
         antecedentes: item?.antecedentes,
         capacitacion_gema: item?.capacitacion_gema,
         capacitacion_sso: item?.capacitacion_sso,
-        area: item?.area,
-        campamento: item?.campamento,
+        gerencia_id: item?.gerencia_id,
+        area_id: item?.area_id,
+        puesto_id: item?.puesto_id,
+        campamento_id: item?.campamento_id,
         diabetes: item?.diabetes,
         emo: item?.emo,
         imc: item?.imc,
         presion_arterial: item?.presion_arterial,
-        puesto: item?.puesto,
         pulso: item?.pulso,
         saturacion: item?.saturacion,
         temperatura: item?.temperatura,
@@ -92,8 +93,6 @@ const getEvaluacionById = async (req, res, next) => {
       };
     });
     return res.status(200).json({ data: obj });
-
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json(error);
@@ -103,7 +102,6 @@ const getEvaluacionById = async (req, res, next) => {
 const postEvaluacion = async (req, res, next) => {
   let info = {
     fecha_evaluacion: req?.body?.fecha_evaluacion,
-    puesto: req?.body?.puesto,
     capacitacion_sso: req?.body?.capacitacion_sso,
     capacitacion_gema: req?.body?.capacitacion_gema,
     evaluacion_laboral: req?.body?.evaluacion_laboral,
@@ -133,8 +131,10 @@ const postEvaluacion = async (req, res, next) => {
     recursos_humanos: req?.body?.recursos_humanos,
     recursos_humanos_observacion: req?.body?.recursos_humanos_observacion,
     finalizado: req?.body?.finalizado,
-    area: req?.body?.area,
-    campamento: req?.body?.campamento,
+    gerencia_id: req?.body?.gerencia_id,
+    area_id: req?.body?.area_id,
+    puesto_id: req?.body?.puesto_id,
+    campamento_id: req?.body?.campamento_id,
   };
 
   try {
@@ -175,6 +175,7 @@ const updateEvaluacion = async (req, res, next) => {
   let id = req.params.id;
 
   try {
+    console.log(req.body);
     const put = await evaluacion.update(req.body, {
       where: { id: id },
     });

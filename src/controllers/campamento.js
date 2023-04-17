@@ -2,10 +2,11 @@ const { campamento } = require("../../config/db");
 
 const getCampamento = async (req, res, next) => {
   try {
-    const all = await campamento.findAll();
+    const all = await campamento.findAll({attributes: { exclude: ["campamento_id"] },});
     return res.status(200).json({ data: all });
     next();
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };

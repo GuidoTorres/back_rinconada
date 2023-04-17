@@ -160,7 +160,7 @@ const evaluacion = sequelize.define(
       allowNull: false,
     },
     fecha_evaluacion: DataTypes.DATE,
-    puesto: DataTypes.STRING,
+    puesto_id: DataTypes.INTEGER,
     capacitacion_sso: DataTypes.INTEGER,
     capacitacion_gema: DataTypes.INTEGER,
     evaluacion_laboral: DataTypes.INTEGER,
@@ -191,8 +191,9 @@ const evaluacion = sequelize.define(
     recursos_humanos_observacion: DataTypes.STRING,
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
-    area: DataTypes.STRING,
-    campamento: DataTypes.STRING,
+    area_id: DataTypes.INTEGER,
+    campamento_id: DataTypes.INTEGER,
+    gerencia_id: DataTypes.INTEGER,
   },
   {
     tableName: "evaluacion",
@@ -214,13 +215,10 @@ const contrato = sequelize.define(
     tipo_contrato: DataTypes.STRING,
     periodo_trabajo: DataTypes.STRING,
     fecha_fin: DataTypes.DATE,
-    gerencia: DataTypes.STRING,
-    area: DataTypes.STRING,
     jefe_directo: DataTypes.STRING,
     base: DataTypes.STRING,
     termino_contrato: DataTypes.STRING,
     nota_contrato: DataTypes.STRING,
-    puesto: DataTypes.STRING,
     campamento_id: DataTypes.INTEGER,
     empresa_id: DataTypes.INTEGER,
     asociacion_id: DataTypes.INTEGER,
@@ -231,6 +229,9 @@ const contrato = sequelize.define(
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
     tareo: DataTypes.STRING,
+    gerencia_id: DataTypes.INTEGER,
+    area_id: DataTypes.INTEGER,
+    puesto_id: DataTypes.INTEGER,
   },
   {
     tableName: "contrato",
@@ -1050,6 +1051,24 @@ usuario.belongsTo(rol, { foreignKey: "rol_id" });
 
 usuario.hasOne(cargo, { foreignKey: "cargo_id" });
 cargo.belongsTo(usuario, { foreignKey: "cargo_id" });
+
+contrato.hasOne(gerencia, { foreignKey: "gerencia_id" });
+gerencia.belongsTo(contrato, { foreignKey: "gerencia_id" });
+contrato.hasOne(area, { foreignKey: "area_id" });
+area.belongsTo(contrato, { foreignKey: "area_id" });
+contrato.hasOne(cargo, { foreignKey: "puesto_id" });
+cargo.belongsTo(contrato, { foreignKey: "puesto_id" });
+// contrato.hasOne(campamento, { foreignKey: "campamento_id" });
+// campamento.belongsTo(contrato, { foreignKey: "campamento_id" });
+
+evaluacion.hasOne(gerencia, { foreignKey: "gerencia_id" });
+gerencia.belongsTo(evaluacion, { foreignKey: "gerencia_id" });
+evaluacion.hasOne(area, { foreignKey: "area_id" });
+area.hasOne(evaluacion, { foreignKey: "area_id" });
+evaluacion.hasOne(cargo, { foreignKey: "puesto_id" });
+cargo.hasOne(evaluacion, { foreignKey: "puesto_id" });
+evaluacion.hasOne(campamento, { foreignKey: "campamento_id" });
+campamento.belongsTo(evaluacion, { foreignKey: "campamento_id" });
 
 usuario.hasOne(trabajador, {
   through: "trabajador_usuario",

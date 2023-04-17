@@ -38,7 +38,7 @@ const getTrabajador = async (req, res, next) => {
               model: contrato,
               include: [{ model: area }],
               attributes: { exclude: ["contrato_id"] },
-              include: [{ model: campamento }],
+              include: [{ model: campamento,attributes: { exclude: ["campamento_id"] } }],
             },
           ],
         },
@@ -90,6 +90,7 @@ const getTrabajador = async (req, res, next) => {
                 suspendido: data?.contrato?.suspendido,
                 finalizado: data?.contrato?.finalizado,
                 tareo: data?.contrato?.tareo,
+                deshabilitado: data?.contrato?.deshabilitado,
                 campamento: data?.contrato?.campamento?.nombre,
               };
             })
