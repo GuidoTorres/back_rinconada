@@ -121,8 +121,12 @@ const getAsociacionById = async (req, res, next) => {
       where: { id: id },
 
       include: [
-        { model: contrato },
-        { model: trabajador, include: [{ model: evaluacion }] },
+        { model: contrato, attributes: { exclude: ["contrato_id"] } },
+        {
+          model: trabajador,
+          attributes: { exclude: ["usuarioId"] },
+          include: [{ model: evaluacion }],
+        },
       ],
     });
 
@@ -132,30 +136,33 @@ const getAsociacionById = async (req, res, next) => {
         nombre: item.nombre,
         codigo: item.nombre,
         tipo: item.tipo,
-        contrato: item.contratos.map((item) => {
-          return {
-            id: item.id,
-            area: item.area,
-            asociacion_id: item.asociacion_id,
-            base: item.base,
-            campamento_id: item.campamento_id,
-            codigo_contrato: item.codigo_contrato,
-            condicion_cooperativa: item.condicion_cooperativa,
-            cooperativa: item.cooperativa,
-            empresa_id: item.empresa_id,
-            fecha_fin: dayjs(item.fecha_fin).format("YYYY-MM-DD"),
-            fecha_inicio: dayjs(item.fecha_inicio).format("YYYY-MM-DD"),
-            gerencia: item.gerencia,
-            id: item.id,
-            jefe_directo: item.jefe_directo,
-            nota_contrato: item.nota_contrato,
-            periodo_trabajo: item.periodo_trabajo,
-            puesto: item.puesto,
-            recomendado_por: item.recomendado_por,
-            termino_contrato: item.termino_contrato,
-            tipo_contrato: item.tipo_contrato,
-          };
-        }),
+        contrato: item.contratos
+          .filter((data) => data.finalizado === false)
+          .map((item) => {
+            return {
+              id: item.id,
+              gerencia_id: item.gerencia_id,
+              area_id: item.area_id,
+              campamento_id: item.campamento_id,
+              asociacion_id: item.asociacion_id,
+              base: item.base,
+              codigo_contrato: item.codigo_contrato,
+              condicion_cooperativa: item.condicion_cooperativa,
+              cooperativa: item.cooperativa,
+              empresa_id: item.empresa_id,
+              fecha_fin: dayjs(item.fecha_fin).format("YYYY-MM-DD"),
+              fecha_inicio: dayjs(item.fecha_inicio).format("YYYY-MM-DD"),
+              id: item.id,
+              jefe_directo: item.jefe_directo,
+              nota_contrato: item.nota_contrato,
+              periodo_trabajo: item.periodo_trabajo,
+              puesto: item.puesto,
+              recomendado_por: item.recomendado_por,
+              termino_contrato: item.termino_contrato,
+              tipo_contrato: item.tipo_contrato,
+              tareo: item.tareo,
+            };
+          }),
         trabajador: item.trabajadors,
       };
     });
@@ -163,7 +170,6 @@ const getAsociacionById = async (req, res, next) => {
     const resultJson = obj.filter((item) => item.contrato.length !== 0);
 
     return res.status(200).json({ data: resultJson });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();

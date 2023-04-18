@@ -126,8 +126,8 @@ const getContratoAsociacionById = async (req, res, next) => {
         tipo_contrato: item?.tipo_contrato,
         periodo_trabajo: item?.periodo_trabajo,
         fecha_fin: item?.fecha_fin,
-        gerencia: item?.gerencia,
-        area: item?.area,
+        gerencia_id: item?.gerencia_id,
+        area_id: item?.area_id,
         jefe_directo: item?.jefe_directo,
         base: item?.base,
         termino_contrato: item?.termino_contrato,
@@ -141,6 +141,7 @@ const getContratoAsociacionById = async (req, res, next) => {
         teletran: item?.teletran,
         suspendido: item?.suspendido,
         finalizado: item?.finalizado,
+        tareo: item?.tareo
       };
     });
 
@@ -266,6 +267,7 @@ const postContratoAsociacion = async (req, res, next) => {
     teletran: req?.body?.teletran,
     suspendido: false,
     finalizado: false,
+    tareo: req?.body?.tareo
   };
   try {
     if (req.body.trabajadores.length > 0) {
