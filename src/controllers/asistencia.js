@@ -197,7 +197,7 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         item?.trabajador_contratos?.length > 0 &&
         !item?.deshabilitado &&
         item?.trabajador_contratos?.filter(
-          (data) => data.contrato.finalizado === false
+          (data) => data?.contrato?.finalizado === false
         )
     );
     const jsonFinal = filterDeshabilitado.map((item) => {

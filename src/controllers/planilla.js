@@ -49,7 +49,7 @@ const getPlanilla = async (req, res, next) => {
               },
               include: [
                 { model: teletrans },
-                { model: campamento, include: [{ model: asistencia }] },
+                { model: campamento, attributes: { exclude: ["campamento_id"] }, include: [{ model: asistencia }] },
               ],
             },
           ],
@@ -64,7 +64,7 @@ const getPlanilla = async (req, res, next) => {
           attributes: { exclude: ["contrato_id"] },
           include: [
             { model: teletrans },
-            { model: campamento, include: [{ model: asistencia }] },
+            { model: campamento, attributes: { exclude: ["campamento_id"] }, include: [{ model: asistencia }] },
           ],
         },
       ],
@@ -186,7 +186,6 @@ const getPlanilla = async (req, res, next) => {
     const final = mapAsociacion.concat(mapTrabajador);
 
     return res.status(200).json({ data: final });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();
