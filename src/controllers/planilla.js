@@ -106,7 +106,6 @@ const getPlanilla = async (req, res, next) => {
     );
     const mapAsociacion = filterAsociacion.map((item, i) => {
       return {
-        id: item?.id,
         nombre: item?.nombre,
         codigo: item?.codigo,
         fecha_inicio: dayjs(
@@ -153,7 +152,6 @@ const getPlanilla = async (req, res, next) => {
       );
       return {
         dni: item?.dni,
-        index: i + 1,
         codigo_trabajador: item?.codigo_trabajador,
         fecha_nacimiento: item?.fecha_nacimiento,
         telefono: item?.telefono,
