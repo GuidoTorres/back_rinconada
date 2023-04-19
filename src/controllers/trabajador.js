@@ -38,7 +38,12 @@ const getTrabajador = async (req, res, next) => {
               model: contrato,
               include: [{ model: area }],
               attributes: { exclude: ["contrato_id"] },
-              include: [{ model: campamento,attributes: { exclude: ["campamento_id"] } }],
+              include: [
+                {
+                  model: campamento,
+                  attributes: { exclude: ["campamento_id"] },
+                },
+              ],
             },
           ],
         },
@@ -97,9 +102,17 @@ const getTrabajador = async (req, res, next) => {
             .filter((item) => item?.finalizado === false),
         };
       })
-      .sort((a, b) => a.codigo_trabajador.localeCompare(b.codigo_trabajador));
+      .sort((a, b) => {
+        // Ordena por deshabilitado en orden descendente
+        if (a.deshabilitado === b.deshabilitado) {
+          // Si los dos objetos tienen el mismo valor de 'deshabilitado'
+          // entonces se ordena por 'codigo_trabajador' en orden ascendente
+          return a.codigo_trabajador.localeCompare(b.codigo_trabajador);
+        } else {
+          return a.deshabilitado ? 1 : -1;
+        }
+      });
     return res.status(200).json({ data: obj });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -270,7 +283,9 @@ const postMultipleTrabajador = async (req, res, next) => {
       }
       return {
         dni: item?.dni,
-        codigo_trabajador: `CCMRL${(parseInt(getNumber) + i + 1).toString().padStart(5, "0")}`,
+        codigo_trabajador: `CCMRL${(parseInt(getNumber) + i + 1)
+          .toString()
+          .padStart(5, "0")}`,
         fecha_nacimiento: fechaNacimiento,
         telefono: item?.telefono,
         apellido_paterno: item?.apellido_paterno,

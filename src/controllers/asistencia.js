@@ -10,7 +10,7 @@ const {
 } = require("../../config/db");
 const XLSX = require("xlsx");
 const date = require("date-and-time");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const dayjs = require("dayjs");
 
 const getAsistencia = async (req, res, next) => {
@@ -58,15 +58,19 @@ const getExcelAsistencia = async (req, res, next) => {
     );
 
     const fechaActual = new Date();
-    const fecha = dayjs(fechaActual, "YYYY-MM-DD").format("YYYY-MM-DD");
-    const fechaBd = dayjs(fechaActual).format("YYYY-MM-DD");
+    const fecha = dayjs(req.body.fecha, "YYYY-MM-DD").format("YYYY-MM-DD");
+    // const fechaBd = dayjs(fechaActual).format("YYYY-MM-DD");
 
     //para darle un formato usable a la data del excel
     const jsonFormat = result.slice(3).map((item, i) => {
       return {
         dni: item.Reporte_de_Excepciones,
         nombre: item.__EMPTY,
-        fecha: dayjs(item.__EMPTY_2).format("YYYY-MM-DD"),
+        fecha: dayjs(item.__EMPTY_2, [
+          "YYYY-MM-DD",
+          "DD-MM-YYYY",
+          "MM-DD-YYYY",
+        ]).format("YYYY-MM-DD"),
         entrada: item.__EMPTY_3 === undefined ? "" : item.__EMPTY_3,
         salida: item.__EMPTY_4 === undefined ? "" : item.__EMPTY_4,
       };
@@ -74,16 +78,15 @@ const getExcelAsistencia = async (req, res, next) => {
 
     //obtengo solo las asistencias del dia actual que se encuentran en el excel
     const asistenciaExcelDiaActual = jsonFormat.filter(
-      //aqui va la fecha para filtra fecha del excel
-      (item) => item.fecha === fechaBd
+      (item) => item.fecha === fecha
     );
-
     //creo array de dnis para hacer busqueda
     const dni = jsonFormat.map((item) => item.dni).flat();
+    const filtereDni = [...new Set(dni)];
     //obtener el id de la fecha para la asistencia
     const idAsistencia = await asistencia.findAll({
       //aqui fechaBD
-      where: { fecha: fechaBd },
+      where: { fecha: fecha },
     });
 
     //todos los trabajadores con dni del excel
@@ -102,69 +105,100 @@ const getExcelAsistencia = async (req, res, next) => {
           include: [
             {
               model: contrato,
-              where: { finalizado: { [Op.not]: true } },
+              where: {
+                finalizado: { [Op.not]: true },
+                suspendido: { [Op.not]: true },
+              },
               attributes: { exclude: ["contrato_id"] },
             },
           ],
         },
       ],
     });
-    const filterContrato = getTrabajadores?.filter(
-      (item) => item?.trabajador_contratos?.length !== 0
-    );
-
     const getAsistenciaId = await asistencia.findAll({
-      where: { fecha: fechaBd },
+      where: { fecha: fecha },
     });
-
     const idFechaAsistencia = parseInt(getAsistenciaId.map((item) => item.id));
-    //para obtener trabajadores que tengan asistencia el dia actual
-    const trabajadorTieneAsistencia = await trabajadorAsistencia.findAll({
-      attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-      where: { trabajador_id: dni, asistencia_id: idFechaAsistencia },
-    });
 
     let hora_bd = idAsistencia.map((item) => item.hora_ingreso).toString();
+    const trabajadorTieneAsistencia = await trabajadorAsistencia.findAll({
+      attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+      where: { trabajador_id: filtereDni, asistencia_id: idFechaAsistencia },
+    });
+
     //json con formato para guardar en la db de todos los trabajadores del excel
-    const asistenciasFechaActualExcel = asistenciaExcelDiaActual.map((item) => {
+    const guardarTrabajadores = asistenciaExcelDiaActual.map((item) => {
       const tarde =
         new Date(fecha + " " + hora_bd).getTime() -
         new Date(fecha + " " + item.entrada).getTime();
       return {
         asistencia_id: idFechaAsistencia,
-        trabajador_id: parseInt(item.dni),
+        trabajador_id: item.dni,
         asistencia: item.entrada ? "Asistio" : "Falto",
         hora_ingreso: item.entrada,
         tarde: !item.entrada ? "" : tarde >= 0 ? "No" : tarde,
       };
     });
 
-    // asistencia de solo trabajadores que existen en la bd si no tienen asistencia(crear)
-    const create = asistenciasFechaActualExcel.filter((item1) =>
-      filterContrato.some((item2) => item1.trabajador_id === item2.dni)
+    const trabajadoresAsistencia = guardarTrabajadores.reduce(
+      (acumulador, item) => {
+        const tieneAsistencia = trabajadorTieneAsistencia.some(
+          (asistencia) => asistencia.trabajador_id === item.trabajador_id
+        );
+
+        if (tieneAsistencia) {
+          acumulador.conAsistencia.push(item);
+        } else {
+          acumulador.sinAsistencia.push(item);
+        }
+
+        return acumulador;
+      },
+      { conAsistencia: [], sinAsistencia: [] }
     );
 
-    console.log(create);
+    console.log(trabajadoresAsistencia.conAsistencia); // trabajadores con asistencia
+    console.log(trabajadoresAsistencia.sinAsistencia);
 
-    if (create.length > 0) {
-      const asistenciaTrabajadores = await trabajadorAsistencia.bulkCreate(
-        create,
-        {
-          updateOnDuplicate: ["asistencia", "hora_ingreso", "tarde"],
-        }
+    if (trabajadoresAsistencia.conAsistencia.length > 0) {
+      // Actualizar asistencias de trabajadores con asistencia existente
+      await Promise.all(
+        trabajadoresAsistencia.conAsistencia.map(async (trabajador) => {
+          await trabajadorAsistencia.update(
+            {
+              asistencia: trabajador.asistencia,
+              hora_ingreso: trabajador.hora_ingreso,
+              tarde: trabajador.tarde,
+            },
+            {
+              where: {
+                trabajador_id: trabajador.trabajador_id,
+                asistencia_id: idFechaAsistencia,
+              },
+            }
+          );
+        })
       );
-      return res.status(200).json({
-        msg: "Se registraron las asistencias exitosamente!",
-        status: 200,
-      });
+      return res
+        .status(200)
+        .json({ msg: "Asistencias actualizadas con éxito!", status: 200 });
+    } else if (trabajadoresAsistencia.sinAsistencia.length > 0) {
+      // Crear nuevas asistencias para trabajadores sin asistencia existente
+      await trabajadorAsistencia.bulkCreate(
+        trabajadoresAsistencia.sinAsistencia
+      );
+      return res
+        .status(200)
+        .json({ msg: "Asistencias registradas con éxito!", status: 200 });
     } else {
-      return res.status(500).json({
-        msg: "No se registro ninguna asistencia.",
-        status: 500,
-      });
+      return res
+        .status(500)
+        .json({
+          msg: "No se encontraron registros de asistencia para esta fecha.",
+          status: 500,
+        });
     }
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       msg: "No se pudo registrar las asistencias.",
       status: 500,
@@ -200,27 +234,47 @@ const getTrabajadorAsistencia = async (req, res, next) => {
           (data) => data?.contrato?.finalizado === false
         )
     );
-    const jsonFinal = filterDeshabilitado.map((item) => {
-      return {
-        dni: item?.dni,
-        codigo_trabajador: item?.codigo_trabajador,
-        fecha_nacimiento: item?.fecha_nacimiento,
-        telefono: item?.telefono,
-        apellido_paterno: item?.apellido_paterno,
-        apellido_materno: item?.apellido_materno,
-        nombre: item?.nombre,
-        email: item?.email,
-        estado_civil: item?.estado_civil,
-        genero: item?.genero,
-        asociacion_id: item?.asociacion_id,
-        trabajador_asistencia: item?.trabajador_asistencia?.filter(
-          (item) => item.asistencia_id == id
-        ),
-      };
+    const jsonFinal = filterDeshabilitado
+      .map((item, i) => {
+        return {
+          dni: item?.dni,
+          codigo_trabajador: item?.codigo_trabajador,
+          fecha_nacimiento: item?.fecha_nacimiento,
+          telefono: item?.telefono,
+          apellido_paterno: item?.apellido_paterno,
+          apellido_materno: item?.apellido_materno,
+          nombre: item?.nombre,
+          email: item?.email,
+          estado_civil: item?.estado_civil,
+          genero: item?.genero,
+          asociacion_id: item?.asociacion_id,
+          trabajador_asistencia: item?.trabajador_asistencia?.filter(
+            (item) => parseInt(item.asistencia_id) === parseInt(id)
+          ),
+        };
+      })
+      .sort((a, b) => {
+        // Si a.asociacion_id es nulo o vacío, lo coloca al principio
+        if (!a.asociacion_id) {
+          return -1;
+        }
+        // Si b.asociacion_id es nulo o vacío, lo coloca al final
+        if (!b.asociacion_id) {
+          return 1;
+        }
+        // Si ambos son nulos o vacíos, no los mueve de posición
+        if (!a.asociacion_id && !b.asociacion_id) {
+          return 0;
+        }
+        // Si ambos tienen un valor de asociacion_id, los compara numéricamente
+        return a.asociacion_id - b.asociacion_id;
+      });
+
+    const finalConId = jsonFinal.map((item, i) => {
+      return { id: i + 1, ...item };
     });
 
-    return res.status(200).json({ data: jsonFinal });
-    next();
+    return res.status(200).json({ data: finalConId });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: error, status: 500 });
@@ -367,7 +421,7 @@ const postTrabajadorAsistencia = async (req, res, next) => {
         .json({ msg: "Actualizado con éxito!", status: 200 });
     } else if (!getAsistencia) {
       const createAsistencia = await trabajadorAsistencia.create(info);
-      res.status(200).json({ msg: "Creado con éxito!", status: 200 });
+      return res.status(200).json({ msg: "Creado con éxito!", status: 200 });
     }
     next();
   } catch (error) {

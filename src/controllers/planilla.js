@@ -49,7 +49,11 @@ const getPlanilla = async (req, res, next) => {
               },
               include: [
                 { model: teletrans },
-                { model: campamento, attributes: { exclude: ["campamento_id"] }, include: [{ model: asistencia }] },
+                {
+                  model: campamento,
+                  attributes: { exclude: ["campamento_id"] },
+                  include: [{ model: asistencia }],
+                },
               ],
             },
           ],
@@ -64,7 +68,31 @@ const getPlanilla = async (req, res, next) => {
           attributes: { exclude: ["contrato_id"] },
           include: [
             { model: teletrans },
-            { model: campamento, attributes: { exclude: ["campamento_id"] }, include: [{ model: asistencia }] },
+            {
+              model: campamento,
+              attributes: { exclude: ["campamento_id"] },
+              include: [{ model: asistencia }],
+            },
+          ],
+        },
+        {
+          model: trabajador,
+          attributes: {
+            exclude: [
+              "trabajadorId",
+              "asistenciumId",
+              "trabajadorDni",
+              "usuarioId",
+            ],
+          },
+          include: [
+            {
+              model: trabajadorAsistencia,
+              attributes: {
+                exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
+              },
+              include: [{ model: asistencia }],
+            },
           ],
         },
       ],
@@ -112,6 +140,10 @@ const getPlanilla = async (req, res, next) => {
           .filter((data) => data.finalizado === false)
           .at(-1)
           ?.teletrans.at(-1)?.saldo,
+        asistencia: item?.trabajadors
+          .at(0)
+          .trabajador_asistencia.filter((data) => data.asistencia === "Asistio")
+          .length,
       };
     });
 
@@ -120,7 +152,6 @@ const getPlanilla = async (req, res, next) => {
         (data) => data.contrato.finalizado === false
       );
       return {
-        id: item?.dni,
         dni: item?.dni,
         index: i + 1,
         codigo_trabajador: item?.codigo_trabajador,
@@ -184,8 +215,14 @@ const getPlanilla = async (req, res, next) => {
     });
 
     const final = mapAsociacion.concat(mapTrabajador);
+    const finalConId = final.map((elemento, indice) => {
+      return {
+        id: indice + 1,
+        ...elemento,
+      };
+    });
 
-    return res.status(200).json({ data: final });
+    return res.status(200).json({ data: finalConId });
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -1024,8 +1061,9 @@ const getTareoTrabajador = async (req, res, next) => {
                 fecha_inicio: dayjs(fechaInicio)?.format("DD-MM-YYYY"),
                 fecha_fin: dayjs(fechaFin)?.format("DD-MM-YYYY"),
                 volquete:
-                  trabajador?.trabajador_contratos[0]?.contrato?.teletrans?.at(-1)
-                    ?.volquete,
+                  trabajador?.trabajador_contratos[0]?.contrato?.teletrans?.at(
+                    -1
+                  )?.volquete,
                 teletran:
                   trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
                     ?.teletrans,
@@ -1033,7 +1071,7 @@ const getTareoTrabajador = async (req, res, next) => {
                   trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
                     ?.total,
                 trabajador_asistencia: subAsistencias,
-                cargo:trabajador?.trabajador_contratos[0]?.contrato?.puesto,
+                cargo: trabajador?.trabajador_contratos[0]?.contrato?.puesto,
                 asistencia: contador,
                 asistencia_completa: asistencias.map((item) => {
                   return {
