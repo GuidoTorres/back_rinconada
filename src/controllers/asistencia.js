@@ -234,7 +234,6 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         },
       ],
     });
-    console.log("pokemon");
     const filterContrato = get.filter(
       (item) => item.trabajador_contratos.length > 0
     );

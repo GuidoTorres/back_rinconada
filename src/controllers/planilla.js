@@ -1002,26 +1002,28 @@ const getTareoTrabajador = async (req, res, next) => {
                 trabajador_asistencia: subAsistencias,
                 cargo: trabajador?.trabajador_contratos[0]?.contrato?.puesto,
                 asistencia: contador,
-                asistencia_completa: asistencias.sort((a, b) => {
-                  a.asistencium.fecha.localeCompare(b.asistencium.fecha);
-                }).map((item, a) => {
-                  return {
-                    id: a + 1,
-                    asistencia: item?.asistencia,
-                    fecha: item?.asistencium?.fecha,
-                    hora_ingreso: item?.asistencium?.hora_ingreso,
-                    tarde: item?.tarde,
-                    observacion: item?.observacion,
-                  };
-                }),
+                asistencia_completa: asistencias
+                  .sort((a, b) => {
+                    a.asistencium.fecha.localeCompare(b.asistencium.fecha);
+                  })
+                  .map((item, a) => {
+                    return {
+                      id: a + 1,
+                      asistencia: item?.asistencia,
+                      fecha: item?.asistencium?.fecha,
+                      hora_ingreso: item?.asistencium?.hora_ingreso,
+                      tarde: item?.tarde,
+                      observacion: item?.observacion,
+                    };
+                  }),
 
                 estado:
                   trabajador?.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
                     ?.filter((item) => item.subarray_id == subarrayId)
                     .at(0)?.estado,
                 aprobacion_id:
-                  trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
-                    ?.filter((item) => item?.subarray_id == subarrayId)
+                  trabajador?.trabajador_contratos[0]?.contrato.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
                     .at(0)?.id,
                 firma_jefe:
                   trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
@@ -1459,6 +1461,7 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
       status: 404,
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
 };
