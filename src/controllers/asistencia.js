@@ -127,16 +127,20 @@ const getExcelAsistencia = async (req, res, next) => {
     });
 
     //json con formato para guardar en la db de todos los trabajadores del excel
+    console.log(hora_bd);
     const guardarTrabajadores = asistenciaExcelDiaActual.map((item) => {
-      const tarde =
-        new Date(fecha + " " + hora_bd).getTime() -
-        new Date(fecha + " " + item.entrada).getTime();
+      const fecha = "2023-04-20T";
+      const fecha_hora_bd = new Date(fecha + hora_bd);
+      const fecha_entrada = new Date(fecha + item.entrada);
+      const diferencia_minutos =
+        (fecha_hora_bd.getTime() - fecha_entrada.getTime()) / 60000;
+      const umbral_tardanza = 15;
       return {
         asistencia_id: idFechaAsistencia,
-        trabajador_id: item.dni,
+        trabajador_id: item.dni.toString(),
         asistencia: item.entrada ? "Asistio" : "Falto",
         hora_ingreso: item.entrada,
-        tarde: !item.entrada ? "" : tarde >= 0 ? "No" : tarde,
+        tarde: diferencia_minutos > umbral_tardanza ? "Si" : "No",
       };
     });
 
@@ -191,14 +195,13 @@ const getExcelAsistencia = async (req, res, next) => {
         .status(200)
         .json({ msg: "Asistencias registradas con éxito!", status: 200 });
     } else {
-      return res
-        .status(500)
-        .json({
-          msg: "No se encontraron registros de asistencia para esta fecha.",
-          status: 500,
-        });
+      return res.status(500).json({
+        msg: "No se encontraron registros de asistencia para esta fecha.",
+        status: 500,
+      });
     }
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       msg: "No se pudo registrar las asistencias.",
       status: 500,
@@ -212,6 +215,7 @@ const getTrabajadorAsistencia = async (req, res, next) => {
   try {
     const get = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
+      where: { deshabilitado: false },
       include: [
         {
           model: trabajadorAsistencia,
@@ -221,21 +225,22 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         {
           model: trabajador_contrato,
           include: [
-            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+            {
+              model: contrato,
+              where: { finalizado: false },
+              attributes: { exclude: ["contrato_id"] },
+            },
           ],
         },
       ],
     });
-    const filterDeshabilitado = get.filter(
-      (item) =>
-        item?.trabajador_contratos?.length > 0 &&
-        !item?.deshabilitado &&
-        item?.trabajador_contratos?.filter(
-          (data) => data?.contrato?.finalizado === false
-        )
+
+    const filterContrato = get.filter(
+      (item) => item.trabajador_contratos.length > 0
     );
-    const jsonFinal = filterDeshabilitado
-      .map((item, i) => {
+
+    const jsonFinal = filterContrato
+      ?.map((item, i) => {
         return {
           dni: item?.dni,
           codigo_trabajador: item?.codigo_trabajador,
@@ -274,7 +279,7 @@ const getTrabajadorAsistencia = async (req, res, next) => {
       return { id: i + 1, ...item };
     });
 
-    return res.status(200).json({ data: finalConId });
+    return res.status(200).json({ data: jsonFinal });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: error, status: 500 });

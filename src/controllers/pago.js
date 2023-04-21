@@ -16,6 +16,7 @@ const {
   pago_asociacion,
   trabajadorAsistencia,
   asistencia,
+  trabajador_contrato,
 } = require("../../config/db");
 
 const createProgramacion = async (req, res, next) => {
@@ -418,7 +419,9 @@ const postMultiplePagos = async (req, res, next) => {
       });
     }
 
-    return res.status(200).json({ msg: "Pago realizado con éxito!", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Pago realizado con éxito!", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -443,7 +446,15 @@ const getPagoFecha = async (req, res, next) => {
 
               attributes: { exclude: ["contrato_id"] },
               include: [
-                { model: trabajador, attributes: { exclude: ["usuarioId"] } },
+                {
+                  model: trabajador_contrato,
+                  include: [
+                    {
+                      model: trabajador,
+                      attributes: { exclude: ["usuarioId"] },
+                    },
+                  ],
+                },
                 { model: empresa },
                 { model: asociacion },
               ],
@@ -507,11 +518,14 @@ const getPagoFecha = async (req, res, next) => {
               contrato_id: "---",
               pago_id: data?.pago_id,
               nombre:
-                data?.trabajador?.nombre +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.nombre +
                 " " +
-                data?.trabajador?.apellido_paterno +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_paterno +
                 " " +
-                data?.trabajador?.apellido_materno,
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_materno,
               area: "---",
               cargo: "---",
               celular: data?.trabajador?.telefono,
@@ -543,11 +557,14 @@ const getPagoFecha = async (req, res, next) => {
               pago_id: data?.pago_id,
               nombre:
                 data?.contrato?.trabajador !== null
-                  ? data?.contrato?.trabajador?.nombre +
+                  ? data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                      ?.nombre +
                     " " +
-                    data?.contrato?.trabajador?.apellido_paterno +
+                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                      ?.apellido_paterno +
                     " " +
-                    data?.contrato?.trabajador?.apellido_materno
+                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                      ?.apellido_materno
                   : data?.contrato?.empresa?.razon_social,
               area: data?.contrato?.area,
               cargo: data?.contrato?.puesto,
@@ -564,7 +581,7 @@ const getPagoFecha = async (req, res, next) => {
       .concat(formatPagoNormal)
       .filter((item) => item.estado === "programado");
 
-      return res.status(200).json({ data: concat2, status: 200 });
+    return res.status(200).json({ data: concat2, status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -594,19 +611,24 @@ const historialProgramacion = async (req, res, next) => {
               attributes: { exclude: ["contrato_id"] },
               include: [
                 {
-                  model: trabajador,
-                  attributes: { exclude: ["usuarioId"] },
+                  model: trabajador_contrato,
                   include: [
                     {
-                      model: trabajadorAsistencia,
-                      attributes: {
-                        exclude: [
-                          "trabajadorId",
-                          "asistenciumId",
-                          "trabajadorDni",
-                        ],
-                      },
-                      include: [{ model: asistencia }],
+                      model: trabajador,
+                      attributes: { exclude: ["usuarioId"] },
+                      include: [
+                        {
+                          model: trabajadorAsistencia,
+                          attributes: {
+                            exclude: [
+                              "trabajadorId",
+                              "asistenciumId",
+                              "trabajadorDni",
+                            ],
+                          },
+                          include: [{ model: asistencia }],
+                        },
+                      ],
                     },
                   ],
                 },
@@ -681,11 +703,11 @@ const historialProgramacion = async (req, res, next) => {
               contrato_id: "---",
               pago_id: data?.pago_id,
               nombre:
-                data?.trabajador?.nombre +
-                " " +
-                data?.trabajador?.apellido_paterno +
-                " " +
-                data?.trabajador?.apellido_materno,
+              data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
+              " " +
+              data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
+              " " +
+              data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno,
               area: "---",
               cargo: "---",
               celular: data?.trabajador?.telefono,
@@ -717,14 +739,14 @@ const historialProgramacion = async (req, res, next) => {
               pago_id: data?.pago_id,
               nombre:
                 data?.contrato?.trabajador !== null
-                  ? data?.contrato?.trabajador?.nombre +
-                    " " +
-                    data?.contrato?.trabajador?.apellido_paterno +
-                    " " +
-                    data?.contrato?.trabajador?.apellido_materno
+                  ? data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
+                  " " +
+                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
+                  " " +
+                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno
                   : data?.contrato?.empresa?.razon_social,
-              area: data?.contrato?.area,
-              cargo: data?.contrato?.puesto,
+              area: data?.contrato?.trabajador_contratos.at(-1).area,
+              cargo: data?.contrato?.trabajador_contratos.at(-1).cargo,
               celular: data?.contrato?.trabajador?.telefono,
               dni: data?.contrato?.trabajador?.dni,
               fecha_inicio:
@@ -1262,6 +1284,140 @@ const filtroPagoFecha = async (req, res, next) => {
   }
 };
 
+const getListaPagoIndividual = async(req, res ,next)=>{
+  try {
+    const get = await trabajador.findAll({
+      where: {
+        [Op.and]: [
+          { asociacion_id: { [Op.is]: null } },
+          { deshabilitado: { [Op.not]: true } },
+        ],
+      },
+      attributes: { exclude: ["usuarioId"] },
+      include: [
+        {
+          model: trabajador_contrato,
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+              include: [
+                {
+                  model: contrato_pago,
+                  attributes: { exclude: ["contrato_pago_id"] },
+                  include: [
+                    {
+                      model: pago,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const getPago = await pago.findAll({
+      include: [
+        {
+          model: contrato_pago,
+          attributes: { exclude: ["contrato_pago_id"] },
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+
+              include: [
+                {
+                  model: trabajador_contrato,
+                  include: [
+                    {
+                      model: trabajador,
+                      // where: {
+                      //   [Op.and]: [
+                      //     { asociacion_id: { [Op.is]: null } },
+                      //     { deshabilitado: { [Op.not]: true } },
+                      //   ],
+                      // },
+                      attributes: { exclude: ["usuarioId"] },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const filterIncentivo = getPago.filter(
+      (item) => item?.tipo === "pago"
+    );
+
+    // const formatData = filterContratoPago.map((item) => {
+    //   return {
+    //     nombre:
+    //       item?.apellido_paterno +
+    //       " " +
+    //       item?.apellido_materno +
+    //       " " +
+    //       item?.nombre,
+    //     celular: item?.telefono,
+    //     cargo: item?.contratos?.at(-1)?.puesto,
+    //     contrato_id: item.contratos?.at(-1).id,
+    //     pago: item?.contratos
+    //       ?.at(-1)
+    //       ?.contrato_pagos?.map((data) => {
+    //         return {
+    //           id: data?.pago?.id,
+    //           teletrans: data?.pago?.teletrans,
+    //           observacion: data?.pago?.observacion,
+    //           fecha_pago: data?.pago?.fecha_pago,
+    //           tipo: data?.pago?.tipo,
+    //         };
+    //       })
+    //       .sort((a, b) => a.id - b.id)
+    //       .at(-1),
+    //   };
+    // });
+
+    const format = filterIncentivo
+      .map((item) => {
+        return {
+          pago_id: item?.id,
+          observacion: item?.observacion,
+          fecha_pago: item?.fecha_pago,
+          tipo: item?.tipo,
+          estado: item?.estado,
+          trabajadores: item?.contrato_pagos?.map((data) => {
+            return {
+              contrato_id: data?.contrato_id,
+              teletrans: data?.teletrans,
+              nombre:
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
+                " " +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
+                " " +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno,
+              cargo: data?.contrato?.puesto,
+              celular: data?.contrato?.trabajador?.telefono,
+            };
+          }),
+        };
+      })
+      ?.filter((item) => item?.estado === "programado");
+
+    return res.status(200).json({ data: format });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json();
+  }
+}
+
 module.exports = {
   postPago,
   postMultiplePagos,
@@ -1278,4 +1434,5 @@ module.exports = {
   asociacionPago,
   deletePagoAsociacion,
   filtroPagoFecha,
+  getListaPagoIndividual
 };

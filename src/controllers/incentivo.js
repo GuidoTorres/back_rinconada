@@ -7,12 +7,12 @@ const {
   contrato_pago,
   destino_pago,
   destino,
+  trabajador_contrato,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
 const getIncentivo = async (req, res, next) => {
   try {
-
     const get = await trabajador.findAll({
       where: {
         [Op.and]: [
@@ -23,18 +23,23 @@ const getIncentivo = async (req, res, next) => {
       attributes: { exclude: ["usuarioId"] },
       include: [
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          where: {
-            [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          },
+          model: trabajador_contrato,
           include: [
             {
-              model: contrato_pago,
-              attributes: { exclude: ["contrato_pago_id"] },
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
               include: [
                 {
-                  model: pago,
+                  model: contrato_pago,
+                  attributes: { exclude: ["contrato_pago_id"] },
+                  include: [
+                    {
+                      model: pago,
+                    },
+                  ],
                 },
               ],
             },
@@ -55,14 +60,19 @@ const getIncentivo = async (req, res, next) => {
 
               include: [
                 {
-                  model: trabajador,
-                  // where: {
-                  //   [Op.and]: [
-                  //     { asociacion_id: { [Op.is]: null } },
-                  //     { deshabilitado: { [Op.not]: true } },
-                  //   ],
-                  // },
-                  attributes: { exclude: ["usuarioId"] },
+                  model: trabajador_contrato,
+                  include: [
+                    {
+                      model: trabajador,
+                      // where: {
+                      //   [Op.and]: [
+                      //     { asociacion_id: { [Op.is]: null } },
+                      //     { deshabilitado: { [Op.not]: true } },
+                      //   ],
+                      // },
+                      attributes: { exclude: ["usuarioId"] },
+                    },
+                  ],
                 },
               ],
             },
@@ -115,11 +125,11 @@ const getIncentivo = async (req, res, next) => {
               contrato_id: data?.contrato_id,
               teletrans: data?.teletrans,
               nombre:
-                data?.contrato?.trabajador?.nombre +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
                 " " +
-                data?.contrato?.trabajador?.apellido_paterno +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
                 " " +
-                data?.contrato?.trabajador?.apellido_materno,
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno,
               cargo: data?.contrato?.puesto,
               celular: data?.contrato?.trabajador?.telefono,
             };
@@ -128,8 +138,7 @@ const getIncentivo = async (req, res, next) => {
       })
       ?.filter((item) => item?.estado === "programado");
 
-      return res.status(200).json({ data: format });
-    next();
+    return res.status(200).json({ data: format });
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -146,11 +155,16 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
       attributes: { exclude: ["usuarioId"] },
       include: [
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          where: {
-            [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          },
+          model: trabajador_contrato,
+          include: [
+            {
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+            },
+          ],
         },
       ],
     });
@@ -314,7 +328,6 @@ const postIncentivoMultiple = async (req, res, next) => {
       return res
         .status(200)
         .json({ msg: "Incentivo registrado con éxito!", status: 200 });
-      
     } else {
       return res.status(400).json({
         msg: "Error! La cantidad de teletrans debe ser equivalente a 1 volquete.",

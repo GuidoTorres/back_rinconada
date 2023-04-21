@@ -41,8 +41,7 @@ const getEmpresaPago = async (req, res, next) => {
           Object.keys(item.pago).length > 0 && item.pago.estado !== "completado"
       );
 
-      return res.status(200).json({ data: formatData });
-    next();
+    return res.status(200).json({ data: formatData });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: error });

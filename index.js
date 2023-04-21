@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+require("./src/controllers/controlAsistencia")
 const trabajadorRouter = require("./src/routes/trabajador");
 const usuarioRouter = require("./src/routes/usuario");
 const campamentoRouter = require("./src/routes/campamento");

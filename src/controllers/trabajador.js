@@ -6,6 +6,7 @@ const {
   evaluacion,
   area,
   trabajador_contrato,
+  aprobacion_contrato_pago,
 } = require("../../config/db");
 const { Op, Sequelize } = require("sequelize");
 const XLSX = require("xlsx");
@@ -121,35 +122,37 @@ const getTrabajador = async (req, res, next) => {
 
 const getTrabajadorById = async (req, res, next) => {
   let id = req.params.id;
-  try {
-    const get = await trabajador.findAll({
-      attributes: { exclude: ["usuarioId"] },
-    });
+  // try {
+  //   const get = await trabajador.findAll({
+  //     attributes: { exclude: ["usuarioId"] },
+  //   });
 
-    const obj = get.map((item) => {
-      return {
-        dni: item?.dni,
-        codigo_trabajador: item?.codigo_trabajador,
-        fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("DD/MM/YYYY"),
-        telefono: item?.telefono,
-        nombre: item?.nombre,
-        apellido_paterno: item?.apellido_paterno,
-        apellido_materno: item?.apellido_materno,
-        email: item?.email,
-        estado_civil: item?.estado_civil,
-        genero: item?.genero,
-        direccion: item?.direccion,
-        asociacion_id: item?.asociacion_id,
-        deshabilitado: item?.deshabilitado,
-        foto: item?.foto,
-        eliminar: item?.eliminar,
-      };
-    });
+  //   const obj = get.map((item) => {
+  //     return {
+  //       dni: item?.dni,
+  //       codigo_trabajador: item?.codigo_trabajador,
+  //       fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("DD/MM/YYYY"),
+  //       telefono: item?.telefono,
+  //       nombre: item?.nombre,
+  //       apellido_paterno: item?.apellido_paterno,
+  //       apellido_materno: item?.apellido_materno,
+  //       email: item?.email,
+  //       estado_civil: item?.estado_civil,
+  //       genero: item?.genero,
+  //       direccion: item?.direccion,
+  //       asociacion_id: item?.asociacion_id,
+  //       deshabilitado: item?.deshabilitado,
+  //       foto: item?.foto,
+  //       eliminar: item?.eliminar,
+  //     };
+  //   });
 
-    return res.status(200).json({ data: get });
-  } catch (error) {
-    res.status(500).json();
-  }
+  //   res.status(200).json({ data: obj });
+  //   next();
+  // } catch (error) {
+  //   console.log(error);
+  //   res.status(500).json();
+  // }
 };
 
 const postTrabajador = async (req, res, next) => {
@@ -449,10 +452,82 @@ const getLastId = async (req, res, next) => {
       },
       order: [["codigo_trabajador", "DESC"]],
     });
-    return res.status(200).json([get]);
+    res.status(200).json([get]);
     next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo obtener", status: 500 });
+  }
+};
+
+const getTrabajadorPagoAprobado = async (req, res, next) => {
+  try {
+    const get = await trabajador.findAll({
+      where: {
+        [Op.and]: [
+          { asociacion_id: { [Op.is]: null } },
+          { deshabilitado: { [Op.not]: true } },
+        ],
+      },
+      attributes: { exclude: ["usuarioId", "trabajador_dni"] },
+      include: [
+        {
+          model: trabajador_contrato,
+          attributes: { exclude: ["contrato_id"] },
+
+          include: [
+            {
+              model: contrato,
+              where: { finalizado: false, suspendido: false },
+              attributes: { exclude: ["contrato_id"] },
+              include: [
+                {
+                  model: aprobacion_contrato_pago,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const filterContrato = get.filter(
+      (item) => item?.trabajador_contratos.length > 0
+    );
+
+    const filterAprobacion = filterContrato
+      .map((item) => {
+        if (
+          item.trabajador_contratos
+            .at(-1)
+            .contrato.aprobacion_contrato_pagos.filter(
+              (item) => item.estado === true
+            )
+        ) {
+          return {
+            nombre:
+              item?.apellido_paterno +
+              " " +
+              item?.apellido_materno +
+              " " +
+              item?.nombre,
+            celular: item?.telefono,
+            cargo: item?.trabajador_contratos.at(-1).contrato?.puesto,
+            contrato_id: item?.trabajador_contratos.at(-1).contrato?.id,
+            aprobacion: item.trabajador_contratos
+              .at(-1)
+              .contrato.aprobacion_contrato_pagos.filter(
+                (item) => item.estado === true
+              ),
+          };
+        }
+      })
+      .filter((item) => item.aprobacion.length > 0);
+
+    res.status(200).json({ data: filterAprobacion });
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ msg: "No se pudo obtener", status: 500 });
   }
 };
 
@@ -465,4 +540,5 @@ module.exports = {
   postMultipleTrabajador,
   softDeleteTrabajador,
   getLastId,
+  getTrabajadorPagoAprobado,
 };

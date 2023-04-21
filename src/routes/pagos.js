@@ -4,6 +4,7 @@ const pago = require("../controllers/pago");
 router.get("/", pago.getPagoFecha);
 router.get("/historial", pago.historialProgramacion);
 router.get("/fechas", pago.filtroPagoFecha);
+router.get("/individual/lista", pago.getListaPagoIndividual);
 router.get("/validacion/:id", pago.validacionPago);
 router.get("/validacion/:id", pago.validacionPago);
 router.post("/", pago.postPago);

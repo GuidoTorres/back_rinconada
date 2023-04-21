@@ -12,6 +12,8 @@ const {
   pago_asociacion,
   trabajador_contrato,
   aprobacion_contrato_pago,
+  area,
+  cargo,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -107,6 +109,7 @@ const getPlanilla = async (req, res, next) => {
     const mapAsociacion = filterAsociacion.map((item, i) => {
       return {
         nombre: item?.nombre,
+        asociacion_id: item?.id,
         codigo: item?.codigo,
         fecha_inicio: dayjs(
           item?.contratos?.filter((data) => data.finalizado === false)?.at(-1)
@@ -537,17 +540,22 @@ const getListaPago = async (req, res, next) => {
           include: [{ model: asistencia }],
         },
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          where: {
-            [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          },
+          model: trabajador_contrato,
           include: [
-            { model: teletrans },
             {
-              model: contrato_pago,
-              attributes: { exclude: ["contrato_pago_id"] },
-              include: [{ model: pago }],
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+              include: [
+                { model: teletrans },
+                {
+                  model: contrato_pago,
+                  attributes: { exclude: ["contrato_pago_id"] },
+                  include: [{ model: pago }],
+                },
+              ],
             },
           ],
         },
@@ -770,95 +778,27 @@ const getPlanillaPago = async (req, res, next) => {
           include: [{ model: asistencia }],
         },
         {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          where: {
-            [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          },
+          model: trabajador_contrato,
           include: [
-            { model: teletrans },
             {
-              model: contrato_pago,
-              attributes: { exclude: ["contrato_pago_id"] },
-              include: [{ model: pago }],
+              model: contrato,
+              attributes: { exclude: ["contrato_id"] },
+              where: {
+                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+              },
+              include: [
+                { model: teletrans },
+                {
+                  model: contrato_pago,
+                  attributes: { exclude: ["contrato_pago_id"] },
+                  include: [{ model: pago }],
+                },
+              ],
             },
           ],
         },
       ],
     });
-
-    const getAsociacion = await asociacion.findAll({
-      include: [
-        {
-          model: contrato,
-          attributes: { exclude: ["contrato_id"] },
-          // where: {
-          //   [Op.and]: [{ finalizado: { [Op.not]: true } }],
-          // },
-          include: [
-            { model: teletrans },
-            {
-              model: contrato_pago,
-              attributes: { exclude: ["contrato_pago_id"] },
-              include: [{ model: pago }],
-            },
-          ],
-        },
-        {
-          model: trabajador,
-          attributes: { exclude: ["usuarioId"] },
-          include: [{ model: evaluacion }],
-        },
-      ],
-    });
-
-    const fecha = new Date();
-    const formatAsociacion = getAsociacion
-      .map((item) => {
-        let contratoActivo = item?.contratos?.filter(
-          (item) => item?.finalizado === false
-        );
-        const fechaActual = dayjs(fecha);
-        const fechaContrato = dayjs(contratoActivo?.at(-1)?.fecha_inicio);
-        const diferencia = fechaActual.diff(fechaContrato, "day");
-
-        return {
-          dni: item?.dni,
-          codigo_trabajador: "---",
-          fecha_nacimiento: "---",
-          telefono: "---",
-          tipo: item.tipo,
-          nombre: item?.nombre,
-          trabajador_asistencia: "---",
-          asistencias: "---",
-          nro_quincena: "---",
-          volquetes: contratoActivo?.at(-1)?.teletrans?.at(-1)?.volquete,
-          teletrans: contratoActivo?.at(-1)?.teletrans?.at(-1)?.teletrans,
-          total: contratoActivo?.at(-1)?.teletrans?.at(-1)?.total,
-          saldo: contratoActivo?.at(-1)?.teletrans?.at(-1)?.saldo,
-          fecha_inicio: fechaContrato,
-          dias_cumplidos: diferencia,
-          contrato: item?.contratos.at(-1),
-          trabajadores: item?.trabajadors?.map((data) => {
-            return {
-              dni: data?.dni,
-              nombre:
-                data?.nombre +
-                " " +
-                data?.apellido_paterno +
-                " " +
-                data?.apellido_materno,
-              codigo_trabajador: data?.codigo_trabajador,
-              celular: data?.celular,
-              evaluacion_id: data?.evaluacions
-                ?.map((dat) => dat?.id)
-                .toString(),
-              asociacion_id: data?.asociacion_id,
-            };
-          }),
-        };
-      })
-      .filter((item) => item.dias_cumplidos >= 14);
 
     const filterAsistencia = getPlanilla
       ?.map((item, i) => {
@@ -917,7 +857,7 @@ const getPlanillaPago = async (req, res, next) => {
                 ?.asistencium?.fecha,
               fecha_fin: item?.trabajador_asistencia?.at((i + 1 - 1) * 15 + 14)
                 ?.asistencium?.fecha,
-              contrato: item?.contrato.at(-1),
+              // contrato: item?.contrato.at(-1),
               volquetes: item.volquetes,
               teletrans: item.teletrans,
               total: item.total,
@@ -945,12 +885,12 @@ const getPlanillaPago = async (req, res, next) => {
       )
       .flat();
 
-    let concat = duplicate
-      .concat(formatAsociacion)
-      .filter((item) => item?.contrato?.contrato_pagos?.length > 0);
-    return res.status(200).json({ data: concat });
-    next();
+    let concat = duplicate.filter(
+      (item) => item?.contrato?.contrato_pagos?.length > 0
+    );
+    return res.status(200).json({ data: filterAsistencia });
   } catch (error) {
+    console.log(error);
     res.status(500).json();
   }
 };
@@ -1034,16 +974,7 @@ const getTareoTrabajador = async (req, res, next) => {
             if (contador === 15) {
               fechaInicio = asistencia.asistencium.fecha;
               subAsistencias.sort((a, b) => {
-                const fechaA = dayjs(a.asistencium.fecha, "YYYY-MM-DD");
-                const fechaB = dayjs(b.asistencium.fecha, "YYYY-MM-DD");
-
-                if (fechaA.isBefore(fechaB)) {
-                  return -1;
-                } else if (fechaA.isAfter(fechaB)) {
-                  return 1;
-                } else {
-                  return 0;
-                }
+                a.asistencium.fecha.localeCompare(b.asistencium.fecha);
               });
 
               aprobacionFilter.push({
@@ -1071,8 +1002,11 @@ const getTareoTrabajador = async (req, res, next) => {
                 trabajador_asistencia: subAsistencias,
                 cargo: trabajador?.trabajador_contratos[0]?.contrato?.puesto,
                 asistencia: contador,
-                asistencia_completa: asistencias.map((item) => {
+                asistencia_completa: asistencias.sort((a, b) => {
+                  a.asistencium.fecha.localeCompare(b.asistencium.fecha);
+                }).map((item, a) => {
                   return {
+                    id: a + 1,
                     asistencia: item?.asistencia,
                     fecha: item?.asistencium?.fecha,
                     hora_ingreso: item?.asistencium?.hora_ingreso,
@@ -1080,6 +1014,7 @@ const getTareoTrabajador = async (req, res, next) => {
                     observacion: item?.observacion,
                   };
                 }),
+
                 estado:
                   trabajador?.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
                     ?.filter((item) => item.subarray_id == subarrayId)
@@ -1129,82 +1064,153 @@ const getTareoAsociacion = async (req, res, next) => {
   const id = req.params.id;
 
   try {
-    // Obtener el contrato activo de la asociación
-    const contratoActivo = await contrato.findOne({
-      where: {
-        asociacion_id: id,
-        finalizado: false, // Solo el contrato activo
-      },
-      attributes: { exclude: ["contrato_id"] },
-    });
-
-    if (!contratoActivo) {
-      return res.status(404).json({
-        message: "No se encontró un contrato activo para la asociación.",
-      });
-    }
-
-    // Calcular la fecha de inicio y fin del contrato
-    const fechaInicioContrato = dayjs(contratoActivo.fecha_inicio).startOf(
-      "day"
-    );
-    const fechaFinContrato = dayjs(fechaInicioContrato).add(15, "day");
-
-    // Obtener las asistencias de los trabajadores de la asociación en el rango de fechas del contrato
-    const asistencias = await trabajador.findAll({
-      where: {
-        asociacion_id: id,
-      },
-      attributes: { exclude: ["usuarioId"] },
+    const asociaciones = await asociacion.findAll({
+      where: { id: id },
       include: [
         {
-          model: trabajadorAsistencia,
-          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
-
+          model: contrato,
+          attributes: { exclude: ["contrato_id"] },
+          where: {
+            finalizado: false,
+          },
           include: [
+            { model: teletrans },
+            { model: aprobacion_contrato_pago },
             {
-              model: asistencia,
-              where: {
-                fecha: {
-                  [Op.between]: [
-                    fechaInicioContrato.format("YYYY-MM-DD"),
-                    fechaFinContrato.format("YYYY-MM-DD"),
+              model: trabajador_contrato,
+              include: [
+                {
+                  model: trabajador,
+                  attributes: { exclude: ["usuarioId"] },
+                  include: [
+                    {
+                      model: trabajadorAsistencia,
+                      attributes: {
+                        exclude: ["trabajadorDni", "asistenciumId"],
+                      },
+                      include: [{ model: asistencia }],
+                    },
                   ],
                 },
+              ],
+            },
+          ],
+        },
+        {
+          model: trabajador,
+          attributes: { exclude: ["usuarioId"] },
+          include: [
+            {
+              model: trabajadorAsistencia,
+              attributes: {
+                exclude: ["trabajadorDni", "asistenciumId"],
               },
+              include: [{ model: asistencia }],
             },
           ],
         },
       ],
     });
+    const asociacionData = asociaciones.map((asociacion) => {
+      let subarrayId = 1;
+      return asociacion.contratos.flatMap((contrato) => {
+        let fechaInicio = dayjs(contrato.fecha_inicio, [
+          "YYYY-MM-DD",
+          "YYYY-MM-DD HH:mm:ss",
+        ]).toDate();
+        let fechaFin = dayjs(contrato.fecha_fin, [
+          "YYYY-MM-DD",
+          "YYYY-MM-DD HH:mm:ss",
+        ]).toDate();
+        let fechaLimite = dayjs(fechaInicio).add(14, "day").toDate();
+        const subarrays = [];
 
-    // Agrupar las asistencias de los trabajadores por fecha
-    const asistenciasPorFecha = {};
-    asistencias.forEach((asistencia) => {
-      const fecha = dayjs(asistencia.fecha).format("YYYY-MM-DD");
-      if (!asistenciasPorFecha[fecha]) {
-        asistenciasPorFecha[fecha] = [];
-      }
-      asistenciasPorFecha[fecha].push(asistencia);
-    });
+        if (fechaInicio.getTime() > fechaFin.getTime()) {
+          return subarrays;
+        }
 
-    if (Object.keys(asistenciasPorFecha).length === 0) {
-      return res.status(404).json({
-        message: "No hay asistencias en el rango de fechas del contrato.",
+        let nextStartDate = fechaInicio;
+        while (nextStartDate.getTime() <= fechaFin.getTime()) {
+          if (dayjs().isAfter(fechaLimite)) {
+            const trabajadores = contrato.trabajador_contratos.map(
+              (trabajador_contrato) => {
+                const trabajador = trabajador_contrato.trabajador;
+                const asistencias = trabajador.trabajador_asistencia
+                  .filter((asistencia) => {
+                    const asistenciaFecha = dayjs(
+                      asistencia?.asistencium?.fecha,
+                      ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
+                    ).toDate();
+                    const isInRange =
+                      asistenciaFecha.getTime() >= nextStartDate.getTime() &&
+                      asistenciaFecha.getTime() <= fechaLimite.getTime();
+                    return isInRange;
+                  })
+                  .map((asistencia) => {
+                    return {
+                      fecha: dayjs(asistencia?.asistencium?.fecha, [
+                        "YYYY-MM-DD",
+                        "YYYY-MM-DD HH:mm:ss",
+                      ]).format("YYYY-MM-DD"),
+                      asistencia: asistencia?.asistencia,
+                    };
+                  });
+                return {
+                  asistencias: asistencias?.map((asistencia) => {
+                    return {
+                      dni: trabajador?.dni,
+                      nombres:
+                        trabajador?.apellido_paterno +
+                        " " +
+                        trabajador?.apellido_materno +
+                        " " +
+                        trabajador?.nombre,
+                      celular: trabajador?.telefono,
+                      fecha: dayjs(asistencia?.fecha, [
+                        "YYYY-MM-DD",
+                        "YYYY-MM-DD HH:mm:ss",
+                      ])?.format("DD-MM-YYYY"),
+                      asistencia: asistencia?.asistencia,
+                    };
+                  }),
+                };
+              }
+            );
+
+            subarrays.push({
+              subArray_id: subarrayId,
+              nombre: asociacion.nombre,
+              fecha_inicio: dayjs(nextStartDate).format("DD-MM-YYYY"),
+              fecha_fin: dayjs(fechaLimite).format("DD-MM-YYYY"),
+              asistencia: dayjs(fechaLimite).diff(nextStartDate, "day") + 1,
+              trabajadores: trabajadores,
+              volquete: contrato?.teletrans?.at(-1)?.volquete,
+              teletrans: contrato?.teletrans?.at(-1)?.teletrans,
+              total: contrato?.teletrans?.at(-1)?.total,
+              contrato_id: contrato?.id,
+              aprobacion_id: contrato?.aprobacion_contrato_pagos
+                ?.filter((item) => item.subarray_id == subarrayId)
+                .at(0)?.id,
+              firma_jefe: contrato?.aprobacion_contrato_pagos
+                ?.filter((item) => item.subarray_id == subarrayId)
+                .at(0)?.firma_jefe,
+              firma_gerente: contrato?.aprobacion_contrato_pagos
+                ?.filter((item) => item.subarray_id == subarrayId)
+                .at(0)?.firma_gerente,
+            });
+            nextStartDate = dayjs(fechaLimite).add(1, "day").toDate();
+            fechaLimite = dayjs(nextStartDate).add(14, "day").toDate();
+            subarrayId++;
+          } else {
+            nextStartDate = fechaLimite;
+            fechaLimite = dayjs(fechaLimite).add(15, "day").toDate();
+          }
+        }
+
+        return subarrays;
       });
-    }
-    // Crear un objeto con la información de la asociación, el contrato y las asistencias
-    const registro = {
-      id: id,
-      nombre: contratoActivo.nombre,
-      id: contratoActivo.id,
-      fecha_inicio: fechaInicioContrato.format("DD-MM-YYYY"),
-      fecha_fin: fechaFinContrato.format("DD-MM-YYYY"),
-      asistencias: asistenciasPorFecha,
-    };
-
-    // Devolver el registro correspondiente a los 15 días de trabajo
-    return res.status(200).json({ data: [registro] });
+    });
+    res.status(200).json({ data: asociacionData.flat() });
   } catch (error) {
     console.log(error);
     res.status(500).json();
