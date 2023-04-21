@@ -1083,14 +1083,11 @@ trabajador.belongsTo(usuario, {
 
 empresa.hasMany(contrato, {
   foreignKey: "empresa_id",
-  onDelete: "CASCADE",
-  hooks: true,
 });
 contrato.belongsTo(empresa, {
   foreignKey: "empresa_id",
-  onDelete: "CASCADE",
-  hooks: true,
 });
+
 
 campamento.hasMany(contrato, {
   foreignKey: "campamento_id",
