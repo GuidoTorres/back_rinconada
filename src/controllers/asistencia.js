@@ -215,7 +215,7 @@ const getTrabajadorAsistencia = async (req, res, next) => {
   try {
     const get = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
-      where: { deshabilitado: false },
+      where: { deshabilitado: { [Op.not]: true } },
       include: [
         {
           model: trabajadorAsistencia,
@@ -224,17 +224,17 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         },
         {
           model: trabajador_contrato,
-          include: [
-            {
-              model: contrato,
-              where: { finalizado: false },
-              attributes: { exclude: ["contrato_id"] },
-            },
-          ],
+          // include: [
+          //   {
+          //     model: contrato,
+          //     where: { finalizado: false },
+          //     attributes: { exclude: ["contrato_id"] },
+          //   },
+          // ],
         },
       ],
     });
-
+    console.log("pokemon");
     const filterContrato = get.filter(
       (item) => item.trabajador_contratos.length > 0
     );
@@ -274,12 +274,11 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         // Si ambos tienen un valor de asociacion_id, los compara numéricamente
         return a.asociacion_id - b.asociacion_id;
       });
-
     const finalConId = jsonFinal.map((item, i) => {
       return { id: i + 1, ...item };
     });
 
-    return res.status(200).json({ data: jsonFinal });
+    return res.status(200).json({ data: finalConId });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: error, status: 500 });
@@ -339,6 +338,7 @@ const getTrabajadorByCampamento = async (req, res, next) => {
     const filterAsistencia = obj2.filter((item) =>
       item.trabajador_asistencia.filter((data) => data.asistencia_id == id_asis)
     );
+    console.log("pokemon");
     // const filter = obj2.filter((item) => item !== null);
     return res.status(200).json({ data: filterAsistencia });
     next();
