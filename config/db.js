@@ -3,7 +3,7 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "rinconada",
+   database: "rinconada",
   username: "root",
   password: "root",
   host: "localhost",

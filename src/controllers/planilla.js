@@ -47,7 +47,7 @@ const getPlanilla = async (req, res, next) => {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
               where: {
-                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+                finalizado: { [Op.not]: true },
               },
               include: [
                 { model: teletrans },
@@ -1058,7 +1058,8 @@ const getTareoTrabajador = async (req, res, next) => {
 
     return res.status(200).json({ data: aprobacionFilter });
   } catch (error) {
-    res.status(500).json();
+    console.log(error);
+    res.status(500).json;
   }
 };
 
@@ -1444,11 +1445,23 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
         // Si ya existe, actualizar los valores
         aprobacionData.firma_jefe = firma_jefe;
         aprobacionData.firma_gerente = firma_gerente;
-        aprobacionData.estado = estado;
         aprobacionData.subarray_id = subarray_id;
 
         await aprobacionData.save();
 
+        aprobacionDataActulizado = await aprobacion_contrato_pago.findOne({
+          where: { id: id },
+        });
+        if (
+          aprobacionDataActulizado.firma_jefe &&
+          aprobacionDataActulizado.firma_gerente
+        ) {
+          aprobacionDataActulizado.estado = true;
+        } else {
+          aprobacionDataActulizado.estado = false;
+        }
+
+        aprobacionDataActulizado.save();
         return res.status(200).json({
           msg: "Aprobación actualizada con éxito!",
           status: 200,

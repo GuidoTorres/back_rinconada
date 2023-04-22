@@ -8,14 +8,22 @@ const {
 const cron = require("node-cron");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const { format } = require("date-and-time");
 
 function esPeriodoDeTrabajo(fecha, periodoTrabajo) {
-  const fechaInicioPeriodo = new Date(periodoTrabajo.fecha_inicio);
-  const fechaFinPeriodo = new Date(periodoTrabajo.fecha_fin);
-  return fecha >= fechaInicioPeriodo && fecha <= fechaFinPeriodo;
+  const fechaInicioPeriodo = dayjs(periodoTrabajo.fecha_inicio, [
+    "YYYY-MM-DD",
+    "YYYY-MM-DD HH:mm:ss",
+  ]).format("YYYY-MM-DD");
+  const fechaFinPeriodo = dayjs(periodoTrabajo.fecha_fin, [
+    "YYYY-MM-DD",
+    "YYYY-MM-DD HH:mm:ss",
+  ]).format("YYYY-MM-DD");
+  return (
+    dayjs(fecha).isAfter(fechaInicioPeriodo) &&
+    dayjs(fecha).isBefore(fechaFinPeriodo)
+  );
 }
-const job = cron.schedule("06 13 * * *", async () => {
+const job = cron.schedule("45 21 * * *", async () => {
   try {
     // Obtén todos los contratos activos
     const contratosActivos = await contrato.findAll({
@@ -52,7 +60,7 @@ const job = cron.schedule("06 13 * * *", async () => {
       const trabajadorActual = contratoActual.trabajador_contratos.map(
         (data) => data.trabajador
       );
-      const periodoTrabajo = contratoActual.periodo_trabajo;
+      const periodoTrabajo = contratoActual.fecha_inicio;
       const asistencias = trabajadorActual.map((item) =>
         item.trabajador_asistencia.map((da) => da.asistencium.fecha).flat()
       );
@@ -62,28 +70,23 @@ const job = cron.schedule("06 13 * * *", async () => {
         const fechaAsistencia = asistenciaActual;
         const diaSemana = dayjs(fechaAsistencia).day();
 
-        if (esPeriodoDeTrabajo(fechaAsistencia, periodoTrabajo)) {
-          if (asistenciaActual.asistio === "Asistio") {
-            // Si el trabajador asistió, no se modifica la fecha fin
-          } else {
-            // Si el trabajador no asistió, se aumenta o disminuye la fecha fin en un día
-            fechaFinActualizada =
-              asistenciaActual.asistio !== "Asistio"
-                ? dayjs(fechaFinActualizada).subtract(1, "day")
-                : dayjs(fechaFinActualizada).add(1, "day");
-
-            // Si el día siguiente es domingo, se disminuye la fecha fin en un día
-            if (diaSemana === 6) {
-              fechaFinActualizada = dayjs(fechaFinActualizada).add(1, "day");
-            }
+        if (esPeriodoDeTrabajo(fechaAsistencia, contratoActual)) {
+          console.log(fechaFinActualizada);
+          fechaFinActualizada =
+            asistenciaActual.asistio === "Asistio"
+              ? dayjs(fechaFinActualizada).format("YYYY-MM-DD")
+              : dayjs(fechaFinActualizada).add(1, "day").format("YYYY-MM-DD");
+              console.log(fechaFinActualizada)
+          if (diaSemana === 6) {
+            fechaFinActualizada = dayjs(fechaFinActualizada)
+              .add(1, "day")
+              .format("YYYY-MM-DD");
           }
-        } else {
-          // Si la asistencia no corresponde al periodo de trabajo, no se modifica la fecha fin
         }
       });
-      (contratoActual.fecha_fin = daysj(fechaFinActualizada)),
-        format("YYYY-MM-DD");
-      console.log(contratoActual);
+      contratoActual.fecha_fin =
+        dayjs(fechaFinActualizada).format("YYYY-MM-DD");
+      // console.log(contratoActual);
       //   await contratoActual.save();
       //   console.log(fechaFinActualizada);
     });

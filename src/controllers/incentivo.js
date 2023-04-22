@@ -125,11 +125,14 @@ const getIncentivo = async (req, res, next) => {
               contrato_id: data?.contrato_id,
               teletrans: data?.teletrans,
               nombre:
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.nombre +
                 " " +
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_paterno +
                 " " +
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno,
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_materno,
               cargo: data?.contrato?.puesto,
               celular: data?.contrato?.trabajador?.telefono,
             };
@@ -161,7 +164,7 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
               where: {
-                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+                finalizado: { [Op.not]: true },
               },
             },
           ],
@@ -169,8 +172,13 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
       ],
     });
 
-    const formatData = get.map((item) => {
+    const filterContrato = get?.filter(
+      (item) => item.trabajador_contratos.length > 0
+    );
+
+    const formatData = filterContrato?.map((item, i) => {
       return {
+        id: i + 1,
         nombre:
           item?.apellido_paterno +
           " " +
@@ -179,7 +187,10 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
           item?.nombre,
         celular: item?.telefono,
         cargo: item?.contratos?.at(-1)?.puesto,
-        contrato_id: item.contratos?.at(-1).id,
+        contrato_id: item.trabajador_contratos
+          .map((item) => item.contrato_id)
+          .toString(),
+
         // pago_id: item?.contratos?.at(-1)?.contrato_pagos?.at(-1).pago_id,
         // pago: item?.contratos
         //   ?.at(-1)
@@ -198,7 +209,6 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
     });
 
     return res.status(200).json({ data: formatData });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();
