@@ -75,7 +75,7 @@ const getExcelAsistencia = async (req, res, next) => {
         salida: item.__EMPTY_4 === undefined ? "" : item.__EMPTY_4,
       };
     });
-
+    console.log(jsonFormat);
     //obtengo solo las asistencias del dia actual que se encuentran en el excel
     const asistenciaExcelDiaActual = jsonFormat.filter(
       (item) => item.fecha === fecha
@@ -161,8 +161,7 @@ const getExcelAsistencia = async (req, res, next) => {
       { conAsistencia: [], sinAsistencia: [] }
     );
 
-    console.log(trabajadoresAsistencia.conAsistencia); // trabajadores con asistencia
-    console.log(trabajadoresAsistencia.sinAsistencia);
+
 
     if (trabajadoresAsistencia.conAsistencia.length > 0) {
       // Actualizar asistencias de trabajadores con asistencia existente

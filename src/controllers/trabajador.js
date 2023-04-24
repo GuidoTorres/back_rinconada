@@ -29,6 +29,7 @@ const getTrabajador = async (req, res, next) => {
       include: [
         {
           model: evaluacion,
+          
         },
         {
           model: trabajador_contrato,
@@ -98,6 +99,7 @@ const getTrabajador = async (req, res, next) => {
                 tareo: data?.contrato?.tareo,
                 deshabilitado: data?.contrato?.deshabilitado,
                 campamento: data?.contrato?.campamento?.nombre,
+                suspendido: data?.contrato?.suspendido
               };
             })
             .filter((item) => item?.finalizado === false),
@@ -516,7 +518,7 @@ const getTrabajadorPagoAprobado = async (req, res, next) => {
             aprobacion: item.trabajador_contratos
               .at(-1)
               .contrato.aprobacion_contrato_pagos.filter(
-                (item) => item.estado === true
+                (item) => item.estado === true && item.pagado === false || item.pagado === null
               ),
           };
         }

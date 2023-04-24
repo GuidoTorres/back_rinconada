@@ -92,9 +92,10 @@ const getContratoById = async (req, res, next) => {
             finalizado: data?.contrato?.finalizado,
             trabajador_id: data?.contrato?.trabajador_id,
             tareo: data?.contrato?.tareo,
+            suspendido: data?.contrato?.suspendido,
           };
         }),
-        evaluacion: item.evaluacions.at(0)
+        evaluacion: item.evaluacions.at(0),
       };
     });
 
@@ -141,7 +142,7 @@ const getContratoAsociacionById = async (req, res, next) => {
         teletran: item?.teletran,
         suspendido: item?.suspendido,
         finalizado: item?.finalizado,
-        tareo: item?.tareo
+        tareo: item?.tareo,
       };
     });
 
@@ -267,7 +268,7 @@ const postContratoAsociacion = async (req, res, next) => {
     teletran: req?.body?.teletran,
     suspendido: false,
     finalizado: false,
-    tareo: req?.body?.tareo
+    tareo: req?.body?.tareo,
   };
   try {
     if (req.body.trabajadores.length > 0) {
@@ -333,14 +334,29 @@ const updateContrato = async (req, res, next) => {
         teletrans: teletran.toString(),
         contrato_id: id,
       };
-      console.log(volquete);
-      console.log(teletran);
-      console.log(total);
-
-      console.log(ttransInfo);
       const createtTrans = await teletrans.update(ttransInfo, {
         where: { contrato_id: id },
       });
+    }
+    console.log(req.body);
+    if (req.body.suspendido) {
+      // Obtener el trabajador asociado al contrato
+      const trabajadorContrato = await trabajador_contrato.findOne({ where: { contrato_id: id } });
+      console.log(trabajadorContrato);
+      // Si existe una relación trabajador_contrato
+      if (trabajadorContrato) {
+        // Obtener el trabajador asociado al contrato
+        const trabajadorSuspendido = await trabajador.findOne({
+          where: { dni: trabajadorContrato.trabajador_dni },
+          attributes: { exclude: ["usuarioId"] },
+        });
+    
+        // Actualizar el campo 'finalizado' en la tabla de contrato activo
+        await contrato.update({ suspendido: true, finalizado: true }, { where: { id: id, finalizado: false } });
+    
+        // Actualizar las evaluaciones activas relacionadas con el trabajador
+        await evaluacion.update({ suspendido: true, finalizado: true }, { where: { trabajador_id: trabajadorSuspendido.dni, finalizado: false } });
+      }
     }
 
     return res

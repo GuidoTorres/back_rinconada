@@ -90,6 +90,7 @@ const getEvaluacionById = async (req, res, next) => {
         nota_contrato: item?.contrato_evaluacions
           ?.map((data) => data?.contrato?.nota_contrato)
           .toString(),
+        suspendido: item?.suspendido,
       };
     });
     return res.status(200).json({ data: obj });

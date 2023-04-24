@@ -3,7 +3,7 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-   database: "rinconada",
+  database: "rinconada",
   username: "root",
   password: "root",
   host: "localhost",
@@ -108,6 +108,7 @@ const aprobacion_contrato_pago = sequelize.define(
     contrato_id: DataTypes.INTEGER,
     fecha: DataTypes.STRING,
     subarray_id: DataTypes.STRING,
+    pagado: DataTypes.BOOLEAN
   },
   {
     tableName: "aprobacion_contrato_pago",
@@ -194,6 +195,8 @@ const evaluacion = sequelize.define(
     area_id: DataTypes.INTEGER,
     campamento_id: DataTypes.INTEGER,
     gerencia_id: DataTypes.INTEGER,
+    suspendido: DataTypes.BOOLEAN
+
   },
   {
     tableName: "evaluacion",
@@ -232,6 +235,8 @@ const contrato = sequelize.define(
     gerencia_id: DataTypes.INTEGER,
     area_id: DataTypes.INTEGER,
     puesto_id: DataTypes.INTEGER,
+    suspendido: DataTypes.BOOLEAN,
+    fecha_fin_estimada: DataTypes.BOOLEAN
   },
   {
     tableName: "contrato",
@@ -388,6 +393,7 @@ const trabajadorAsistencia = sequelize.define(
     firma_gerente: DataTypes.STRING,
     firma_jefe: DataTypes.STRING,
     foto: DataTypes.STRING,
+    revisada: DataTypes.BOOLEAN
   },
   {
     tableName: "trabajador_asistencia",
