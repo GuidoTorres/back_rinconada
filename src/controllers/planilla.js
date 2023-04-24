@@ -14,6 +14,7 @@ const {
   aprobacion_contrato_pago,
   area,
   cargo,
+  gerencia,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -55,6 +56,12 @@ const getPlanilla = async (req, res, next) => {
                   model: campamento,
                   attributes: { exclude: ["campamento_id"] },
                   include: [{ model: asistencia }],
+                },
+                {model:gerencia},
+                { model: area, attributes: { exclude: ["area_id"] } },
+                {
+                  model: cargo,
+                  attributes: { exclude: ["puesto_id", "cargo_id"] },
                 },
               ],
             },
@@ -173,9 +180,9 @@ const getPlanilla = async (req, res, next) => {
         asociacion_id: item?.asociacion_id,
         deshabilitado: item?.deshabilitado,
         contratos: contratoFiltrado,
-        puesto: contratoFiltrado
-          ?.map((dat) => dat?.contrato?.puesto)
-          .toString(),
+        gerencia: contratoFiltrado?.at(0)?.contrato?.gerencia?.nombre,
+        area: contratoFiltrado?.at(0)?.contrato?.area.nombre,
+        puesto: contratoFiltrado?.at(0)?.contrato?.cargo?.nombre,
         fecha_inicio: dayjs(
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
         ).format("DD-MM-YYYY"),

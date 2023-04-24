@@ -8,6 +8,7 @@ const {
   destino_pago,
   destino,
   trabajador_contrato,
+  cargo,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
@@ -32,6 +33,8 @@ const getIncentivo = async (req, res, next) => {
                 [Op.and]: [{ finalizado: { [Op.not]: true } }],
               },
               include: [
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
+
                 {
                   model: contrato_pago,
                   attributes: { exclude: ["contrato_pago_id"] },
@@ -59,6 +62,8 @@ const getIncentivo = async (req, res, next) => {
               attributes: { exclude: ["contrato_id"] },
 
               include: [
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
+
                 {
                   model: trabajador_contrato,
                   include: [
@@ -85,33 +90,6 @@ const getIncentivo = async (req, res, next) => {
       (item) => item?.tipo === "incentivo"
     );
 
-    // const formatData = filterContratoPago.map((item) => {
-    //   return {
-    //     nombre:
-    //       item?.apellido_paterno +
-    //       " " +
-    //       item?.apellido_materno +
-    //       " " +
-    //       item?.nombre,
-    //     celular: item?.telefono,
-    //     cargo: item?.contratos?.at(-1)?.puesto,
-    //     contrato_id: item.contratos?.at(-1).id,
-    //     pago: item?.contratos
-    //       ?.at(-1)
-    //       ?.contrato_pagos?.map((data) => {
-    //         return {
-    //           id: data?.pago?.id,
-    //           teletrans: data?.pago?.teletrans,
-    //           observacion: data?.pago?.observacion,
-    //           fecha_pago: data?.pago?.fecha_pago,
-    //           tipo: data?.pago?.tipo,
-    //         };
-    //       })
-    //       .sort((a, b) => a.id - b.id)
-    //       .at(-1),
-    //   };
-    // });
-
     const format = filterIncentivo
       .map((item) => {
         return {
@@ -124,6 +102,8 @@ const getIncentivo = async (req, res, next) => {
             return {
               contrato_id: data?.contrato_id,
               teletrans: data?.teletrans,
+              prueba: data?.contrato,
+              cargo: item?.contratos?.at(-1)?.puesto ? item?.contratos?.at(-1)?.puesto : "Asociación",
               nombre:
                 data?.contrato?.trabajador_contratos.at(-1)?.trabajador
                   ?.nombre +
@@ -133,8 +113,9 @@ const getIncentivo = async (req, res, next) => {
                 " " +
                 data?.contrato?.trabajador_contratos.at(-1)?.trabajador
                   ?.apellido_materno,
-              cargo: data?.contrato?.puesto,
-              celular: data?.contrato?.trabajador?.telefono,
+              celular:
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.telefono,
             };
           }),
         };
@@ -166,6 +147,9 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
               where: {
                 finalizado: { [Op.not]: true },
               },
+              include: [
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
+              ],
             },
           ],
         },
@@ -176,37 +160,28 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
       (item) => item.trabajador_contratos.length > 0
     );
 
-    const formatData = filterContrato?.map((item, i) => {
-      return {
-        id: i + 1,
-        nombre:
-          item?.apellido_paterno +
-          " " +
-          item?.apellido_materno +
-          " " +
-          item?.nombre,
-        celular: item?.telefono,
-        cargo: item?.contratos?.at(-1)?.puesto,
-        contrato_id: item.trabajador_contratos
-          .map((item) => item.contrato_id)
-          .toString(),
-
-        // pago_id: item?.contratos?.at(-1)?.contrato_pagos?.at(-1).pago_id,
-        // pago: item?.contratos
-        //   ?.at(-1)
-        //   ?.contrato_pagos?.map((data) => {
-        //     return {
-        //       id: data?.pago?.id,
-        //       teletrans: data?.pago?.teletrans,
-        //       observacion: data?.pago?.observacion,
-        //       fecha_pago: data?.pago?.fecha_pago,
-        //       tipo: data?.pago?.tipo,
-        //     };
-        //   })
-        //   .sort((a, b) => a.id - b.id)
-        //   .at(-1),
-      };
-    });
+    const formatData = filterContrato
+      ?.map((item, i) => {
+        return {
+          id: i + 1,
+          nombre:
+            item?.apellido_paterno +
+            " " +
+            item?.apellido_materno +
+            " " +
+            item?.nombre,
+          celular: item?.telefono,
+          contrato_id: item.trabajador_contratos
+            .map((item) => item.contrato_id)
+            .toString(),
+        };
+      })
+      .filter(
+        (item) =>
+          item.contrato_id !== null &&
+          item.contrato_id !== undefined &&
+          item.contrato_id !== ""
+      );
 
     return res.status(200).json({ data: formatData });
   } catch (error) {

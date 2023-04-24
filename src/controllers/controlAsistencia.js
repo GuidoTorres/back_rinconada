@@ -95,14 +95,14 @@ const job = cron.schedule("21 09 * * *", async () => {
 
         if (estadoAsistencia === "Asistio" || estadoAsistencia === "Comisión") {
           cantidadReal++;
-          asistencia.update({ considerado_en_estimacion: true });
+          asistencia.update({ revisada: true });
         } else if (
           (estadoAsistencia === "Falto" &&
             fechaAsistencia.isSame(fechaEstimada, "day").add(1, "day")) ||
           fechaAsistencia.isAfter(fechaEstimada, "day").add(1, "day")
         ) {
           fechaEstimada = fechaEstimada.add(1, "day");
-          asistencia.update({ considerado_en_estimacion: true });
+          asistencia.update({ revisada: true });
         }
       });
 
@@ -148,7 +148,6 @@ const job = cron.schedule("21 09 * * *", async () => {
 
         cantidadEstimada = diasEnPeriodo - domingosEnPeriodo;
       }
-      console.log(fechaEstimada);
       if (cantidadReal >= cantidadEstimada) {
         // El trabajador ha cumplido todas sus asistencias, entonces finalizar el contrato
         await contrato.update({

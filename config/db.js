@@ -108,7 +108,7 @@ const aprobacion_contrato_pago = sequelize.define(
     contrato_id: DataTypes.INTEGER,
     fecha: DataTypes.STRING,
     subarray_id: DataTypes.STRING,
-    pagado: DataTypes.BOOLEAN
+    pagado: DataTypes.BOOLEAN,
   },
   {
     tableName: "aprobacion_contrato_pago",
@@ -161,7 +161,6 @@ const evaluacion = sequelize.define(
       allowNull: false,
     },
     fecha_evaluacion: DataTypes.DATE,
-    puesto_id: DataTypes.INTEGER,
     capacitacion_sso: DataTypes.INTEGER,
     capacitacion_gema: DataTypes.INTEGER,
     evaluacion_laboral: DataTypes.INTEGER,
@@ -192,11 +191,11 @@ const evaluacion = sequelize.define(
     recursos_humanos_observacion: DataTypes.STRING,
     finalizado: DataTypes.BOOLEAN,
     eliminar: DataTypes.BOOLEAN,
-    area_id: DataTypes.INTEGER,
-    campamento_id: DataTypes.INTEGER,
     gerencia_id: DataTypes.INTEGER,
-    suspendido: DataTypes.BOOLEAN
-
+    area_id: DataTypes.INTEGER,
+    puesto_id: DataTypes.INTEGER,
+    campamento_id: DataTypes.INTEGER,
+    suspendido: DataTypes.BOOLEAN,
   },
   {
     tableName: "evaluacion",
@@ -236,7 +235,7 @@ const contrato = sequelize.define(
     area_id: DataTypes.INTEGER,
     puesto_id: DataTypes.INTEGER,
     suspendido: DataTypes.BOOLEAN,
-    fecha_fin_estimada: DataTypes.BOOLEAN
+    fecha_fin_estimada: DataTypes.BOOLEAN,
   },
   {
     tableName: "contrato",
@@ -393,7 +392,7 @@ const trabajadorAsistencia = sequelize.define(
     firma_gerente: DataTypes.STRING,
     firma_jefe: DataTypes.STRING,
     foto: DataTypes.STRING,
-    revisada: DataTypes.BOOLEAN
+    revisada: DataTypes.BOOLEAN,
   },
   {
     tableName: "trabajador_asistencia",
@@ -1058,21 +1057,23 @@ usuario.belongsTo(rol, { foreignKey: "rol_id" });
 usuario.hasOne(cargo, { foreignKey: "cargo_id" });
 cargo.belongsTo(usuario, { foreignKey: "cargo_id" });
 
-contrato.hasOne(gerencia, { foreignKey: "gerencia_id" });
-gerencia.belongsTo(contrato, { foreignKey: "gerencia_id" });
-contrato.hasOne(area, { foreignKey: "area_id" });
-area.belongsTo(contrato, { foreignKey: "area_id" });
-contrato.hasOne(cargo, { foreignKey: "puesto_id" });
-cargo.belongsTo(contrato, { foreignKey: "puesto_id" });
+gerencia.hasMany(contrato, { foreignKey: "gerencia_id" });
+contrato.belongsTo(gerencia, { foreignKey: "gerencia_id" });
+area.hasMany(contrato, { foreignKey: "area_id" });
+contrato.belongsTo(area, { foreignKey: "area_id" });
+cargo.hasMany(contrato, { foreignKey: "puesto_id" });
+contrato.belongsTo(cargo, { foreignKey: "puesto_id" });
+
 // contrato.hasOne(campamento, { foreignKey: "campamento_id" });
 // campamento.belongsTo(contrato, { foreignKey: "campamento_id" });
+gerencia.hasMany(evaluacion, { foreignKey: "gerencia_id" });
+evaluacion.belongsTo(gerencia, { foreignKey: "gerencia_id" });
+area.hasMany(evaluacion, { foreignKey: "area_id" });
+evaluacion.belongsTo(area, { foreignKey: "area_id" });
 
-evaluacion.hasOne(gerencia, { foreignKey: "gerencia_id" });
-gerencia.belongsTo(evaluacion, { foreignKey: "gerencia_id" });
-evaluacion.hasOne(area, { foreignKey: "area_id" });
-area.hasOne(evaluacion, { foreignKey: "area_id" });
-evaluacion.hasOne(cargo, { foreignKey: "puesto_id" });
-cargo.hasOne(evaluacion, { foreignKey: "puesto_id" });
+cargo.hasMany(evaluacion, { foreignKey: "puesto_id" });
+evaluacion.belongsTo(area, { foreignKey: "puesto_id" });
+
 evaluacion.hasOne(campamento, { foreignKey: "campamento_id" });
 campamento.belongsTo(evaluacion, { foreignKey: "campamento_id" });
 
@@ -1093,7 +1094,6 @@ empresa.hasMany(contrato, {
 contrato.belongsTo(empresa, {
   foreignKey: "empresa_id",
 });
-
 
 campamento.hasMany(contrato, {
   foreignKey: "campamento_id",

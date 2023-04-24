@@ -17,6 +17,7 @@ const {
   trabajadorAsistencia,
   asistencia,
   trabajador_contrato,
+  cargo,
 } = require("../../config/db");
 
 const createProgramacion = async (req, res, next) => {
@@ -703,11 +704,14 @@ const historialProgramacion = async (req, res, next) => {
               contrato_id: "---",
               pago_id: data?.pago_id,
               nombre:
-              data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
-              " " +
-              data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
-              " " +
-              data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno,
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.nombre +
+                " " +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_paterno +
+                " " +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_materno,
               area: "---",
               cargo: "---",
               celular: data?.trabajador?.telefono,
@@ -739,11 +743,14 @@ const historialProgramacion = async (req, res, next) => {
               pago_id: data?.pago_id,
               nombre:
                 data?.contrato?.trabajador !== null
-                  ? data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
-                  " " +
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
-                  " " +
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno
+                  ? data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                      ?.nombre +
+                    " " +
+                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                      ?.apellido_paterno +
+                    " " +
+                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                      ?.apellido_materno
                   : data?.contrato?.empresa?.razon_social,
               area: data?.contrato?.trabajador_contratos.at(-1).area,
               cargo: data?.contrato?.trabajador_contratos.at(-1).cargo,
@@ -1284,7 +1291,7 @@ const filtroPagoFecha = async (req, res, next) => {
   }
 };
 
-const getListaPagoIndividual = async(req, res ,next)=>{
+const getListaPagoIndividual = async (req, res, next) => {
   try {
     const get = await trabajador.findAll({
       where: {
@@ -1305,6 +1312,7 @@ const getListaPagoIndividual = async(req, res ,next)=>{
                 [Op.and]: [{ finalizado: { [Op.not]: true } }],
               },
               include: [
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
                 {
                   model: contrato_pago,
                   attributes: { exclude: ["contrato_pago_id"] },
@@ -1332,6 +1340,7 @@ const getListaPagoIndividual = async(req, res ,next)=>{
               attributes: { exclude: ["contrato_id"] },
 
               include: [
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
                 {
                   model: trabajador_contrato,
                   include: [
@@ -1354,9 +1363,7 @@ const getListaPagoIndividual = async(req, res ,next)=>{
       ],
     });
 
-    const filterIncentivo = getPago.filter(
-      (item) => item?.tipo === "pago"
-    );
+    const filterIncentivo = getPago.filter((item) => item?.tipo === "pago");
 
     // const formatData = filterContratoPago.map((item) => {
     //   return {
@@ -1396,15 +1403,20 @@ const getListaPagoIndividual = async(req, res ,next)=>{
           trabajadores: item?.contrato_pagos?.map((data) => {
             return {
               contrato_id: data?.contrato_id,
+              cargo: data?.contrato?.cargo?.nombre,
               teletrans: data?.teletrans,
               nombre:
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.nombre +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.nombre +
                 " " +
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_paterno +
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_paterno +
                 " " +
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador?.apellido_materno,
-              cargo: data?.contrato?.puesto,
-              celular: data?.contrato?.trabajador?.telefono,
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.apellido_materno,
+              celular:
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  ?.telefono,
             };
           }),
         };
@@ -1416,7 +1428,7 @@ const getListaPagoIndividual = async(req, res ,next)=>{
     console.log(error);
     res.status(500).json();
   }
-}
+};
 
 module.exports = {
   postPago,
@@ -1434,5 +1446,5 @@ module.exports = {
   asociacionPago,
   deletePagoAsociacion,
   filtroPagoFecha,
-  getListaPagoIndividual
+  getListaPagoIndividual,
 };
