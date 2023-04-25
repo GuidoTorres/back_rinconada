@@ -1245,12 +1245,12 @@ destino_pago.belongsTo(pago, { foreignKey: "pago_id" });
 destino.hasMany(destino_pago, { foreignKey: "destino_id" });
 destino_pago.belongsTo(destino, { foreignKey: "destino_id" });
 
-trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni" });
-pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
 
 contrato_pago.hasMany(pago_asociacion, { foreignKey: "contrato_pago_id" });
 pago_asociacion.hasMany(contrato_pago, { foreignKey: "contrato_pago_id" });
 
+trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni" });
+pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
 contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id" });
 contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
 

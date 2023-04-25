@@ -9,6 +9,7 @@ const {
   destino,
   trabajador_contrato,
   cargo,
+  asociacion,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
@@ -62,6 +63,7 @@ const getIncentivo = async (req, res, next) => {
               attributes: { exclude: ["contrato_id"] },
 
               include: [
+                { model: asociacion },
                 { model: cargo, attributes: { exclude: ["cargo_id"] } },
 
                 {
@@ -102,8 +104,10 @@ const getIncentivo = async (req, res, next) => {
             return {
               contrato_id: data?.contrato_id,
               teletrans: data?.teletrans,
-              prueba: data?.contrato,
-              cargo: item?.contratos?.at(-1)?.puesto ? item?.contratos?.at(-1)?.puesto : "Asociación",
+              cargo:
+                data?.contrato?.asociacion !== null
+                  ? data?.contrato?.asociacion?.tipo
+                  : data?.contrato?.cargo?.nombre,
               nombre:
                 data?.contrato?.trabajador_contratos.at(-1)?.trabajador
                   ?.nombre +

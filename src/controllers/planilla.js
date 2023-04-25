@@ -57,7 +57,7 @@ const getPlanilla = async (req, res, next) => {
                   attributes: { exclude: ["campamento_id"] },
                   include: [{ model: asistencia }],
                 },
-                {model:gerencia},
+                { model: gerencia },
                 { model: area, attributes: { exclude: ["area_id"] } },
                 {
                   model: cargo,
@@ -313,7 +313,7 @@ const getPlanillaHistoriaTrabajador = async (req, res, next) => {
 //lista de trabajadores y planillas para la vista de planillas
 const getPlanillaAprobacion = async (req, res, next) => {
   try {
-    const trabajadores = await trabajador.findAll({
+    const trabajadores = trabajador.findAll({
       where: {
         asociacion_id: { [Op.is]: null },
         deshabilitado: { [Op.not]: true },
@@ -336,16 +336,18 @@ const getPlanillaAprobacion = async (req, res, next) => {
               ],
             },
           ],
+          separate: true,
         },
         {
           model: trabajadorAsistencia,
           attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
           include: [{ model: asistencia, order: [["fecha", "ASC"]] }],
+          separate: true,
         },
       ],
     });
 
-    const asociaciones = await asociacion.findAll({
+    const asociaciones = asociacion.findAll({
       include: [
         {
           model: contrato,
@@ -391,7 +393,13 @@ const getPlanillaAprobacion = async (req, res, next) => {
         },
       ],
     });
-    const asociacionData = asociaciones.map((asociacion) => {
+
+    const [trabajadorFetch, asociacionFetch] = await Promise.all([
+      trabajadores,
+      asociaciones,
+    ]);
+
+    const asociacionData = asociacionFetch.map((asociacion) => {
       return asociacion.contratos.flatMap((contrato) => {
         let fechaInicio = dayjs(contrato.fecha_inicio, [
           "YYYY-MM-DD",
@@ -444,11 +452,13 @@ const getPlanillaAprobacion = async (req, res, next) => {
             index === asistenciasPrimerTrabajador.length - 1
           ) {
             fechaInicioSubarray = dayjs(
-              asistenciasPrimerTrabajador.at(0)?.asistencium?.fecha,
+              asistenciasPrimerTrabajador[0]?.asistencium?.fecha,
               ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
             ).toDate();
             fechaFinSubarray = dayjs(
-              asistenciasPrimerTrabajador.at(-1)?.asistencium?.fecha,
+              asistenciasPrimerTrabajador[
+                asistenciasPrimerTrabajador.length - 1
+              ]?.asistencium?.fecha,
               ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
             ).toDate();
 
@@ -545,7 +555,7 @@ const getPlanillaAprobacion = async (req, res, next) => {
       });
     });
 
-    const filterContrato = trabajadores.filter(
+    const filterContrato = trabajadorFetch.filter(
       (trabajador) =>
         trabajador.trabajador_contratos.length > 0 &&
         trabajador.trabajador_asistencia.length > 0
@@ -1065,86 +1075,90 @@ const getTareoTrabajador = async (req, res, next) => {
               const ultimaAsistencia =
                 subAsistencias[subAsistencias.length - 1];
               fechaFin = ultimaAsistencia.asistencium.fecha;
-              break; // Salir del bucle for cuando se encuentren las asistencias deseadas
+              if (subAsistencias.length > 0) {
+                const fechaInicioDayjs = dayjs(fechaInicio);
+                const fechaFinDayjs = dayjs(fechaFin);
+                const asistenciasEnRango =
+                  trabajador?.trabajador_asistencia?.filter((asistencia) => {
+                    const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+                    return (
+                      (fechaAsistencia.isSame(fechaInicioDayjs) ||
+                        fechaAsistencia.isAfter(fechaInicioDayjs)) &&
+                      (fechaAsistencia.isSame(fechaFinDayjs) ||
+                        fechaAsistencia.isBefore(fechaFinDayjs))
+                    );
+                  });
+
+                asistenciasEnRango.sort((a, b) => {
+                  return a.asistencium.fecha.localeCompare(b.asistencium.fecha);
+                });
+
+                const asistenciaCompleta = asistenciasEnRango.map((item, a) => {
+                  return {
+                    id: a + 1,
+                    asistencia: item?.asistencia,
+                    fecha: item?.asistencium?.fecha,
+                    hora_ingreso: item?.asistencium?.hora_ingreso,
+                    tarde: item?.tarde,
+                    observacion: item?.observacion,
+                  };
+                });
+
+                aprobacionFilter.push({
+                  subarray_id: subarrayId,
+                  nombre:
+                    trabajador?.apellido_paterno +
+                    " " +
+                    trabajador?.apellido_materno +
+                    " " +
+                    trabajador?.nombre,
+                  celular: trabajador?.telefono,
+                  dni: trabajador?.dni,
+                  fecha_inicio: dayjs(fechaInicio)?.format("DD-MM-YYYY"),
+                  fecha_fin: dayjs(fechaFin)?.format("DD-MM-YYYY"),
+                  volquete:
+                    trabajador?.trabajador_contratos[0]?.contrato?.teletrans?.at(
+                      -1
+                    )?.volquete,
+                  teletran:
+                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                      -1
+                    )?.teletrans,
+                  total:
+                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                      -1
+                    )?.total,
+                  trabajador_asistencia: asistenciasEnRango,
+                  cargo: trabajador?.trabajador_contratos[0]?.contrato?.puesto,
+                  asistencia: contador,
+                  asistencia_completa: asistenciaCompleta,
+                  estado:
+                    trabajador?.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.estado,
+                  aprobacion_id:
+                    trabajador?.trabajador_contratos[0]?.contrato.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.id,
+                  firma_jefe:
+                    trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.firma_jefe,
+                  firma_gerente:
+                    trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.firma_gerente,
+                  foto: trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
+                    ?.filter((item) => item.subarray_id == subarrayId)
+                    .at(0)?.huella,
+                });
+                subarrayId++;
+                contador = 1; // Inicia el contador en 1 ya que la primera asistencia será la primera del próximo subarray
+                subAsistencias = [asistencia]; // Comienza el próximo subarray con la asistencia actual
+                fechaInicio = asistencia.asistencium.fecha;
+              }
             }
           }
-        }
-        if (subAsistencias.length > 0) {
-          const fechaInicioDayjs = dayjs(fechaInicio);
-          const fechaFinDayjs = dayjs(fechaFin);
-          const asistenciasEnRango = trabajador?.trabajador_asistencia?.filter(
-            (asistencia) => {
-              const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-              return (
-                (fechaAsistencia.isSame(fechaInicioDayjs) ||
-                  fechaAsistencia.isAfter(fechaInicioDayjs)) &&
-                (fechaAsistencia.isSame(fechaFinDayjs) ||
-                  fechaAsistencia.isBefore(fechaFinDayjs))
-              );
-            }
-          );
-
-          asistenciasEnRango.sort((a, b) => {
-            return a.asistencium.fecha.localeCompare(b.asistencium.fecha);
-          });
-
-          const asistenciaCompleta = asistenciasEnRango.map((item, a) => {
-            return {
-              id: a + 1,
-              asistencia: item?.asistencia,
-              fecha: item?.asistencium?.fecha,
-              hora_ingreso: item?.asistencium?.hora_ingreso,
-              tarde: item?.tarde,
-              observacion: item?.observacion,
-            };
-          });
-
-          aprobacionFilter.push({
-            subarray_id: subarrayId,
-            nombre:
-              trabajador?.apellido_paterno +
-              " " +
-              trabajador?.apellido_materno +
-              " " +
-              trabajador?.nombre,
-            celular: trabajador?.telefono,
-            dni: trabajador?.dni,
-            fecha_inicio: dayjs(fechaInicio)?.format("DD-MM-YYYY"),
-            fecha_fin: dayjs(fechaFin)?.format("DD-MM-YYYY"),
-            volquete:
-              trabajador?.trabajador_contratos[0]?.contrato?.teletrans?.at(-1)
-                ?.volquete,
-            teletran:
-              trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
-                ?.teletrans,
-            total:
-              trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
-                ?.total,
-            trabajador_asistencia: asistenciasEnRango,
-            cargo: trabajador?.trabajador_contratos[0]?.contrato?.puesto,
-            asistencia: contador,
-            asistencia_completa: asistenciaCompleta,
-            estado:
-              trabajador?.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .at(0)?.estado,
-            aprobacion_id:
-              trabajador?.trabajador_contratos[0]?.contrato.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .at(0)?.id,
-            firma_jefe:
-              trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .at(0)?.firma_jefe,
-            firma_gerente:
-              trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .at(0)?.firma_gerente,
-            foto: trabajador?.trabajador_contratos[0]?.contrato?.aprobacion_contrato_pagos
-              ?.filter((item) => item.subarray_id == subarrayId)
-              .at(0)?.huella,
-          });
-          subarrayId++;
         }
       }
     });
@@ -1220,7 +1234,6 @@ const getTareoAsociacion = async (req, res, next) => {
         if (fechaInicio.getTime() > fechaFin.getTime()) {
           return [];
         }
-
         let subarrays = [];
         let subarrayId = 1;
         const contratoData = contrato;
@@ -1245,27 +1258,33 @@ const getTareoAsociacion = async (req, res, next) => {
             );
           });
 
-        let contadorAsistencias = 0;
-        asistenciasPrimerTrabajador.forEach((asistencia, index) => {
+        let contador = 0;
+        let subAsistencias = [];
+        const minAsistencias = 15;
+        let currentIndex = 0;
+
+        for (
+          let currentIndex = 0;
+          currentIndex < asistenciasPrimerTrabajador.length;
+
+        ) {
+          let asistencia = asistenciasPrimerTrabajador[currentIndex];
           if (
-            asistencia?.asistencia === "asistio" ||
-            asistencia?.asistencia === "comision"
+            asistencia?.asistencia === "Asistio" ||
+            asistencia?.asistencia === "Comisión"
           ) {
-            contadorAsistencias++;
+            contador++;
+            subAsistencias.push(asistencia);
+            if (contador === 1) {
+              fechaInicioSubarray = asistencia.asistencium.fecha;
+            }
           }
 
           if (
-            contadorAsistencias === 15 ||
-            index === asistenciasPrimerTrabajador.length - 1
+            contador >= minAsistencias ||
+            currentIndex === asistenciasPrimerTrabajador.length - 1
           ) {
-            fechaInicioSubarray = dayjs(
-              asistenciasPrimerTrabajador.at(0)?.asistencium?.fecha,
-              ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
-            ).toDate();
-            fechaFinSubarray = dayjs(
-              asistenciasPrimerTrabajador.at(-1)?.asistencium?.fecha,
-              ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
-            ).toDate();
+            fechaFinSubarray = asistencia.asistencium.fecha;
 
             let validDates = new Set(
               asistenciasPrimerTrabajador.map((asistencia) =>
@@ -1314,7 +1333,6 @@ const getTareoAsociacion = async (req, res, next) => {
                   {}
                 );
 
-                console.log(asistenciasArray);
                 return {
                   dni: trabajador?.dni,
                   nombres:
@@ -1351,8 +1369,12 @@ const getTareoAsociacion = async (req, res, next) => {
             });
 
             subarrayId++;
+            contador = 0;
+            subAsistencias = [];
+            fechaInicioSubarray = null;
           }
-        });
+          currentIndex++;
+        }
 
         return subarrays;
       });

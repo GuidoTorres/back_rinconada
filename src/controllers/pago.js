@@ -441,7 +441,12 @@ const getPagoFecha = async (req, res, next) => {
           model: contrato_pago,
           attributes: { exclude: ["contrato_pago_id"] },
           include: [
-            { model: pago_asociacion },
+            {
+              model: pago_asociacion,
+              include: [
+                { model: trabajador, attributes: { exclude: ["usuarioId"] } },
+              ],
+            },
             {
               model: contrato,
 
@@ -556,17 +561,16 @@ const getPagoFecha = async (req, res, next) => {
             return {
               contrato_id: data?.contrato_id,
               pago_id: data?.pago_id,
-              nombre:
-                data?.contrato?.trabajador !== null
-                  ? data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                      ?.nombre +
-                    " " +
-                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                      ?.apellido_paterno +
-                    " " +
-                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                      ?.apellido_materno
-                  : data?.contrato?.empresa?.razon_social,
+              nombre: data?.contrato?.empresa?.razon_social
+                ? data?.contrato?.empresa?.razon_social
+                : data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                    ?.nombre +
+                  " " +
+                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                    ?.apellido_paterno +
+                  " " +
+                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                    ?.apellido_materno,
               area: data?.contrato?.area,
               cargo: data?.contrato?.puesto,
               celular: data?.contrato?.trabajador?.telefono,
@@ -583,7 +587,6 @@ const getPagoFecha = async (req, res, next) => {
       .filter((item) => item.estado === "programado");
 
     return res.status(200).json({ data: concat2, status: 200 });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo obtener.", status: 500 });
@@ -741,19 +744,19 @@ const historialProgramacion = async (req, res, next) => {
             return {
               contrato_id: data?.contrato_id,
               pago_id: data?.pago_id,
-              nombre:
-                data?.contrato?.trabajador !== null
-                  ? data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                      ?.nombre +
-                    " " +
-                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                      ?.apellido_paterno +
-                    " " +
-                    data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                      ?.apellido_materno
-                  : data?.contrato?.empresa?.razon_social,
-              area: data?.contrato?.trabajador_contratos.at(-1).area,
-              cargo: data?.contrato?.trabajador_contratos.at(-1).cargo,
+              nombre: data?.contrato?.empresa?.razon_social
+                ? data?.contrato?.empresa?.razon_social
+                : data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                    ?.nombre +
+                  " " +
+                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                    ?.apellido_paterno +
+                  " " +
+                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                    ?.apellido_materno,
+              area: data?.contrato?.trabajador_contratos.at(-1)?.area,
+              prueba: data?.contrato,
+              cargo: data?.contrato?.trabajador_contratos.at(-1)?.cargo,
               celular: data?.contrato?.trabajador?.telefono,
               dni: data?.contrato?.trabajador?.dni,
               fecha_inicio:
@@ -772,7 +775,6 @@ const historialProgramacion = async (req, res, next) => {
     const concat2 = concatData.concat(formatPagoNormal);
 
     return res.status(200).json({ data: concat2, status: 200 });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo obtener.", status: 500 });
