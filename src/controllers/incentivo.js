@@ -10,48 +10,13 @@ const {
   trabajador_contrato,
   cargo,
   asociacion,
+  contrato_pago_trabajador,
+  area,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 
 const getIncentivo = async (req, res, next) => {
   try {
-    const get = await trabajador.findAll({
-      where: {
-        [Op.and]: [
-          { asociacion_id: { [Op.is]: null } },
-          { deshabilitado: { [Op.not]: true } },
-        ],
-      },
-      attributes: { exclude: ["usuarioId"] },
-      include: [
-        {
-          model: trabajador_contrato,
-          include: [
-            {
-              model: contrato,
-              attributes: { exclude: ["contrato_id"] },
-              where: {
-                [Op.and]: [{ finalizado: { [Op.not]: true } }],
-              },
-              include: [
-                { model: cargo, attributes: { exclude: ["cargo_id"] } },
-
-                {
-                  model: contrato_pago,
-                  attributes: { exclude: ["contrato_pago_id"] },
-                  include: [
-                    {
-                      model: pago,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
-
     const getPago = await pago.findAll({
       include: [
         {
@@ -59,25 +24,31 @@ const getIncentivo = async (req, res, next) => {
           attributes: { exclude: ["contrato_pago_id"] },
           include: [
             {
-              model: contrato,
-              attributes: { exclude: ["contrato_id"] },
-
+              model: contrato_pago_trabajador,
               include: [
-                { model: asociacion },
-                { model: cargo, attributes: { exclude: ["cargo_id"] } },
-
                 {
-                  model: trabajador_contrato,
+                  model: trabajador,
+                  attributes: { exclude: ["usuarioId", "trabajador_dni"] },
+
                   include: [
                     {
-                      model: trabajador,
-                      // where: {
-                      //   [Op.and]: [
-                      //     { asociacion_id: { [Op.is]: null } },
-                      //     { deshabilitado: { [Op.not]: true } },
-                      //   ],
-                      // },
-                      attributes: { exclude: ["usuarioId"] },
+                      model: trabajador_contrato,
+                      include: [
+                        {
+                          model: contrato,
+                          attributes: { exclude: ["contrato_id"] },
+                          where: { finalizado: false },
+
+                          include: [
+                            { model: asociacion },
+                            { model: area },
+                            {
+                              model: cargo,
+                              attributes: { exclude: ["cargo_id"] },
+                            },
+                          ],
+                        },
+                      ],
                     },
                   ],
                 },
@@ -96,30 +67,35 @@ const getIncentivo = async (req, res, next) => {
       .map((item) => {
         return {
           pago_id: item?.id,
+          teletrans: item?.teletrans,
           observacion: item?.observacion,
           fecha_pago: item?.fecha_pago,
-          tipo: item?.tipo,
           estado: item?.estado,
-          trabajadores: item?.contrato_pagos?.map((data) => {
+          tipo: item?.tipo,
+          volquetes: item.volquetes,
+          trabajadores: item?.contrato_pagos.map((data) => {
             return {
               contrato_id: data?.contrato_id,
-              teletrans: data?.teletrans,
-              cargo:
-                data?.contrato?.asociacion !== null
-                  ? data?.contrato?.asociacion?.tipo
-                  : data?.contrato?.cargo?.nombre,
-              nombre:
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                  ?.nombre +
-                " " +
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                  ?.apellido_paterno +
-                " " +
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                  ?.apellido_materno,
-              celular:
-                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                  ?.telefono,
+              // nuevo: data?.contrato_pago_trabajadors.map((dat) => dat),
+              trabajador: data?.contrato_pago_trabajadors?.map((dat) => {
+                return {
+                  dni: dat?.trabajador?.dni,
+                  teletrans: dat?.teletrans,
+                  nombre:
+                    dat?.trabajador?.apellido_paterno +
+                    " " +
+                    dat?.trabajador?.apellido_materno +
+                    " " +
+                    dat?.trabajador?.nombre,
+                  telefono: dat?.trabajador?.telefono,
+                  area: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da.contrato.area.nombre)
+                    .toString(),
+                  cargo: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da?.contrato?.cargo?.nombre)
+                    .toString(),
+                };
+              }),
             };
           }),
         };
@@ -168,6 +144,7 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
       ?.map((item, i) => {
         return {
           id: i + 1,
+          dni: item?.dni,
           nombre:
             item?.apellido_paterno +
             " " +
@@ -299,31 +276,31 @@ const postIncentivoMultiple = async (req, res, next) => {
   };
 
   try {
-    const totalTeletrans = pruebaPago.trabajadores.reduce(
-      (acc, value) => acc + parseFloat(value.teletrans),
-      0
-    );
+    console.log(req.body);
+    // const totalTeletrans = pruebaPago.trabajadores.reduce(
+    //   (acc, value) => acc + parseFloat(value.teletrans),
+    //   0
+    // );
 
-    if (totalTeletrans === 4) {
-      const post = await pago.create(createPago);
-      let contra_pago = pruebaPago.trabajadores.map((item) => {
-        return {
-          teletrans: item.teletrans,
-          contrato_id: item.contrato_id,
-          pago_id: post.id,
-        };
-      });
-      const pagoContrato = await contrato_pago.create(contra_pago);
-      return res
-        .status(200)
-        .json({ msg: "Incentivo registrado con éxito!", status: 200 });
-    } else {
-      return res.status(400).json({
-        msg: "Error! La cantidad de teletrans debe ser equivalente a 1 volquete.",
-        status: 400,
-      });
-    }
-    next();
+    // if (totalTeletrans === 4) {
+    //   const post = await pago.create(createPago);
+    //   let contra_pago = pruebaPago.trabajadores.map((item) => {
+    //     return {
+    //       teletrans: item.teletrans,
+    //       contrato_id: item.contrato_id,
+    //       pago_id: post.id,
+    //     };
+    //   });
+    //   const pagoContrato = await contrato_pago.create(contra_pago);
+    //   return res
+    //     .status(200)
+    //     .json({ msg: "Incentivo registrado con éxito!", status: 200 });
+    // } else {
+    //   return res.status(400).json({
+    //     msg: "Error! La cantidad de teletrans debe ser equivalente a 1 volquete.",
+    //     status: 400,
+    //   });
+    // }
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo crear.", status: 500 });
@@ -341,15 +318,18 @@ const deleteIncentivo = async (req, res, next) => {
     let delDestinoPago = await destino_pago.destroy({ where: { pago_id: id } });
     let delDestino = await destino.destroy({ where: { id: ids } });
 
+    // Mover la eliminación de registros de contrato_pago después de eliminar contrato_pago_trabajador
     let delContratoPago = await contrato_pago.destroy({
       where: { pago_id: id },
     });
+
     let del = await pago.destroy({ where: { id: id } });
+
     return res
       .status(200)
       .json({ msg: "Incentivo eliminado con éxito!", status: 200 });
-    next();
   } catch (error) {
+    console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
   }
 };

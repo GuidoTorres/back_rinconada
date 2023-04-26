@@ -1020,11 +1020,31 @@ const pago_asociacion = sequelize.define(
       allowNull: false,
     },
     teletrans: DataTypes.STRING,
-    contrato_pago_id: DataTypes.STRING,
+    contrato_pago_id: DataTypes.INTEGER,
     trabajador_dni: DataTypes.INTEGER,
   },
   {
     tableName: "pago_asociacion",
+    timestamp: false,
+  }
+);
+const contrato_pago_trabajador = sequelize.define(
+  "contrato_pago_trabajador",
+
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    contrato_pago_id: DataTypes.INTEGER,
+    trabajador_dni: DataTypes.INTEGER,
+    volquetes: DataTypes.STRING,
+    teletrans: DataTypes.STRING,
+  },
+  {
+    tableName: "contrato_pago_trabajador",
     timestamp: false,
   }
 );
@@ -1245,7 +1265,6 @@ destino_pago.belongsTo(pago, { foreignKey: "pago_id" });
 destino.hasMany(destino_pago, { foreignKey: "destino_id" });
 destino_pago.belongsTo(destino, { foreignKey: "destino_id" });
 
-
 contrato_pago.hasMany(pago_asociacion, { foreignKey: "contrato_pago_id" });
 pago_asociacion.hasMany(contrato_pago, { foreignKey: "contrato_pago_id" });
 
@@ -1253,6 +1272,15 @@ trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni" });
 pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
 contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id" });
 contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
+
+contrato_pago.hasMany(contrato_pago_trabajador, {foreignKey:"contrato_pago_id"})
+contrato_pago_trabajador.belongsTo(contrato_pago, {foreignKey:"contrato_pago_id"})
+
+trabajador.hasMany(contrato_pago_trabajador, {foreignKey:"trabajador_dni"})
+contrato_pago_trabajador.belongsTo(trabajador, {foreignKey:"trabajador_dni"})
+
+
+
 
 module.exports = {
   sequelize,
@@ -1299,4 +1327,5 @@ module.exports = {
   pago_asociacion,
   trabajador_contrato,
   aprobacion_contrato_pago,
+  contrato_pago_trabajador,
 };

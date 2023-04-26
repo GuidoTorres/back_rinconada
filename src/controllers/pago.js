@@ -18,6 +18,8 @@ const {
   asistencia,
   trabajador_contrato,
   cargo,
+  area,
+  contrato_pago_trabajador,
 } = require("../../config/db");
 
 const createProgramacion = async (req, res, next) => {
@@ -89,6 +91,31 @@ const createProgramacionMultiple = async (req, res, next) => {
           };
         });
         const pagoContrato = await contrato_pago.bulkCreate(contra_pago);
+
+        const dni = req.body.trabajadores.filter((item) => item.trabajador_dni);
+
+        if (dni.length > 0) {
+          // Crear un diccionario para mapear contrato_id con el objeto correspondiente en pagoContrato
+          const contratoIdToPagoContrato = new Map();
+          pagoContrato.forEach((p) =>
+            contratoIdToPagoContrato.set(p.contrato_id, p)
+          );
+
+          let contra_pago_traba = req.body.trabajadores.map((item) => {
+            // Obtener el objeto pagoContrato correspondiente usando contrato_id del item actual
+          const prueba = contratoIdToPagoContrato.get(item.contrato_id);
+            return {
+              contrato_pago_id: prueba.id,
+              trabajador_dni: item.trabajador_dni,
+              teletrans: item.teletrans,
+              volquetes: item.teletrans % 4 === 0 ? item.teletrans / 4 : 0,
+            };
+          });
+          console.log(contra_pago_traba);
+          const pagoContratoTrabajador =
+            await contrato_pago_trabajador.bulkCreate(contra_pago_traba);
+        }
+
         return res
           .status(200)
           .json({ msg: "Programación registrada con éxito!", status: 200 });
@@ -614,6 +641,7 @@ const historialProgramacion = async (req, res, next) => {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
               include: [
+                { model: asociacion },
                 {
                   model: trabajador_contrato,
                   include: [
@@ -638,6 +666,8 @@ const historialProgramacion = async (req, res, next) => {
                 },
                 { model: empresa },
                 { model: asociacion },
+                { model: area },
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
               ],
             },
           ],
@@ -754,18 +784,17 @@ const historialProgramacion = async (req, res, next) => {
                   " " +
                   data?.contrato?.trabajador_contratos.at(-1)?.trabajador
                     ?.apellido_materno,
-              area: data?.contrato?.trabajador_contratos.at(-1)?.area,
-              prueba: data?.contrato,
-              cargo: data?.contrato?.trabajador_contratos.at(-1)?.cargo,
+              area: data?.contrato?.area.nombre,
+              cargo:
+                data?.contrato?.asociacion !== null
+                  ? data?.contrato?.asociacion?.tipo
+                  : data?.contrato?.cargo?.nombre,
               celular: data?.contrato?.trabajador?.telefono,
               dni: data?.contrato?.trabajador?.dni,
-              fecha_inicio:
-                data?.contrato?.trabajador?.trabajador_asistencia?.at(
-                  (i + 1 - 1) * 15
-                )?.asistencium?.fecha,
-              fecha_fin: data?.contrato?.trabajador?.trabajador_asistencia?.at(
-                (i + 1 - 1) * 15 + 14
-              )?.asistencium?.fecha,
+              fecha_inicio: dayjs(data?.contrato?.fecha_inicio).format(
+                "DD-MM-YYYY"
+              ),
+              fecha_fin: dayjs(data?.contrato?.fecha_fin).format("DD-MM-YYYY"),
             };
           }),
         };
@@ -791,6 +820,19 @@ const deletePago = async (req, res, next) => {
     const ids = getDestinoPago.map((item) => item.destino_id);
     let delDestinoPago = await destino_pago.destroy({ where: { pago_id: id } });
     let delDestino = await destino.destroy({ where: { id: ids } });
+    // Obtener los IDs de contrato_pago asociados con el ID de pago
+    const contratoPagos = await contrato_pago.findAll({
+      where: { pago_id: id },
+      attributes: { exclude: ["contrato_pago_id"] },
+    });
+
+    const contratoPagoIds = contratoPagos.map((cp) => cp.id);
+
+    // Eliminar registros de contrato_pago_trabajador con los IDs de contrato_pago obtenidos
+    let contratoPagoTrabajador = await contrato_pago_trabajador.destroy({
+      where: { contrato_pago_id: contratoPagoIds },
+    });
+
     let delContratoPago = await contrato_pago.destroy({
       where: { pago_id: id },
     });
@@ -799,8 +841,6 @@ const deletePago = async (req, res, next) => {
     return res
       .status(200)
       .json({ msg: "Pago eliminado con éxito!", status: 200 });
-
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
@@ -1085,7 +1125,6 @@ const deletePagoAsociacion = async (req, res, next) => {
         .status(200)
         .json({ msg: "Pago eliminado con éxito!", status: 200 });
     }
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
@@ -1119,7 +1158,8 @@ const filtroPagoFecha = async (req, res, next) => {
               attributes: { exclude: ["contrato_id"] },
               include: [
                 {
-                  model: trabajador,
+                  model:trabajador_contrato,
+                  include:[{model: trabajador,
                   attributes: { exclude: ["usuarioId"] },
                   include: [
                     {
@@ -1133,7 +1173,7 @@ const filtroPagoFecha = async (req, res, next) => {
                       },
                       include: [{ model: asistencia }],
                     },
-                  ],
+                  ]}]
                 },
                 { model: empresa },
                 { model: asociacion },

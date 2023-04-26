@@ -67,7 +67,6 @@ const getAyuda = async (req, res, next) => {
     //   .filter((item) => Object.keys(item.pago).length > 0);
 
     return res.status(200).json({ data: get });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: error });
@@ -95,6 +94,8 @@ const postPagoExtraordinario = async (req, res, next) => {
       const pagoContrato = await ayuda_pago.create(contra_pago);
 
       const create = await destino.bulkCreate(req.body.destino);
+
+      console.log(create);
       const formatDestinoIds = create.map((item) => {
         return {
           destino_id: item.id,
@@ -102,6 +103,8 @@ const postPagoExtraordinario = async (req, res, next) => {
           estado: "completado",
         };
       });
+
+      console.log(formatDestinoIds);
       const pagoDestino = await destino_pago.bulkCreate(formatDestinoIds);
       const pagoEstado = {
         estado: "completado",
@@ -113,8 +116,9 @@ const postPagoExtraordinario = async (req, res, next) => {
       });
     }
 
-    return res.status(200).json({ msg: "Pago registrado con éxito!", status: 200 });
-
+    return res
+      .status(200)
+      .json({ msg: "Pago registrado con éxito!", status: 200 });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
@@ -141,7 +145,6 @@ const updateProgramacionAyuda = async (req, res, next) => {
       return res
         .status(200)
         .json({ msg: "Programación actualizada con éxito!", status: 200 });
-      
     } else {
       return res.status(400).json({
         msg: "Error! La cantidad de teletrans debe ser equivalente a 1 o mas volquetes.",
