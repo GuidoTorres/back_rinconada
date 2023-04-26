@@ -26,7 +26,6 @@ const getTrabajadorAyuda = async (req, res, next) => {
       };
     });
     return res.status(200).json({ data: formatData });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -116,7 +115,6 @@ const postPagoExtraordinario = async (req, res, next) => {
 
     return res.status(200).json({ msg: "Pago registrado con éxito!", status: 200 });
 
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
