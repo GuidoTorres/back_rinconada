@@ -38,6 +38,8 @@ const casaRouter = require("./src/routes/casa");
 const ayudaRouter = require("./src/routes/ayuda");
 const buscadorRouter = require("./src/routes/buscador");
 const controlRouter = require("./src/routes/controlAsistencia");
+const aprobacionRouter = require("./src/routes/aprobacion");
+
 const authRouter = require("./src/routes/auth");
 
 const app = express();
@@ -92,6 +94,7 @@ app.use("/api/v1/casa", casaRouter);
 app.use("/api/v1/ayuda", ayudaRouter);
 app.use("/api/v1/filtros", buscadorRouter);
 app.use("/api/v1/control", controlRouter);
+app.use("/api/v1/aprobacion", aprobacionRouter);
 
 app.use("/api/v1/auth", authRouter);
 

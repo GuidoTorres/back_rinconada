@@ -64,7 +64,7 @@ const getIncentivo = async (req, res, next) => {
     );
 
     const format = filterIncentivo
-      .map((item) => {
+      .map((item, i) => {
         return {
           pago_id: item?.id,
           teletrans: item?.teletrans,
@@ -73,34 +73,44 @@ const getIncentivo = async (req, res, next) => {
           estado: item?.estado,
           tipo: item?.tipo,
           volquetes: item.volquetes,
-          trabajadores: item?.contrato_pagos.map((data) => {
-            return {
-              contrato_id: data?.contrato_id,
-              // nuevo: data?.contrato_pago_trabajadors.map((dat) => dat),
-              trabajador: data?.contrato_pago_trabajadors?.map((dat) => {
-                return {
-                  dni: dat?.trabajador?.dni,
-                  teletrans: dat?.teletrans,
-                  nombre:
-                    dat?.trabajador?.apellido_paterno +
-                    " " +
-                    dat?.trabajador?.apellido_materno +
-                    " " +
-                    dat?.trabajador?.nombre,
-                  telefono: dat?.trabajador?.telefono,
-                  area: dat?.trabajador?.trabajador_contratos
-                    ?.map((da) => da.contrato.area.nombre)
-                    .toString(),
-                  cargo: dat?.trabajador?.trabajador_contratos
-                    ?.map((da) => da?.contrato?.cargo?.nombre)
-                    .toString(),
-                };
-              }),
-            };
-          }),
+          trabajadores:
+            // nuevo: data?.contrato_pago_trabajadors.map((dat) => dat),
+            item?.contrato_pagos
+              .map((data, a) =>
+                data?.contrato_pago_trabajadors?.map((dat) => {
+                  return {
+                    id: a + 1,
+                    dni: dat?.trabajador?.dni,
+                    teletrans: dat?.teletrans,
+                    nombre:
+                      dat?.trabajador?.apellido_paterno +
+                      " " +
+                      dat?.trabajador?.apellido_materno +
+                      " " +
+                      dat?.trabajador?.nombre,
+                    telefono: dat?.trabajador?.telefono,
+                    contrato_id: dat?.trabajador?.trabajador_contratos
+                      ?.map((da) => da.contrato.id)
+                      .toString(),
+                    area: dat?.trabajador?.trabajador_contratos
+                      ?.map((da) => da.contrato.area.nombre)
+                      .toString(),
+                    cargo: dat?.trabajador?.trabajador_contratos
+                      ?.map((da) => da?.contrato?.cargo?.nombre)
+                      .toString(),
+                  };
+                })
+              )
+              .flat(),
         };
       })
-      ?.filter((item) => item?.estado === "programado");
+      ?.filter((item) => item?.estado === "programado")
+      .map((item, i) => {
+        return {
+          id: i + 1,
+          ...item,
+        };
+      });
 
     return res.status(200).json({ data: format });
   } catch (error) {

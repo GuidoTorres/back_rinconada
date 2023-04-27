@@ -138,6 +138,8 @@ const postEvaluacion = async (req, res, next) => {
     campamento_id: req?.body?.campamento_id,
   };
 
+  console.log(info);
+
   try {
     const get = await evaluacion.findAll({
       where: { trabajador_id: info.trabajador_id },

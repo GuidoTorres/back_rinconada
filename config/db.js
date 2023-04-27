@@ -106,9 +106,12 @@ const aprobacion_contrato_pago = sequelize.define(
     huella: DataTypes.STRING,
     estado: DataTypes.BOOLEAN,
     contrato_id: DataTypes.INTEGER,
-    fecha: DataTypes.STRING,
+    fecha_inicio: DataTypes.STRING,
     subarray_id: DataTypes.STRING,
     pagado: DataTypes.BOOLEAN,
+    fecha_fin: DataTypes.STRING,
+    nombre: DataTypes.STRING,
+    dias_laborados: DataTypes.STRING,
   },
   {
     tableName: "aprobacion_contrato_pago",
@@ -164,7 +167,7 @@ const evaluacion = sequelize.define(
     capacitacion_sso: DataTypes.INTEGER,
     capacitacion_gema: DataTypes.INTEGER,
     evaluacion_laboral: DataTypes.INTEGER,
-    presion_arterial: DataTypes.FLOAT,
+    presion_arterial: DataTypes.STRING,
     temperatura: DataTypes.FLOAT,
     saturacion: DataTypes.FLOAT,
     imc: DataTypes.FLOAT,
@@ -1273,14 +1276,17 @@ pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
 contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id" });
 contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
 
-contrato_pago.hasMany(contrato_pago_trabajador, {foreignKey:"contrato_pago_id"})
-contrato_pago_trabajador.belongsTo(contrato_pago, {foreignKey:"contrato_pago_id"})
+contrato_pago.hasMany(contrato_pago_trabajador, {
+  foreignKey: "contrato_pago_id",
+});
+contrato_pago_trabajador.belongsTo(contrato_pago, {
+  foreignKey: "contrato_pago_id",
+});
 
-trabajador.hasMany(contrato_pago_trabajador, {foreignKey:"trabajador_dni"})
-contrato_pago_trabajador.belongsTo(trabajador, {foreignKey:"trabajador_dni"})
-
-
-
+trabajador.hasMany(contrato_pago_trabajador, { foreignKey: "trabajador_dni" });
+contrato_pago_trabajador.belongsTo(trabajador, {
+  foreignKey: "trabajador_dni",
+});
 
 module.exports = {
   sequelize,

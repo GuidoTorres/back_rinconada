@@ -231,6 +231,7 @@ const updateProgramacionMultiple = async (req, res, next) => {
           teletrans: item.teletrans,
           contrato_id: item.contrato_id,
           pago_id: pago_id,
+          trabajador_dni: item.trabajador_dni
         };
       });
       const delPagoContrato = await contrato_pago.destroy({
@@ -653,7 +654,11 @@ const historialProgramacion = async (req, res, next) => {
             {
               model: pago_asociacion,
               include: [
-                { model: trabajador, attributes: { exclude: ["usuarioId"] } },
+                {
+                  model: trabajador,
+                  attributes: { exclude: ["usuarioId"] },
+                  include: [{ model: asociacion }],
+                },
               ],
             },
             {
@@ -684,7 +689,6 @@ const historialProgramacion = async (req, res, next) => {
                   ],
                 },
                 { model: empresa },
-                { model: asociacion },
                 { model: area },
                 { model: cargo, attributes: { exclude: ["cargo_id"] } },
               ],
@@ -808,8 +812,10 @@ const historialProgramacion = async (req, res, next) => {
                 data?.contrato?.asociacion !== null
                   ? data?.contrato?.asociacion?.tipo
                   : data?.contrato?.cargo?.nombre,
-              celular: data?.contrato?.trabajador?.telefono,
-              dni: data?.contrato?.trabajador?.dni,
+              celular:
+                data?.contrato?.trabajador_contratos.at(-1)?.trabajador
+                  .telefono,
+              dni: data?.contrato?.trabajador_contratos.at(-1)?.trabajador.dni,
               fecha_inicio: dayjs(data?.contrato?.fecha_inicio).format(
                 "DD-MM-YYYY"
               ),
@@ -822,7 +828,7 @@ const historialProgramacion = async (req, res, next) => {
     const concatData = formatAsociacion.concat(formatAyuda);
     const concat2 = concatData.concat(formatPagoNormal);
 
-    return res.status(200).json({ data: concat2, status: 200 });
+    return res.status(200).json({ data: concat2 });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo obtener.", status: 500 });
