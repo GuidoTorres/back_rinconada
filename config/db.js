@@ -1266,7 +1266,7 @@ destino.hasMany(destino_pago, { foreignKey: "destino_id" });
 destino_pago.belongsTo(destino, { foreignKey: "destino_id" });
 
 contrato_pago.hasMany(pago_asociacion, { foreignKey: "contrato_pago_id" });
-pago_asociacion.hasMany(contrato_pago, { foreignKey: "contrato_pago_id" });
+pago_asociacion.belongsTo(contrato_pago, { foreignKey: "contrato_pago_id" });
 
 trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni" });
 pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });

@@ -602,15 +602,22 @@ const getListaPago = async (req, res, next) => {
             {
               model: contrato_pago,
               attributes: { exclude: ["contrato_pago_id"] },
-              include: [{ model: pago }],
+              include: [
+                { model: pago },
+                {
+                  model: pago_asociacion,
+
+                  include: [
+                    {
+                      model: trabajador,
+                      attributes: { exclude: ["usuarioId"] },
+                    },
+                  ],
+                },
+              ],
             },
             { model: aprobacion_contrato_pago },
           ],
-        },
-        {
-          model: trabajador,
-          attributes: { exclude: ["usuarioId"] },
-          include: [{ model: pago_asociacion }],
         },
       ],
     });
@@ -632,33 +639,35 @@ const getListaPago = async (req, res, next) => {
             nombre: item?.nombre,
             contrato_id: item?.contratos?.at(-1)?.id,
             aprobacion: aprobacion,
-
             total: item?.contratos?.at(-1)?.teletrans?.at(-1)?.total,
             volquete: item?.contratos?.at(-1)?.teletrans?.at(-1)?.volquete,
             teletran: item?.contratos?.at(-1)?.teletrans?.at(-1)?.teletrans,
-            trabajadores: item?.trabajadors?.map((data) => {
-              return {
-                dni: data?.dni,
-                nombre:
-                  data?.nombre +
-                  " " +
-                  data?.apellido_paterno +
-                  " " +
-                  data?.apellido_materno,
-                telefono: data.telefono,
-                evaluacion_id: data?.evaluacions
-                  ?.filter((dat) => dat.finalizado === false)
-                  ?.at(-1)?.id,
-                cargo: item?.tipo,
-                programado: data.pago_asociacions.length > 0,
-              };
+            trabajadores: item?.contrato_pagos?.map((data) => {
+              return {};
             }),
+            // trabajadores: item?.trabajadors?.map((data) => {
+            //   return {
+            //     dni: data?.dni,
+            //     nombre:
+            //       data?.nombre +
+            //       " " +
+            //       data?.apellido_paterno +
+            //       " " +
+            //       data?.apellido_materno,
+            //     telefono: data.telefono,
+            //     evaluacion_id: data?.evaluacions
+            //       ?.filter((dat) => dat.finalizado === false)
+            //       ?.at(-1)?.id,
+            //     cargo: item?.tipo,
+            //     programado: data.pago_asociacions.length > 0,
+            //   };
+            // }),
           };
         });
       })
       .filter((item) => item?.aprobacion);
 
-    return res.status(200).json({ data: formatAsociacion });
+    return res.status(200).json({ data: getAsociacion });
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -749,20 +758,13 @@ const getPlanillaPago = async (req, res, next) => {
       attributes: { exclude: ["usuarioId"] },
       include: [
         {
-          model: trabajadorAsistencia,
-          attributes: {
-            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
-          },
-          include: [{ model: asistencia }],
-        },
-        {
           model: trabajador_contrato,
           include: [
             {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
               where: {
-                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+                finalizado: { [Op.not]: true },
               },
               include: [
                 { model: teletrans },
@@ -771,6 +773,8 @@ const getPlanillaPago = async (req, res, next) => {
                   attributes: { exclude: ["contrato_pago_id"] },
                   include: [{ model: pago }],
                 },
+                { model: aprobacion_contrato_pago },
+                { model: cargo, attributes: { exclude: ["cargo_id"] } },
               ],
             },
           ],
@@ -778,94 +782,54 @@ const getPlanillaPago = async (req, res, next) => {
       ],
     });
 
-    const filterAsistencia = getPlanilla
+    const filterContrato= getPlanilla.filter(item => item.trabajador_contratos.length > 0)
+
+    const filterAsistencia = filterContrato
       ?.map((item, i) => {
-        let contratoActivo = item?.contratos?.filter(
-          (item) => item?.finalizado === false
+        const contratoActivo = item?.trabajador_contratos?.filter(
+          (data) => data.contrato.finalizado === false
         );
         return {
           dni: item?.dni,
           codigo_trabajador: item?.codigo_trabajador,
           fecha_nacimiento: item?.fecha_nacimiento,
           telefono: item?.telefono,
-          tipo: "---",
           nombre:
-            item?.nombre +
-            " " +
             item?.apellido_paterno +
             " " +
-            item?.apellido_materno,
-          trabajador_asistencia: item?.trabajador_asistencia,
-          contrato: item?.contratos,
-          asistencias: item?.trabajador_asistencia?.filter(
-            (data) => data.asistencia === "Asistio"
-          ).length,
-          nro_quincena:
-            parseInt(
-              item?.trabajador_asistencia?.filter(
-                (data) => data.asistencia === "Asistio"
-              ).length
-            ) / 15,
-          volquetes: contratoActivo?.at(-1)?.teletrans?.at(-1)?.volquete,
-          teletrans: contratoActivo?.at(-1)?.teletrans?.at(-1)?.teletrans,
-          total: contratoActivo?.at(-1)?.teletrans?.at(-1)?.total,
-          saldo: contratoActivo?.at(-1)?.teletrans?.at(-1)?.saldo,
+            item?.apellido_materno +
+            " " +
+            item?.nombre,
+          cargo: contratoActivo
+            ?.map((data) => data?.contrato?.cargo?.nombre)
+            .toString(),
+          fecha_inicio: dayjs(contratoActivo
+            ?.map((data) => data?.contrato?.fecha_inicio)
+            .toString()).format("DD-MM-YYYY"),
+          fecha_fin: dayjs(contratoActivo
+            ?.map((data) => data?.contrato?.fecha_fin)
+            .toString()).format("DD-MM-YYYY"),
+          volquetes: contratoActivo
+            ?.map((data) => data?.contrato?.teletrans.at(-1).volquete)
+            .toString(),
+          teletrans: contratoActivo
+            ?.map((data) => data?.contrato?.teletrans.at(-1).teletrans)
+            .toString(),
+          total: contratoActivo
+            ?.map((data) => data?.contrato?.teletrans.at(-1).total)
+            .toString(),
+          saldo: contratoActivo
+            ?.map((data) => data?.contrato?.teletrans.at(-1).saldo)
+            .toString(),
+          contrato_pago: contratoActivo?.map((data) => data?.contrato_pagos),
+          aprobacion: contratoActivo
+            ?.map((data) => data?.aprobacion_contrato_pagos)
+            ?.filter((data) => data?.estado === true && data?.pagado === null),
+          contrato: item?.trabajador_contratos,
         };
       })
-      .filter((item) => item.asistencias !== 0 && item.asistencias % 15 >= 0)
-      .flat();
 
-    const duplicate = filterAsistencia
-      .map((item) =>
-        item?.trabajador_asistencia
-          ?.slice(0, item.nro_quincena)
-          .map((data, i) => {
-            return {
-              dni: item.dni,
-              codigo_trabajador: item?.codigo_trabajador,
-              fecha_nacimiento: item?.fecha_nacimiento,
-              telefono: item?.telefono,
-              nombre: item?.nombre,
-              cargo: item?.contrato?.at(-1)?.puesto,
-              asistencias: item?.trabajador_asistencia?.filter(
-                (data) => data.asistencia === "Asistio"
-              ).length,
-              nro_quincena: i + 1,
-              fecha_inicio: item?.trabajador_asistencia?.at((i + 1 - 1) * 15)
-                ?.asistencium?.fecha,
-              fecha_fin: item?.trabajador_asistencia?.at((i + 1 - 1) * 15 + 14)
-                ?.asistencium?.fecha,
-              // contrato: item?.contrato.at(-1),
-              volquetes: item.volquetes,
-              teletrans: item.teletrans,
-              total: item.total,
-              saldo: item.saldo,
-              // observacion: item?.contrato
-              //   .at(-1)
-              //   .pagos.map((item) => item.observacion)
-              //   .toString(),
-              // teletrans: item?.contrato
-              //   .at(-1)
-              //   .pagos.map((item) => item.teletrans)
-              //   .toString(),
-              // fecha_pago: item?.contrato
-              //   .at(-1)
-              //   .pagos.map((item) => item.fecha_pago)
-              //   .toString(),
-              // contrato_id: item?.contrato.at(-1)?.id,
-              // pago_id: item?.contrato
-              //   .at(-1)
-              //   .pagos.map((item) => item.id)
-              //   .toString(),
-              // pagos: item?.contrato?.at(-1)?.pagos
-            };
-          })
-      )
-      .flat();
 
-    let concat = duplicate.filter(
-      (item) => item?.contrato?.contrato_pagos?.length > 0
-    );
     return res.status(200).json({ data: filterAsistencia });
   } catch (error) {
     console.log(error);

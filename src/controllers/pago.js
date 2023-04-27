@@ -20,6 +20,7 @@ const {
   cargo,
   area,
   contrato_pago_trabajador,
+  sequelize,
 } = require("../../config/db");
 
 const createProgramacion = async (req, res, next) => {
@@ -103,7 +104,7 @@ const createProgramacionMultiple = async (req, res, next) => {
 
           let contra_pago_traba = req.body.trabajadores.map((item) => {
             // Obtener el objeto pagoContrato correspondiente usando contrato_id del item actual
-          const prueba = contratoIdToPagoContrato.get(item.contrato_id);
+            const prueba = contratoIdToPagoContrato.get(item.contrato_id);
             return {
               contrato_pago_id: prueba.id,
               trabajador_dni: item.trabajador_dni,
@@ -475,21 +476,34 @@ const getPagoFecha = async (req, res, next) => {
               ],
             },
             {
-              model: contrato,
-
-              attributes: { exclude: ["contrato_id"] },
+              model: contrato_pago_trabajador,
               include: [
                 {
-                  model: trabajador_contrato,
+                  model: trabajador,
+                  attributes: { exclude: ["usuarioId", "trabajador_dni"] },
+
                   include: [
                     {
-                      model: trabajador,
-                      attributes: { exclude: ["usuarioId"] },
+                      model: trabajador_contrato,
+                      include: [
+                        {
+                          model: contrato,
+                          attributes: { exclude: ["contrato_id"] },
+                          where: { finalizado: false },
+
+                          include: [
+                            { model: asociacion },
+                            { model: area },
+                            {
+                              model: cargo,
+                              attributes: { exclude: ["cargo_id"] },
+                            },
+                          ],
+                        },
+                      ],
                     },
                   ],
                 },
-                { model: empresa },
-                { model: asociacion },
               ],
             },
           ],
@@ -578,31 +592,36 @@ const getPagoFecha = async (req, res, next) => {
       )
       .map((item) => {
         return {
+          pago_id: item?.id,
+          teletrans: item?.teletrans,
           observacion: item?.observacion,
           fecha_pago: item?.fecha_pago,
-          tipo: item?.tipo,
           estado: item?.estado,
-          volquetes: item?.volquetes,
-          teletrans: item?.teletrans,
-          pagos: item?.contrato_pagos?.map((data) => {
+          tipo: item?.tipo,
+          volquetes: item.volquetes,
+          trabajadores: item?.contrato_pagos.map((data) => {
             return {
               contrato_id: data?.contrato_id,
-              pago_id: data?.pago_id,
-              nombre: data?.contrato?.empresa?.razon_social
-                ? data?.contrato?.empresa?.razon_social
-                : data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                    ?.nombre +
-                  " " +
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                    ?.apellido_paterno +
-                  " " +
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                    ?.apellido_materno,
-              area: data?.contrato?.area,
-              cargo: data?.contrato?.puesto,
-              celular: data?.contrato?.trabajador?.telefono,
-              dni: data?.contrato?.trabajador?.dni,
-              teletrans: data?.teletrans,
+              // nuevo: data?.contrato_pago_trabajadors.map((dat) => dat),
+              trabajador: data?.contrato_pago_trabajadors?.map((dat) => {
+                return {
+                  dni: dat?.trabajador?.dni,
+                  teletrans: dat?.teletrans,
+                  nombre:
+                    dat?.trabajador?.apellido_paterno +
+                    " " +
+                    dat?.trabajador?.apellido_materno +
+                    " " +
+                    dat?.trabajador?.nombre,
+                  telefono: dat?.trabajador?.telefono,
+                  area: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da.contrato.area.nombre)
+                    .toString(),
+                  cargo: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da?.contrato?.cargo?.nombre)
+                    .toString(),
+                };
+              }),
             };
           }),
         };
@@ -813,30 +832,42 @@ const historialProgramacion = async (req, res, next) => {
 const deletePago = async (req, res, next) => {
   let id = req.params.id;
   try {
-    const getDestinoPago = await destino_pago.findAll({
-      where: { pago_id: id },
-    });
+    await sequelize.transaction(async (t) => {
+      const getDestinoPago = await destino_pago.findAll({
+        where: { pago_id: id },
+      });
 
-    const ids = getDestinoPago.map((item) => item.destino_id);
-    let delDestinoPago = await destino_pago.destroy({ where: { pago_id: id } });
-    let delDestino = await destino.destroy({ where: { id: ids } });
-    // Obtener los IDs de contrato_pago asociados con el ID de pago
-    const contratoPagos = await contrato_pago.findAll({
-      where: { pago_id: id },
-      attributes: { exclude: ["contrato_pago_id"] },
-    });
+      const getContratoPago = await contrato_pago.findAll({
+        where: { pago_id: id },
+        attributes: { exclude: ["contrato_pago_id"] },
+      });
 
-    const contratoPagoIds = contratoPagos.map((cp) => cp.id);
+      const ids = getDestinoPago.map((item) => item.destino_id);
+      const idsContratoPago = getContratoPago.map((item) => item.id);
 
-    // Eliminar registros de contrato_pago_trabajador con los IDs de contrato_pago obtenidos
-    let contratoPagoTrabajador = await contrato_pago_trabajador.destroy({
-      where: { contrato_pago_id: contratoPagoIds },
-    });
+      let delDestinoPago = await destino_pago.destroy({
+        where: { pago_id: id },
+      });
 
-    let delContratoPago = await contrato_pago.destroy({
-      where: { pago_id: id },
+      let delDestino = await destino.destroy({ where: { id: ids } });
+
+      // Elimina las filas en la tabla contrato_pago_trabajador antes de eliminar las filas de contrato_pago
+      await contrato_pago_trabajador.destroy({
+        where: { contrato_pago_id: idsContratoPago },
+      });
+      console.log(idsContratoPago);
+      // Elimina las filas de la tabla pago_asociacion antes de eliminar las filas de contrato_pago
+      await pago_asociacion.destroy({
+        where: { contrato_pago_id: idsContratoPago },
+      });
+
+      // Ahora puedes eliminar las filas de la tabla contrato_pago
+      let delContratoPago = await contrato_pago.destroy({
+        where: { pago_id: id },
+      });
+
+      let del = await pago.destroy({ where: { id: id } });
     });
-    let del = await pago.destroy({ where: { id: id } });
 
     return res
       .status(200)
@@ -1094,37 +1125,51 @@ const asociacionPago = async (req, res, next) => {
 const deletePagoAsociacion = async (req, res, next) => {
   let id = req.params.id;
   try {
-    const getDestinoPago = await destino_pago.findAll({
-      where: { pago_id: id },
+    await sequelize.transaction(async (t) => {
+      const getDestinoPago = await destino_pago.findAll({
+        where: { pago_id: id },
+      });
+
+      const getContratoPago = await contrato_pago.findAll({
+        where: { pago_id: id },
+        attributes: { exclude: ["contrato_pago_id"] },
+      });
+
+      const ids = getDestinoPago.map((item) => item.destino_id);
+      const idsContratoPago = getContratoPago.map((item) => item.id);
+
+      // let delDestinoPago = await destino_pago.destroy({
+      //   where: { pago_id: id },
+      // });
+
+      // let delDestino = await destino.destroy({ where: { id: ids } });
+
+      // // Elimina las filas en la tabla contrato_pago_trabajador antes de eliminar las filas de contrato_pago
+      // await contrato_pago_trabajador.destroy({
+      //   where: { contrato_pago_id: idsContratoPago },
+      // });
+      console.log(idsContratoPago);
+      // Elimina las filas de la tabla pago_asociacion antes de eliminar las filas de contrato_pago
+      // await pago_asociacion.destroy({
+      //   where: { contrato_pago_id: idsContratoPago },
+      // });
+
+      // // Elimina las filas de la tabla ayuda_pago antes de eliminar las filas de contrato_pago
+      // await ayuda_pago.destroy({
+      //   where: { contrato_pago_id: idsContratoPago },
+      // });
+
+      // // Ahora puedes eliminar las filas de la tabla contrato_pago
+      // let delContratoPago = await contrato_pago.destroy({
+      //   where: { pago_id: id },
+      // });
+
+      // let del = await pago.destroy({ where: { id: id } });
     });
 
-    const getContratoPago = await contrato_pago.findAll({
-      where: { pago_id: id },
-      attributes: { exclude: ["contrato_pago_id"] },
-    });
-
-    const ids = getDestinoPago.map((item) => item.destino_id);
-    const idsContratoPago = getContratoPago.map((item) => item.id);
-    let delDestinoPago = await destino_pago.destroy({
-      where: { pago_id: id },
-    });
-    let delDestino = await destino.destroy({ where: { id: ids } });
-    let delAyudaPago = await pago_asociacion.destroy({
-      where: { contrato_pago_id: idsContratoPago },
-    });
-    let delContratoPago = await contrato_pago.destroy({
-      where: { pago_id: id },
-    });
-    let del = await pago.destroy({ where: { id: id } });
-    if (delContratoPago === 0 && del === 0) {
-      return res
-        .status(404)
-        .json({ msg: "No se encontró el pago.", status: 404 });
-    } else {
-      return res
-        .status(200)
-        .json({ msg: "Pago eliminado con éxito!", status: 200 });
-    }
+    return res
+      .status(200)
+      .json({ msg: "Pago eliminado con éxito!", status: 200 });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
@@ -1158,22 +1203,26 @@ const filtroPagoFecha = async (req, res, next) => {
               attributes: { exclude: ["contrato_id"] },
               include: [
                 {
-                  model:trabajador_contrato,
-                  include:[{model: trabajador,
-                  attributes: { exclude: ["usuarioId"] },
+                  model: trabajador_contrato,
                   include: [
                     {
-                      model: trabajadorAsistencia,
-                      attributes: {
-                        exclude: [
-                          "trabajadorId",
-                          "asistenciumId",
-                          "trabajadorDni",
-                        ],
-                      },
-                      include: [{ model: asistencia }],
+                      model: trabajador,
+                      attributes: { exclude: ["usuarioId"] },
+                      include: [
+                        {
+                          model: trabajadorAsistencia,
+                          attributes: {
+                            exclude: [
+                              "trabajadorId",
+                              "asistenciumId",
+                              "trabajadorDni",
+                            ],
+                          },
+                          include: [{ model: asistencia }],
+                        },
+                      ],
                     },
-                  ]}]
+                  ],
                 },
                 { model: empresa },
                 { model: asociacion },
