@@ -793,6 +793,11 @@ const getTareoTrabajador = async (req, res, next) => {
             fechaFin = asistencia.asistencium.fecha;
             createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin);
 
+            // Actualiza la fecha de inicio del siguiente subarray.
+            if (i < numAsistencias - 1) {
+              fechaInicio = sortedAsistencias[i + 1].asistencium.fecha;
+            }
+
             if (contador >= minAsistencias) {
               contador = 0;
             } else {
@@ -1225,7 +1230,7 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
     tipo,
     estado,
     subarray_id,
-    observaciones
+    observaciones,
   } = req.body;
 
   try {
@@ -1257,7 +1262,7 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
         aprobacionData.firma_jefe = firma_jefe;
         aprobacionData.firma_gerente = firma_gerente;
         aprobacionData.subarray_id = subarray_id;
-        aprobacion.observaciones = observaciones
+        aprobacion.observaciones = observaciones;
 
         await aprobacionData.save();
 
