@@ -1,1 +1,0 @@
-{"version":3,"file":"static/css/487.2dc27fe2.chunk.css","mappings":"AAAA,oBAII,kBAAmB,CAFnB,YAAa,CACb,6BAEJ","sources":["components/planillas/style/buscador.css"],"sourcesContent":[".buscador-container{\n\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n}"],"names":[],"sourceRoot":""}

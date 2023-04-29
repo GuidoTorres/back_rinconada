@@ -137,9 +137,6 @@ const getTrabajadoresIncentivo = async (req, res, next) => {
               where: {
                 finalizado: { [Op.not]: true },
               },
-              include: [
-                { model: cargo, attributes: { exclude: ["cargo_id"] } },
-              ],
             },
           ],
         },

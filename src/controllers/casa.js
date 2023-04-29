@@ -86,7 +86,6 @@ const createProgramacionCasa = async (req, res, next) => {
         .json({ msg: "Programación registrada con éxito!", status: 200 });
     }
 
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });

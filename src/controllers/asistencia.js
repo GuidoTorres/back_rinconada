@@ -17,7 +17,6 @@ const getAsistencia = async (req, res, next) => {
   try {
     const all = await asistencia.findAll();
     return res.status(200).json({ data: all });
-    next();
   } catch (error) {
     res.status(500).json();
   }
@@ -32,7 +31,6 @@ const updateAsistencia = async (req, res, next) => {
     });
     return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
 
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });

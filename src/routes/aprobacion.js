@@ -4,6 +4,7 @@ const aprobacion = require("../controllers/aprobacion")
 
 
 router.get("/", aprobacion.getAprobacion)
+router.post("/asistencias", aprobacion.aprobacionAsistencias)
 // router.get("/:id", almacen.getAlmacenById)
 // router.post("/", almacen.postAlmacen)
 // router.post("/transferencia", almacen.almacenTrasferencia)

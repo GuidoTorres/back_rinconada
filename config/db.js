@@ -112,6 +112,11 @@ const aprobacion_contrato_pago = sequelize.define(
     fecha_fin: DataTypes.STRING,
     nombre: DataTypes.STRING,
     dias_laborados: DataTypes.STRING,
+    volquete: DataTypes.STRING,
+    teletran: DataTypes.STRING,
+    asociacion_id: DataTypes.STRING,
+    dni: DataTypes.STRING,
+    observaciones: DataTypes.STRING
   },
   {
     tableName: "aprobacion_contrato_pago",
@@ -1273,8 +1278,9 @@ pago_asociacion.belongsTo(contrato_pago, { foreignKey: "contrato_pago_id" });
 
 trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni" });
 pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
+
 contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id" });
-contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
+aprobacion_contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
 
 contrato_pago.hasMany(contrato_pago_trabajador, {
   foreignKey: "contrato_pago_id",

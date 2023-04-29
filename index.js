@@ -39,6 +39,7 @@ const ayudaRouter = require("./src/routes/ayuda");
 const buscadorRouter = require("./src/routes/buscador");
 const controlRouter = require("./src/routes/controlAsistencia");
 const aprobacionRouter = require("./src/routes/aprobacion");
+const programacionRouter = require("./src/routes/programacion");
 
 const authRouter = require("./src/routes/auth");
 
@@ -95,6 +96,7 @@ app.use("/api/v1/ayuda", ayudaRouter);
 app.use("/api/v1/filtros", buscadorRouter);
 app.use("/api/v1/control", controlRouter);
 app.use("/api/v1/aprobacion", aprobacionRouter);
+app.use("/api/v1/programacion", programacionRouter);
 
 app.use("/api/v1/auth", authRouter);
 
