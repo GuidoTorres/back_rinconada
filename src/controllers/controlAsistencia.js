@@ -168,10 +168,7 @@ const getPlanillaAprobacion = async () => {
             if (contadorAsistencias === 1) {
               fechaInicioSubarray = asistencia.asistencium.fecha;
             }
-            if (
-              contadorAsistencias === 15 ||
-              index === asistencias.length - 1
-            ) {
+            if (contadorAsistencias === 15) {
               fechaFinSubarray = asistencia.asistencium.fecha;
 
               subarrays.push({
@@ -235,7 +232,6 @@ const getPlanillaAprobacion = async () => {
             dayjs(asistencia.asistencium.fecha).isAfter(contrato.fecha_inicio))
       );
 
-
       const numAsistencias = asistencias?.length;
       if (numAsistencias >= 15) {
         let contador = 0;
@@ -253,7 +249,7 @@ const getPlanillaAprobacion = async () => {
             if (contador === 1) {
               fechaInicio = asistencia.asistencium.fecha;
             }
-            if (contador === 15) {
+            if (contador === 15 && i === numAsistencias - 1) {
               fechaFin = asistencia.asistencium.fecha;
 
               if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
