@@ -176,16 +176,16 @@ const getPlanillaAprobacion = async () => {
 
               subarrays.push({
                 subArray_id: subarrayId,
-                asociacion_id: asociacion.id,
-                nombre: asociacion.nombre,
-                fecha_inicio: dayjs(fechaInicioSubarray).format("DD-MM-YYYY"),
-                fecha_fin: dayjs(fechaFinSubarray).format("DD-MM-YYYY"),
+                asociacion_id: asociacion?.id,
+                nombre: asociacion?.nombre,
+                fecha_inicio: dayjs(fechaInicioSubarray)?.format("DD-MM-YYYY"),
+                fecha_fin: dayjs(fechaFinSubarray)?.format("DD-MM-YYYY"),
                 asistencia: contadorAsistencias,
-                volquete: contratoData.teletrans.at(-1).volquete,
-                teletran: contratoData.teletrans.at(-1).teletran,
-                total: contratoData.teletrans.at(-1).saldo,
-                contrato_id: contratoData.id,
-                estado: contratoData.aprobacion_contrato_pagos
+                volquete: contratoData?.teletrans?.at(-1)?.volquete,
+                teletran: contratoData?.teletrans?.at(-1)?.teletran,
+                total: contratoData?.teletrans?.at(-1)?.saldo,
+                contrato_id: contratoData?.id,
+                estado: contratoData?.aprobacion_contrato_pagos
                   ?.filter((item) => item.subarray_id == subarrayId)
                   .at(0)?.estado,
                 aprobacion_id: contratoData.aprobacion_contrato_pagos
@@ -235,7 +235,6 @@ const getPlanillaAprobacion = async () => {
             dayjs(asistencia.asistencium.fecha).isAfter(contrato.fecha_inicio))
       );
 
-      console.log(asistencias?.map((item) => item?.asistencium?.fecha));
 
       const numAsistencias = asistencias?.length;
       if (numAsistencias >= 15) {
@@ -335,6 +334,8 @@ const getPlanillaAprobacion = async () => {
           asociacion_id: item.asociacion_id,
         };
       });
+
+      console.log(data);
 
       for (const aprobacion of data) {
         await guardarAprobacion(aprobacion);
