@@ -34,34 +34,57 @@ const getAprobacion = async (req, res, next) => {
     });
 
     const format = all
-      .map((item) => {
-        const saldoFinal = item.contrato.contrato_pagos.filter(
-          (item) => item.pago.tipo === "pago"
+      .map((item, i) => {
+        const totalTeletrans = sumarTeletransYVolquete(
+          item.contrato.contrato_pagos.filter(
+            (item) => item.pago.tipo === "pago"
+          )
         );
 
-        const totalTeletrans = sumarTeletransYVolquete(saldoFinal);
-        console.log(totalTeletrans);
-        console.log(item.contrato.teletrans.at(-1).saldo);
-        if (
-          parseFloat(totalTeletrans) <=
-          parseFloat(item.contrato.teletrans.at(-1).saldo)
-        ) {
-          return {
-            nombre: item?.nombre,
-            cargo: item?.contrato?.cargo?.nombre,
-            volquetes: item?.contrato?.teletrans?.at(-1)?.volquete,
-            teletrans: item?.contrato?.teletrans?.at(-1)?.teletrans,
-            saldo: item?.contrato?.teletrans?.at(-1)?.saldo,
-            fecha_inicio: item?.fecha_inicio,
-            fecha_fin: item?.fecha_fin,
-            contrato_id: item?.contrato_id,
-            dni: item?.dni,
-            telefono: item.contrato.trabajador_contratos
-              ?.map((data) => data.trabajador.telefono)
-              .toString(),
-            saldoFinal: totalTeletrans,
-          };
-        }
+        // Filtrar pagos que corresponden al subarray_id
+        const pagosFiltrados = item.contrato.contrato_pagos.filter(
+          (pago) => pago.quincena === item.subarray_id
+        );
+        // Sumar los montos de los pagos filtrados
+        const totalPagado = pagosFiltrados.reduce((acc, pago) => {
+          // Verificar si volquetes o teletrans son null o undefined, y tratarlos como cero
+          const volquetes =
+            pago.volquetes !== null && pago.volquetes !== undefined
+              ? pago.volquetes
+              : 0;
+          const teletrans =
+            pago.teletrans !== null && pago.teletrans !== undefined
+              ? pago.teletrans
+              : 0;
+
+          // Convertir volquetes a teletrans
+          const volquetesEnTeletrans = volquetes * 4;
+          // Sumar volquetes convertidos y teletrans
+          return acc + parseFloat(volquetesEnTeletrans) + parseFloat(teletrans);
+        }, 0);
+
+        // Calcular el saldo total restando el totalPagado al saldo original
+        const saldoTotal =
+          parseFloat(item.contrato.teletrans.at(-1).saldo) - totalPagado;
+        return {
+          id: i + 1,
+          quincena: item.subarray_id,
+          nombre: item?.nombre,
+          cargo: item?.contrato?.cargo?.nombre,
+          volquetes: item?.contrato?.teletrans?.at(-1)?.volquete,
+          teletrans: item?.contrato?.teletrans?.at(-1)?.teletrans,
+          saldo: saldoTotal,
+          fecha_inicio: item?.fecha_inicio,
+          fecha_fin: item?.fecha_fin,
+          contrato_id: item?.contrato_id,
+          dni: item?.dni,
+          telefono: item.contrato.trabajador_contratos
+            ?.map((data) => data.trabajador.telefono)
+            .toString(),
+          saldoFinal:
+            parseFloat(totalTeletrans) -
+            parseFloat(item.contrato.teletrans.at(-1).saldo),
+        };
       })
       .filter((item) => item !== undefined);
 

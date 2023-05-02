@@ -86,6 +86,7 @@ const createProgramacionMultiple = async (req, res, next) => {
           pago_id: post.id,
           volquetes: item.volquetes,
           teletrans: item.teletrans,
+          quincena: item.quincena,
         };
       });
       const pagoContrato = await contrato_pago.bulkCreate(contra_pago);
@@ -622,34 +623,31 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           tipo: item?.tipo,
           volquetes: item.volquetes,
-          pagos: item?.contrato_pagos
-            .map((data) => {
-              return {
-                contrato_id: data?.contrato_id,
-                // nuevo: data?.contrato_pago_trabajadors.map((dat) => dat),
-                trabajadores: data?.contrato_pago_trabajadors?.map((dat) => {
-                  return {
-                    dni: dat?.trabajador?.dni,
-                    volquetes: dat?.volquetes,
-                    teletrans: dat?.teletrans,
-                    nombre:
-                      dat?.trabajador?.apellido_paterno +
-                      " " +
-                      dat?.trabajador?.apellido_materno +
-                      " " +
-                      dat?.trabajador?.nombre,
-                    telefono: dat?.trabajador?.telefono,
-                    area: dat?.trabajador?.trabajador_contratos
-                      ?.map((da) => da.contrato.area.nombre)
-                      .toString(),
-                    cargo: dat?.trabajador?.trabajador_contratos
-                      ?.map((da) => da?.contrato?.cargo?.nombre)
-                      .toString(),
-                  };
-                }),
-              };
-            })
-            .at(-1),
+          pagos: {
+            trabajadores: item?.contrato_pagos.flatMap((data) => {
+              return data?.contrato_pago_trabajadors?.map((dat) => {
+                return {
+                  contrato_id: data?.contrato_id,
+                  dni: dat?.trabajador?.dni,
+                  volquetes: dat?.volquetes,
+                  teletrans: dat?.teletrans,
+                  nombre:
+                    dat?.trabajador?.apellido_paterno +
+                    " " +
+                    dat?.trabajador?.apellido_materno +
+                    " " +
+                    dat?.trabajador?.nombre,
+                  telefono: dat?.trabajador?.telefono,
+                  area: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da.contrato.area.nombre)
+                    .toString(),
+                  cargo: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da?.contrato?.cargo?.nombre)
+                    .toString(),
+                };
+              });
+            }),
+          },
         };
       })
       .filter((item) => item.tipo === "pago" || item.tipo === "incentivo");
@@ -736,19 +734,6 @@ const historialProgramacion = async (req, res, next) => {
                     {
                       model: trabajador,
                       attributes: { exclude: ["usuarioId"] },
-                      include: [
-                        {
-                          model: trabajadorAsistencia,
-                          attributes: {
-                            exclude: [
-                              "trabajadorId",
-                              "asistenciumId",
-                              "trabajadorDni",
-                            ],
-                          },
-                          include: [{ model: asistencia }],
-                        },
-                      ],
                     },
                   ],
                 },

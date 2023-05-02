@@ -467,6 +467,7 @@ const contrato_pago = sequelize.define(
     pago_id: DataTypes.INTEGER,
     teletrans: DataTypes.STRING,
     volquetes: DataTypes.STRING,
+    quincena: DataTypes.STRING
   },
   {
     tableName: "contrato_pago",

@@ -30,7 +30,6 @@ const updateAsistencia = async (req, res, next) => {
       where: { id: id },
     });
     return res.status(200).json({ msg: "Actualizado con éxito!", status: 200 });
-
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
@@ -159,8 +158,6 @@ const getExcelAsistencia = async (req, res, next) => {
       { conAsistencia: [], sinAsistencia: [] }
     );
 
-
-
     if (trabajadoresAsistencia.conAsistencia.length > 0) {
       // Actualizar asistencias de trabajadores con asistencia existente
       await Promise.all(
@@ -208,7 +205,6 @@ const getExcelAsistencia = async (req, res, next) => {
 
 const getTrabajadorAsistencia = async (req, res, next) => {
   let id = req.params.id;
-
   try {
     const get = await trabajador.findAll({
       attributes: { exclude: ["usuarioId"] },
@@ -221,13 +217,16 @@ const getTrabajadorAsistencia = async (req, res, next) => {
         },
         {
           model: trabajador_contrato,
-          // include: [
-          //   {
-          //     model: contrato,
-          //     where: { finalizado: false },
-          //     attributes: { exclude: ["contrato_id"] },
-          //   },
-          // ],
+          include: [
+            {
+              model: contrato,
+              where: {
+                finalizado: false,
+                suspendido: false,
+              },
+              attributes: { exclude: ["contrato_id"] },
+            },
+          ],
         },
       ],
     });
@@ -285,13 +284,13 @@ const getTrabajadorAsistencia = async (req, res, next) => {
 const getTrabajadorByCampamento = async (req, res, next) => {
   let id = req.params.id;
   let id_asis = req.params.asistencia;
-
   try {
     const get = await campamento.findAll({
       where: { id: id },
       include: [
         {
           model: contrato,
+          where: { finalizado: false, suspendido: false },
           attributes: { exclude: ["contrato_id"] },
           include: [
             {
@@ -403,12 +402,12 @@ const postTrabajadorAsistencia = async (req, res, next) => {
     const diferenciaDias =
       (fechaActual.getTime() - fechaAsistencia.getTime()) / (1000 * 3600 * 24);
 
-    if (diferenciaDias > 30) {
-      return res.status(403).json({
-        msg: "No se puede registrar la asistencia, han pasado más de 2 días.",
-        status: 403,
-      });
-    }
+    // if (diferenciaDias > 30) {
+    //   return res.status(403).json({
+    //     msg: "No se puede registrar la asistencia, han pasado más de 2 días.",
+    //     status: 403,
+    //   });
+    // }
 
     if (getAsistencia) {
       const updateAsistencia = await trabajadorAsistencia.update(info, {

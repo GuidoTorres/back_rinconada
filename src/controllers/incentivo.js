@@ -75,35 +75,39 @@ const getIncentivo = async (req, res, next) => {
           volquetes: item.volquetes,
           trabajadores:
             // nuevo: data?.contrato_pago_trabajadors.map((dat) => dat),
-            item?.contrato_pagos
-              .map((data, a) =>
-                data?.contrato_pago_trabajadors?.map((dat) => {
-                  return {
-                    id: a + 1,
-                    dni: dat?.trabajador?.dni,
-                    teletrans: dat?.teletrans,
-                    nombre:
-                      dat?.trabajador?.apellido_paterno +
-                      " " +
-                      dat?.trabajador?.apellido_materno +
-                      " " +
-                      dat?.trabajador?.nombre,
-                    telefono: dat?.trabajador?.telefono,
-                    contrato_id: dat?.trabajador?.trabajador_contratos
-                      ?.map((da) => da.contrato.id)
-                      .toString(),
-                    area: dat?.trabajador?.trabajador_contratos
-                      ?.map((da) => da.contrato.area.nombre)
-                      .toString(),
-                    cargo: dat?.trabajador?.trabajador_contratos
+            item?.contrato_pagos.flatMap((data) => {
+              return data?.contrato_pago_trabajadors?.map((dat) => {
+                return {
+                  contrato_id: data?.contrato_id,
+                  dni: dat?.trabajador?.dni,
+                  volquetes: dat?.volquetes,
+                  teletrans: dat?.teletrans,
+                  nombre:
+                    dat?.trabajador?.apellido_paterno +
+                    " " +
+                    dat?.trabajador?.apellido_materno +
+                    " " +
+                    dat?.trabajador?.nombre,
+                  telefono: dat?.trabajador?.telefono,
+                  area: dat?.trabajador?.trabajador_contratos
+                    ?.map((da) => da.contrato.area.nombre)
+                    .toString(),
+                  cargo:
+                    dat?.trabajador?.trabajador_contratos
                       ?.map((da) => da?.contrato?.cargo?.nombre)
-                      .toString(),
-                  };
-                })
-              )
-              .flat(),
+                      .toString() !== ""
+                      ? dat?.trabajador?.trabajador_contratos
+                          ?.map((da) => da?.contrato?.cargo?.nombre)
+                          .toString()
+                      : dat?.trabajador?.trabajador_contratos
+                          ?.map((da) => da?.contrato?.asociacion?.tipo)
+                          .toString(),
+                };
+              });
+            }),
         };
       })
+
       ?.filter((item) => item?.estado === "programado")
       .map((item, i) => {
         return {

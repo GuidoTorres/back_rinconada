@@ -132,7 +132,6 @@ const getPlanillaAprobacion = async () => {
           }
 
           let subarrays = [];
-          let subarrayId = 1;
           const contratoData = contrato;
 
           const trabajadores = contrato.trabajador_contratos.map(
@@ -143,9 +142,8 @@ const getPlanillaAprobacion = async () => {
               ? prev
               : curr;
           });
-          let fechaInicioSubarray = null;
-          let fechaFinSubarray = null;
-          let asistenciasPrimerTrabajador =
+
+          const asistencias =
             trabajadorMenorCodigo.trabajador_asistencia.filter((asistencia) => {
               const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
                 "YYYY-MM-DD",
@@ -153,33 +151,28 @@ const getPlanillaAprobacion = async () => {
               ]).toDate();
               return (
                 asistenciaFecha.getTime() >= fechaInicio.getTime() &&
-                asistenciaFecha.getTime() <= fechaFin.getTime()
+                asistenciaFecha.getTime() <= fechaFin.getTime() &&
+                (asistencia.asistencia === "Asistio" ||
+                  asistencia.asistencia === "Comisión")
               );
             });
 
           let contadorAsistencias = 0;
-          asistenciasPrimerTrabajador.forEach((asistencia, index) => {
-            if (
-              asistencia?.asistencia === "asistio" ||
-              asistencia?.asistencia === "comision"
-            ) {
-              contadorAsistencias++;
+          let subAsistencias = [];
+          let fechaInicioSubarray = null;
+          let fechaFinSubarray = null;
+          let subarrayId = 1;
+          asistencias.forEach((asistencia, index) => {
+            contadorAsistencias++;
+            subAsistencias.push(asistencia);
+            if (contadorAsistencias === 1) {
+              fechaInicioSubarray = asistencia.asistencium.fecha;
             }
-
             if (
               contadorAsistencias === 15 ||
-              index === asistenciasPrimerTrabajador.length - 1
+              index === asistencias.length - 1
             ) {
-              fechaInicioSubarray = dayjs(
-                asistenciasPrimerTrabajador[0]?.asistencium?.fecha,
-                ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
-              ).toDate();
-              fechaFinSubarray = dayjs(
-                asistenciasPrimerTrabajador[
-                  asistenciasPrimerTrabajador.length - 1
-                ]?.asistencium?.fecha,
-                ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss"]
-              ).toDate();
+              fechaFinSubarray = asistencia.asistencium.fecha;
 
               subarrays.push({
                 subArray_id: subarrayId,
@@ -187,7 +180,7 @@ const getPlanillaAprobacion = async () => {
                 nombre: asociacion.nombre,
                 fecha_inicio: dayjs(fechaInicioSubarray).format("DD-MM-YYYY"),
                 fecha_fin: dayjs(fechaFinSubarray).format("DD-MM-YYYY"),
-                asistencia: asistenciasPrimerTrabajador.length,
+                asistencia: contadorAsistencias,
                 volquete: contratoData.teletrans.at(-1).volquete,
                 teletran: contratoData.teletrans.at(-1).teletran,
                 total: contratoData.teletrans.at(-1).saldo,
@@ -206,6 +199,10 @@ const getPlanillaAprobacion = async () => {
                   .at(0)?.firma_gerente,
               });
 
+              contadorAsistencias = 0;
+              subAsistencias = [];
+              fechaInicioSubarray = null;
+              fechaFinSubarray = null;
               subarrayId++;
             }
           });
@@ -215,6 +212,7 @@ const getPlanillaAprobacion = async () => {
       })
       .filter((item) => item.length > 0)
       .flat();
+    console.log(asociacionData);
 
     const filterContrato = trabajadorFetch.filter(
       (trabajador) =>
@@ -224,10 +222,20 @@ const getPlanillaAprobacion = async () => {
 
     const aprobacionFilter = [];
     let subarrayId = 1;
+    const subarrayIdsPorTrabajador = {};
     filterContrato.forEach((trabajador) => {
+      const contrato = trabajador.trabajador_contratos[0].contrato;
+      const fechaInicioContrato = new Date(contrato.fecha_inicio);
+
       const asistencias = trabajador?.trabajador_asistencia?.filter(
-        (asistencia) => asistencia.asistencia === "Asistio"
+        (asistencia) =>
+          (asistencia.asistencia === "Asistio" ||
+            asistencia.asistencia === "Comisión") &&
+          (dayjs(asistencia.asistencium.fecha).isSame(contrato.fecha_inicio) ||
+            dayjs(asistencia.asistencium.fecha).isAfter(contrato.fecha_inicio))
       );
+
+      console.log(asistencias?.map((item) => item?.asistencium?.fecha));
 
       const numAsistencias = asistencias?.length;
       if (numAsistencias >= 15) {
@@ -249,9 +257,15 @@ const getPlanillaAprobacion = async () => {
             if (contador === 15) {
               fechaFin = asistencia.asistencium.fecha;
 
+              if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
+                subarrayIdsPorTrabajador[trabajador.dni] = 1;
+              } else {
+                subarrayIdsPorTrabajador[trabajador.dni]++;
+              }
+
               aprobacionFilter.push({
-                subArray_id: subarrayId,
-                dni:trabajador.dni,
+                subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
+                dni: trabajador.dni,
                 nombre:
                   trabajador.apellido_paterno +
                   " " +
@@ -306,7 +320,6 @@ const getPlanillaAprobacion = async () => {
       }
     });
 
-
     if (asociacionData.length > 0) {
       const data = asociacionData.map((item) => {
         return {
@@ -319,7 +332,7 @@ const getPlanillaAprobacion = async () => {
           teletran: item.teletran ? item.teletran : 0,
           dias_laborados: item.asistencia,
           contrato_id: item.contrato_id,
-          asociacion_id: item.asociacion_id
+          asociacion_id: item.asociacion_id,
         };
       });
 
@@ -339,7 +352,7 @@ const getPlanillaAprobacion = async () => {
           teletran: item.teletran ? item.teletran : 0,
           dias_laborados: item.asistencia,
           contrato_id: item.contrato_id,
-          dni: item.dni
+          dni: item.dni,
         };
       });
 
@@ -655,7 +668,9 @@ const actulizarFechaFin = async (req, res, next) => {
     await getPlanillaAprobacion();
     await Promise.all([asociacionData(), individual()]);
 
-    res.status(200).json({ msg: "Asistencias validadas con éxito!.", status: 200 });
+    res
+      .status(200)
+      .json({ msg: "Asistencias validadas con éxito!.", status: 200 });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo validar." });
