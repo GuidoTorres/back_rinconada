@@ -3,12 +3,12 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "rinconada",
-  username: "root",
-  password: "root",
+  database: "nombre_bd",
+  username: "",
+  password: "",
   host: "localhost",
   dialect: "mysql",
-  port: "3306",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
   dialectOptions: { decimalNumbers: true },
 });
@@ -1031,6 +1031,7 @@ const pago_asociacion = sequelize.define(
     teletrans: DataTypes.STRING,
     contrato_pago_id: DataTypes.INTEGER,
     trabajador_dni: DataTypes.INTEGER,
+    volquetes: DataTypes.STRING
   },
   {
     tableName: "pago_asociacion",

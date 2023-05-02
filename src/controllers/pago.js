@@ -126,20 +126,22 @@ const createProgramacionMultiple = async (req, res, next) => {
       let contra_pago = {
         contrato_id: req.body.contrato_id,
         pago_id: post.id,
-        volquetes: info.volquetes,
-        teletrans: info.teletrans,
+        volquetes: req.body.volquetes,
+        teletrans: req.body.teletrans,
       };
 
       const pagoContrato = await contrato_pago.create(contra_pago);
-
+      console.log(req.body);
       let asociacionPago = req.body.asociacion.map((item) => {
         return {
+          volquetes: item.volquetes,
           teletrans: item.teletrans,
           trabajador_dni: item.trabajador_dni,
           contrato_pago_id: pagoContrato.id,
+          quincena: item.quincena,
         };
       });
-
+      console.log(asociacionPago);
       const asociPago = await pago_asociacion.bulkCreate(asociacionPago, {
         ignoreDuplicates: false,
       });
@@ -550,6 +552,7 @@ const getPagoFecha = async (req, res, next) => {
                 trabajadores: data?.pago_asociacions.map((dat) => {
                   return {
                     contrato_id: data?.contrato_id,
+                    volquetes: dat?.volquetes,
                     teletrans: dat?.teletrans,
                     dni: dat?.trabajador?.dni,
                     telefono: dat?.trabajador?.telefono,
