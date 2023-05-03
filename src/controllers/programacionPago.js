@@ -35,58 +35,46 @@ const getAprobacion = async (req, res, next) => {
 
     const format = all
       .map((item, i) => {
-        const totalTeletrans = sumarTeletransYVolquete(
-          item.contrato.contrato_pagos.filter(
-            (item) => item.pago.tipo === "pago"
-          )
-        );
+        // Calcula el total de pagos
+        if (!item?.firma_gerente || !item?.firma_jefe) {
+          return undefined;
+        }
+        const pagosTotal = item.contrato.contrato_pagos
+          .filter((pago) => pago.quincena === item.subarray_id)
+          .reduce((acc, pago) => acc + pago.volquetes * 4 + pago.teletrans, 0);
 
-        // Filtrar pagos que corresponden al subarray_id
-        const pagosFiltrados = item.contrato.contrato_pagos.filter(
-          (pago) => pago.quincena === item.subarray_id
-        );
-        // Sumar los montos de los pagos filtrados
-        const totalPagado = pagosFiltrados.reduce((acc, pago) => {
-          // Verificar si volquetes o teletrans son null o undefined, y tratarlos como cero
-          const volquetes =
-            pago.volquetes !== null && pago.volquetes !== undefined
-              ? pago.volquetes
-              : 0;
-          const teletrans =
-            pago.teletrans !== null && pago.teletrans !== undefined
-              ? pago.teletrans
-              : 0;
-
-          // Convertir volquetes a teletrans
-          const volquetesEnTeletrans = volquetes * 4;
-          // Sumar volquetes convertidos y teletrans
-          return acc + parseFloat(volquetesEnTeletrans) + parseFloat(teletrans);
-        }, 0);
-
-        // Calcular el saldo total restando el totalPagado al saldo original
-        const saldoTotal =
-          parseFloat(item.contrato.teletrans.at(-1).saldo) - totalPagado;
-        return {
-          id: i + 1,
-          quincena: item.subarray_id,
-          nombre: item?.nombre,
-          cargo: item?.contrato?.cargo?.nombre,
-          volquetes: item?.contrato?.teletrans?.at(-1)?.volquete,
-          teletrans: item?.contrato?.teletrans?.at(-1)?.teletrans,
-          saldo: saldoTotal,
-          fecha_inicio: item?.fecha_inicio,
-          fecha_fin: item?.fecha_fin,
-          contrato_id: item?.contrato_id,
-          dni: item?.dni,
-          telefono: item.contrato.trabajador_contratos
-            ?.map((data) => data.trabajador.telefono)
-            .toString(),
-          saldoFinal:
-            parseFloat(totalTeletrans) -
-            parseFloat(item.contrato.teletrans.at(-1).saldo),
-        };
+        // Calcula el saldo final
+        const saldoFinal = item.contrato.teletrans.at(-1).saldo - pagosTotal;
+        if (saldoFinal < 1) {
+          updateEstadoAprobacionContratoPago(item.id);
+        }
+        if (saldoFinal > 0) {
+          return {
+            quincena: item.subarray_id,
+            nombre: item?.nombre,
+            cargo: item?.contrato?.cargo?.nombre,
+            volquetes: item?.contrato?.teletrans?.at(-1)?.volquete,
+            teletrans: item?.contrato?.teletrans?.at(-1)?.teletrans,
+            saldo: item.contrato.teletrans.at(-1).saldo,
+            fecha_inicio: item?.fecha_inicio,
+            fecha_fin: item?.fecha_fin,
+            contrato_id: item?.contrato_id,
+            dni: item?.dni,
+            estado: item.estado,
+            telefono: item.contrato.trabajador_contratos
+              ?.map((data) => data.trabajador.telefono)
+              .toString(),
+            pagos: item.contrato.contrato_pagos.filter(
+              (pago) => pago.quincena === item.subarray_id
+            ),
+            saldoFinal: saldoFinal,
+          };
+        }
       })
-      .filter((item) => item !== undefined);
+      .filter((item) => item !== undefined)
+      .map((item, i) => {
+        return { id: i + 1, ...item };
+      });
 
     return res.status(200).json({ data: format });
   } catch (error) {
@@ -95,31 +83,17 @@ const getAprobacion = async (req, res, next) => {
   }
 };
 
-function sumarTeletransYVolquete(saldoFinal) {
-  let totalTeletrans = 0;
-
-  for (const item of saldoFinal) {
-    let teletrans = parseInt(item.teletrans);
-    let volquetes = parseInt(item.volquetes);
-
-    if (!isNaN(teletrans) && !isNaN(volquetes)) {
-      if (volquetes > 0 && teletrans >= 4) {
-        totalTeletrans += teletrans;
-      } else if (volquetes > 0 && teletrans < 4) {
-        totalTeletrans += volquetes * 4 + teletrans;
-      } else if (volquetes > 0) {
-        totalTeletrans += volquetes * 4;
-      } else {
-        totalTeletrans += teletrans;
-      }
-    } else if (!isNaN(teletrans)) {
-      totalTeletrans += teletrans;
-    } else if (!isNaN(volquetes)) {
-      totalTeletrans += volquetes * 4;
-    }
+async function updateEstadoAprobacionContratoPago(id) {
+  try {
+    await aprobacion_contrato_pago.update(
+      { estado: true },
+      { where: { id: id } }
+    );
+  } catch (error) {
+    console.log(error);
   }
-
-  return totalTeletrans;
 }
+
+
 
 module.exports = { getAprobacion };

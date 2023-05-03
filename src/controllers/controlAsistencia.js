@@ -56,7 +56,8 @@ const getPlanillaAprobacion = async () => {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
               where: {
-                [Op.and]: [{ finalizado: { [Op.not]: true } }],
+                finalizado: false,
+                suspendido: { [Op.not]: true },
               },
               include: [
                 { model: teletrans },
@@ -209,7 +210,6 @@ const getPlanillaAprobacion = async () => {
       })
       .filter((item) => item.length > 0)
       .flat();
-    console.log(asociacionData);
 
     const filterContrato = trabajadorFetch.filter(
       (trabajador) =>
@@ -224,13 +224,22 @@ const getPlanillaAprobacion = async () => {
       const contrato = trabajador.trabajador_contratos[0].contrato;
       const fechaInicioContrato = new Date(contrato.fecha_inicio);
 
-      const asistencias = trabajador?.trabajador_asistencia?.filter(
-        (asistencia) =>
-          (asistencia.asistencia === "Asistio" ||
-            asistencia.asistencia === "Comisión") &&
-          (dayjs(asistencia.asistencium.fecha).isSame(contrato.fecha_inicio) ||
-            dayjs(asistencia.asistencium.fecha).isAfter(contrato.fecha_inicio))
-      );
+      const asistencias = trabajador?.trabajador_asistencia
+        ?.filter(
+          (asistencia) =>
+            (asistencia.asistencia === "Asistio" ||
+              asistencia.asistencia === "Comisión") &&
+            (dayjs(asistencia.asistencium.fecha).isSame(
+              contrato.fecha_inicio
+            ) ||
+              dayjs(asistencia.asistencium.fecha).isAfter(
+                contrato.fecha_inicio
+              ))
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
+        );
 
       const numAsistencias = asistencias?.length;
       if (numAsistencias >= 15) {
@@ -249,7 +258,7 @@ const getPlanillaAprobacion = async () => {
             if (contador === 1) {
               fechaInicio = asistencia.asistencium.fecha;
             }
-            if (contador === 15 && i === numAsistencias - 1) {
+            if (contador === 15) {
               fechaFin = asistencia.asistencium.fecha;
 
               if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
