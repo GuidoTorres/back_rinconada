@@ -395,7 +395,15 @@ const getListaPago = async (req, res, next) => {
       ],
     });
 
-    const formatData = getAll.map((item, i) => {
+    const filterAprobaciones = getAll.filter(
+      (item) =>
+        item.firma_jefe !== null &&
+        item.firma_jefe &&
+        item.firma_gerente !== null &&
+        item.firma_gerente
+    );
+
+    const formatData = filterAprobaciones?.map((item, i) => {
       const trabajadoresProgramados = item?.contrato?.contrato_pagos
         ?.filter((data) => data.quincena === item.subarray_id)
         .map((data) =>
