@@ -10,6 +10,7 @@ const {
   area,
   trabajador_contrato,
   cargo,
+  teletrans,
 } = require("../../config/db");
 require("jspdf-autotable");
 
@@ -27,6 +28,33 @@ function convertDate(inputFormat) {
   const parts = inputFormat.split("-");
   return new Date(parts[2], parts[1] - 1, parts[0]);
 }
+function obtenerFormaOrdinal(numero) {
+  const ordinales = {
+    1: "Primera",
+    2: "Segunda",
+    3: "Tercera",
+    4: "Cuarta",
+    5: "Quinta",
+    6: "Sexta",
+    7: "Séptima",
+    8: "Octava",
+    9: "Novena",
+    10: "Décima",
+    11: "Décima primera",
+    // Agrega más números y sus ordinales aquí si es necesario
+  };
+  const formaOrdinal = ordinales[numero];
+  if (formaOrdinal) {
+    return formaOrdinal;
+  } else {
+    return numero + "ésima"; // Si no encuentra el número en el diccionario, retorna con la forma genérica "ésima"
+  }
+}
+const obtenerRangoQuincena = (indice, fechaInicio, fechaFin) => {
+  const ordinal = obtenerFormaOrdinal(indice);
+
+  return `${ordinal} quincena de ${fechaInicio} - ${fechaFin}`;
+};
 
 const aprobacionAsistencias = async (req, res, next) => {
   const { asociacion_id, dni, fecha_inicio, fecha_fin, quincena } = req.body;
@@ -46,7 +74,14 @@ const aprobacionAsistencias = async (req, res, next) => {
           {
             model: contrato,
             attributes: { exclude: ["contrato_id"] },
-            include: [{ model: aprobacion_contrato_pago, where:{subarray_id: quincena} }, { model: area }],
+            include: [
+              {
+                model: aprobacion_contrato_pago,
+                where: { subarray_id: quincena },
+              },
+              { model: area },
+              { model: teletrans },
+            ],
           },
           {
             model: trabajador,
@@ -74,52 +109,88 @@ const aprobacionAsistencias = async (req, res, next) => {
       });
       const firstTrabajador = asociacionAsistencia?.trabajadors[0];
 
+      const contratos = asociacionAsistencia.contratos[0];
+      const aprobaciones = contratos.aprobacion_contrato_pagos[0].dataValues;
+      const pago = contratos.teletrans[0].dataValues;
       const initialAsistenciasObj = {};
       // Sobrescribe las asistencias del primer trabajador en el objeto
+
       firstTrabajador?.trabajador_asistencia.forEach((item) => {
         const fecha = item.asistencium.fecha;
         initialAsistenciasObj[fecha] = item.asistencia;
       });
 
+      const keys = Object.keys(initialAsistenciasObj);
+
+      // Ordenar el array de claves según la fecha de manera ascendente
+      keys.sort((a, b) => new Date(a) - new Date(b));
+
+      // Crear un nuevo objeto para almacenar las claves ordenadas y sus valores correspondientes
+      const sortedAsistenciasObj = {};
+
+      keys.forEach((key) => {
+        sortedAsistenciasObj[key] = initialAsistenciasObj[key];
+      });
+
       const contratoAsociacion = asociacionAsistencia.contratos
         .map((item) => item.area.nombre)
         .toString();
-
       const asistenciasObj = asociacionAsistencia?.trabajadors.map(
         (trabajador, index) => {
           // Crea un objeto con las mismas propiedades que el objeto del primer trabajador
           const obj = Object.assign({}, initialAsistenciasObj);
+          
 
-          const aprobaciones = asociacionAsistencia.contratos
-            .map((item) => item.aprobacion_contrato_pagos)
-            .flat();
-
-          // Encuentra la aprobación correspondiente
-          console.log(aprobaciones[0].firma_jefe);
           // Si se encuentra una aprobación correspondiente, agrega las propiedades al objeto
           if (aprobaciones) {
+            obj.id = aprobaciones.id;
+            obj.teletrans = pago.volquete || 0;
+            obj.volquetes = pago.teletrans || 0;
             obj.huella = aprobaciones.huella;
             obj.quincena = aprobaciones.subarray_id;
+            obj.observaciones = aprobaciones.observaciones;
             obj.firma_jefe = aprobaciones.firma_jefe;
             obj.firma_gerente = aprobaciones.firma_gerente;
             obj.nro = index + 1;
-            obj.dni = trabajador.dni;
-            obj.telefono = trabajador.telefono;
+            obj.textoQuincena = obtenerRangoQuincena(
+              parseInt(aprobaciones.subarray_id),
+              aprobaciones.fecha_inicio,
+              aprobaciones.fecha_fin
+            );
+            obj.dni = trabajador?.dataValues.dni;
+            obj.telefono = trabajador?.dataValues.telefono;
             obj.asociacion = asociacionAsistencia.nombre;
             obj.cargo = asociacionAsistencia.tipo;
             obj.area = contratoAsociacion;
+            obj.volquetes = pago.volquete || 0;
+            obj.teletrans = pago.teletrans || 0;
+            obj.nombres =
+              trabajador?.dataValues.apellido_paterno +
+              " " +
+              trabajador?.dataValues.apellido_materno +
+              " " +
+              trabajador?.dataValues.nombre;
           } else {
             // Si no se encuentra una aprobación correspondiente, establece valores predeterminados para las propiedades
             obj.huella = "";
-            obj.quincena = null;
+            obj.id = "";
+            obj.textoQuincea = "";
             obj.firma_jefe = "";
             obj.firma_gerente = "";
             obj.nro = index + 1;
-            obj.dni = trabajador.dni;
-            obj.telefono = trabajador.telefono;
+            obj.observaciones = "";
+            obj.textoQuincea = "";
+            obj.dni = trabajador?.dataValues.dni;
+            obj.telefono = trabajador?.dataValues.telefono;
             obj.asociacion = asociacionAsistencia.nombre;
             obj.cargo = asociacionAsistencia.tipo;
             obj.area = contratoAsociacion;
+            obj.nombres =
+              trabajador?.dataValues.apellido_paterno +
+              " " +
+              trabajador?.dataValues.apellido_materno +
+              " " +
+              trabajador?.dataValues.nombre;
           }
 
           // Si no es el primer trabajador, establece el valor predeterminado de todas las fechas a "NR" (no reconocido)
@@ -131,7 +202,17 @@ const aprobacionAsistencias = async (req, res, next) => {
                 fecha !== "cargo" &&
                 fecha !== "area" &&
                 fecha !== "dni" &&
-                fecha !== "telefono"
+                fecha !== "telefono" &&
+                fecha !== "asociacion" &&
+                fecha !== "quincena" &&
+                fecha !== "huella" &&
+                fecha !== "firma_jefe" &&
+                fecha !== "firma_gerente" &&
+                fecha !== "volquetes" &&
+                fecha !== "teletrans" &&
+                fecha !== "id" &&
+                fecha !== "textoQuincena" &&
+                fecha !== "observaciones"
               ) {
                 obj[fecha] = "";
               }
@@ -143,10 +224,23 @@ const aprobacionAsistencias = async (req, res, next) => {
             const fecha = item.asistencium.fecha;
             obj[fecha] = item.asistencia;
           });
-
           return obj;
         }
       );
+
+      asistenciasObj.sort((a, b) => {
+        const nameA = a.nombres.toUpperCase(); // Ignorar las diferencias entre mayúsculas y minúsculas
+        const nameB = b.nombres.toUpperCase(); // Ignorar las diferencias entre mayúsculas y minúsculas
+
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+        return 0;
+      });
+
       const prueba = asistenciasObj.map((asistencias) => {
         return Object.keys(asistencias).reduce((acc, fecha) => {
           if (
@@ -156,7 +250,17 @@ const aprobacionAsistencias = async (req, res, next) => {
             fecha !== "cargo" &&
             fecha !== "area" &&
             fecha !== "dni" &&
-            fecha !== "telefono"
+            fecha !== "telefono" &&
+            fecha !== "textoQuincena" &&
+            fecha !== "huella" &&
+            fecha !== "firma_jefe" &&
+            fecha !== "firma_gerente" &&
+            fecha !== "quincena" &&
+            fecha !== "volquetes" &&
+            fecha !== "teletrans" &&
+            fecha !== "id" &&
+            fecha !== "textoQuincena" &&
+            fecha !== "observaciones"
           ) {
             acc[fecha] =
               asistencias[fecha] === "Permiso"
@@ -191,9 +295,13 @@ const aprobacionAsistencias = async (req, res, next) => {
                 model: contrato,
                 attributes: { exclude: ["contrato_id"] },
                 include: [
-                  { model: aprobacion_contrato_pago },
+                  {
+                    model: aprobacion_contrato_pago,
+                    where: { subarray_id: quincena },
+                  },
                   { model: area },
                   { model: cargo, attributes: { exclude: ["cargo_id"] } },
+                  { model: teletrans },
                 ],
               },
             ],
@@ -229,26 +337,48 @@ const aprobacionAsistencias = async (req, res, next) => {
       const areaNombre = trabajadorAsis.trabajador_contratos
         .map((item) => item.contrato.area.nombre)
         .toString();
+      const volquetesData = trabajadorAsis.trabajador_contratos
+        .map((item) => item.contrato.teletrans[0].volquete)
+        .toString();
+      const teletransData = trabajadorAsis.trabajador_contratos
+        .map((item) => item.contrato.teletrans[0].teletrans)
+        .toString();
+
+      const keys = Object.keys(initialAsistenciasObj);
+
+      // Ordenar el array de claves según la fecha de manera ascendente
+      keys.sort((a, b) => new Date(a) - new Date(b));
+
+      // Crear un nuevo objeto para almacenar las claves ordenadas y sus valores correspondientes
+      const sortedAsistenciasObj = {};
+
+      keys.forEach((key) => {
+        sortedAsistenciasObj[key] = initialAsistenciasObj[key];
+      });
 
       const asistenciasObj = [trabajadorAsis]?.map((trabajador, index) => {
         // Crea un objeto con las mismas propiedades que el objeto del primer trabajador
-        const obj = Object.assign({}, initialAsistenciasObj);
+        const obj = Object.assign({}, sortedAsistenciasObj);
 
         // Obtén las aprobaciones del contrato actual
         const aprobaciones = trabajador.trabajador_contratos
           .map((item) => item.contrato.aprobacion_contrato_pagos)
           .flat();
-        console.log(aprobaciones);
-        // Encuentra la aprobación correspondiente
-        const aprobacion = aprobaciones.find(
-          (aprob) => aprob.subarray_id == index + 1
-        );
         // Si se encuentra una aprobación correspondiente, agrega las propiedades al objeto
-        if (aprobacion) {
-          obj.huella = aprobacion.huella;
-          obj.quincena = aprobacion.subarray_id;
-          obj.firma_jefe = aprobacion.firma_jefe;
-          obj.firma_gerente = aprobacion.firma_gerente;
+        if (aprobaciones) {
+          obj.huella = aprobaciones[0].dataValues.huella;
+          obj.quincena = aprobaciones[0].dataValues.subarray_id;
+          obj.textoQuincena = obtenerRangoQuincena(
+            parseInt(aprobaciones[0].dataValues.subarray_id),
+            aprobaciones[0].dataValues.fecha_inicio,
+            aprobaciones[0].dataValues.fecha_fin
+          );
+          obj.observaciones = aprobaciones[0].dataValues.observaciones;
+          obj.id = aprobaciones[0].dataValues.id;
+          obj.teletrans = teletransData || 0;
+          obj.volquetes = volquetesData || 0;
+          obj.firma_jefe = aprobaciones[0].dataValues.firma_jefe;
+          obj.firma_gerente = aprobaciones[0].dataValues.firma_gerente;
           obj.nro = index + 1;
           obj.nombres =
             trabajador?.apellido_paterno +
@@ -262,10 +392,11 @@ const aprobacionAsistencias = async (req, res, next) => {
           obj.area = areaNombre;
         } else {
           // Si no se encuentra una aprobación correspondiente, establece valores predeterminados para las propiedades
-          obj.huella = "";
-          obj.quincena = null;
-          obj.firma_jefe = "";
-          obj.firma_gerente = "";
+          obj.huella = null;
+          obj.firma_jefe = null;
+          obj.firma_gerente = null;
+          obj.textoQuincea = null;
+          obj.id = null;
           obj.nro = index + 1;
           obj.nombres =
             trabajador?.apellido_paterno +
@@ -277,6 +408,7 @@ const aprobacionAsistencias = async (req, res, next) => {
           obj.telefono = trabajador.telefono;
           obj.cargo = cargoNombre;
           obj.area = areaNombre;
+          obj.observaciones = "";
         }
 
         // Si no es el primer trabajador, establece el valor predeterminado de todas las fechas a "NR" (no reconocido)
@@ -291,7 +423,12 @@ const aprobacionAsistencias = async (req, res, next) => {
               fecha !== "huella" &&
               fecha !== "quincena" &&
               fecha !== "firma_gerente" &&
-              fecha !== "firm_jefe"
+              fecha !== "firm_jefe" &&
+              fecha !== "textoQuincena" &&
+              fecha !== "volquetes" &&
+              fecha !== "teletrans" &&
+              fecha !== "id" &&
+              fecha !== "observaciones"
             ) {
               obj[fecha] = "";
             }
@@ -318,7 +455,12 @@ const aprobacionAsistencias = async (req, res, next) => {
             fecha !== "huella" &&
             fecha !== "quincena" &&
             fecha !== "firma_gerente" &&
-            fecha !== "firm_jefe"
+            fecha !== "firm_jefe" &&
+            fecha !== "textoQuincena" &&
+            fecha !== "volquetes" &&
+            fecha !== "teletrans" &&
+            fecha !== "id" &&
+            fecha !== "observaciones"
           ) {
             acc[fecha] =
               asistencias[fecha] === "Permiso"
@@ -347,4 +489,25 @@ const aprobacionAsistencias = async (req, res, next) => {
   }
 };
 
-module.exports = { getAprobacion, aprobacionAsistencias };
+const updateObservacion = async (req, res, next) => {
+  let id = req.params.id;
+  try {
+    const post = await aprobacion_contrato_pago.update(
+      { observaciones: req.body.observaciones },
+      {
+        where: { id: id },
+      }
+    );
+    res
+      .status(200)
+      .json({ msg: "Observación guardada con éxito!", status: 200 });
+    next();
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ msg: "No se pudo registrar la observación.", status: 500 });
+  }
+};
+
+module.exports = { getAprobacion, aprobacionAsistencias, updateObservacion };

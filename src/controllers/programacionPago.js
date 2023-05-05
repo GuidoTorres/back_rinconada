@@ -51,6 +51,7 @@ const getAprobacion = async (req, res, next) => {
         if (saldoFinal > 0) {
           return {
             quincena: item.subarray_id,
+            observaciones: item.observaciones,
             nombre: item?.nombre,
             cargo: item?.contrato?.cargo?.nombre,
             volquetes: item?.contrato?.teletrans?.at(-1)?.volquete,

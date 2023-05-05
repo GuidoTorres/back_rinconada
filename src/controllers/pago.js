@@ -128,7 +128,9 @@ const createProgramacionMultiple = async (req, res, next) => {
         pago_id: post.id,
         volquetes: req.body.volquetes,
         teletrans: req.body.teletrans,
+        quincena: req.body.quincena
       };
+      console.log(contra_pago);
 
       const pagoContrato = await contrato_pago.create(contra_pago);
       console.log(req.body);
@@ -141,7 +143,6 @@ const createProgramacionMultiple = async (req, res, next) => {
           quincena: item.quincena,
         };
       });
-      console.log(asociacionPago);
       const asociPago = await pago_asociacion.bulkCreate(asociacionPago, {
         ignoreDuplicates: false,
       });

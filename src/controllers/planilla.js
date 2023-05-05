@@ -350,16 +350,30 @@ const getPlanillaHistoriaTrabajador = async (req, res, next) => {
 //lista de asociaciones con trabajadores para la tabla asocicion para prograrmar
 const getListaPago = async (req, res, next) => {
   try {
-    const getAsociacion = await asociacion.findAll({
+    const getAll = await aprobacion_contrato_pago.findAll({
       include: [
         {
           model: contrato,
+          where: {
+            finalizado: false,
+            asociacion_id: {
+              [Op.not]: null,
+              [Op.ne]: 0,
+            },
+          },
           attributes: { exclude: ["contrato_id"] },
-          // where: {
-          //   finalizado: false,
-          // },
           include: [
+            {
+              model: asociacion,
+              include: [
+                {
+                  model: trabajador,
+                  attributes: { exclude: ["usuarioId"] },
+                },
+              ],
+            },
             { model: teletrans },
+
             {
               model: contrato_pago,
               attributes: { exclude: ["contrato_pago_id"] },
@@ -376,140 +390,121 @@ const getListaPago = async (req, res, next) => {
                 },
               ],
             },
-            {
-              model: trabajador_contrato,
-              include: [
-                { model: trabajador, attributes: { exclude: ["usuarioId"] } },
-              ],
-            },
-            { model: aprobacion_contrato_pago },
           ],
         },
       ],
     });
 
-    const formatAsociacion = getAsociacion
-      .flatMap((item, i) => {
-        // Filtrar aprobaciones con estado true y pagado false
-        const aprobacionesFiltradas = item?.contratos
-          .at(-1)
-          ?.aprobacion_contrato_pagos.filter(
-            (aprobacion) => aprobacion.estado !== true
-          );
+    const formatData = getAll.map((item, i) => {
+      const trabajadoresProgramados = item?.contrato?.contrato_pagos
+        ?.filter((data) => data.quincena === item.subarray_id)
+        .map((data) =>
+          data.pago_asociacions.map((item) => {
+            return {
+              dni: item.trabajador_dni,
+              volquete: item.volquetes,
+              quincena: data.quincena,
+            };
+          })
+        )
+        .flat();
+      const totalVolquetes = item?.contrato?.contrato_pagos
+        ?.filter((data) => data.quincena === item.subarray_id)
+        .reduce((accumulator, current) => {
+          return accumulator + parseInt(current.volquetes);
+        }, 0);
 
-        // Mapear cada aprobación a un nuevo objeto
-        return aprobacionesFiltradas?.map((aprobacion) => {
-          const trabajadores = item?.contratos
-            .at(-1)
-            ?.trabajador_contratos.map((item) => {
-              return {
-                ...item.trabajador,
-              };
-            });
+      const pagos = {
+        trabajadores: item?.contrato?.asociacion?.trabajadors
+          .map((trabajador, i) => {
+            const trabajadorProgramado = trabajadoresProgramados.find(
+              (item) => item.dni === trabajador.dataValues.dni
+            );
 
-          const trabajadoresProgramados = item?.contratos
-            .at(-1)
-            ?.contrato_pagos?.map((data) =>
-              data.pago_asociacions.map((item) => {
-                return { dni: item.trabajador_dni, teletrans: item.teletrans };
-              })
-            )
-            .flat();
-          const pagos = {
-            trabajadores: trabajadores
-              .map((trabajador, i) => {
-                const trabajadorProgramado = trabajadoresProgramados.find(
-                  (item) => item.dni === trabajador.dataValues.dni
-                );
+            return {
+              id: i + 1,
+              teletrans: trabajadorProgramado
+                ? trabajadorProgramado.teletrans
+                : 0,
+              dni: trabajador.dataValues.dni,
+              nombre:
+                trabajador.dataValues.apellido_paterno +
+                " " +
+                trabajador.dataValues.apellido_materno +
+                " " +
+                trabajador.dataValues.nombre,
+              telefono: trabajador.dataValues.telefono,
+              cargo: item.tipo,
+              programado: trabajadorProgramado ? true : false,
+              contrato_id: item?.contratos?.at(-1)?.id,
+            };
+          })
+          .sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      };
+      const saldoFinal =
+        item?.contrato?.teletrans?.at(-1)?.saldo - totalVolquetes * 4;
 
-                return {
-                  id: i + 1,
-                  teletrans: trabajadorProgramado
-                    ? trabajadorProgramado.teletrans
-                    : 0,
-                  dni: trabajador.dataValues.dni,
-                  nombre:
-                    trabajador.dataValues.apellido_paterno +
-                    " " +
-                    trabajador.dataValues.apellido_materno +
-                    " " +
-                    trabajador.dataValues.nombre,
-                  telefono: trabajador.dataValues.telefono,
-                  cargo: item.tipo,
-                  programado: trabajadorProgramado ? true : false,
-                  contrato_id: item?.contratos?.at(-1)?.id,
-                };
-              })
-              .sort((a, b) => a.nombre.localeCompare(b.nombre)),
-          };
-          const totalMenosTtrans = trabajadoresProgramados.reduce(
-            (acumulador, objeto) =>
-              parseFloat(acumulador) + parseFloat(objeto.teletrans),
-            0
-          );
+      if (saldoFinal < 1) {
+        updateEstadoAprobacionContratoPago(item.id);
+      }
 
-          const totalModificado =
-            parseFloat(item?.contratos?.at(-1)?.teletrans?.at(-1)?.total) -
-            totalMenosTtrans;
-
-          return {
-            dni: "---",
-            nombre: item?.nombre,
-            tipo: item.tipo,
-            asociacion_id: item.id,
-            contrato_id: item?.contratos?.at(-1)?.id,
-            aprobacion: aprobacion,
-            total_modificado: totalModificado,
-            total: item?.contratos?.at(-1)?.teletrans?.at(-1)?.total,
-            volquete: item?.contratos?.at(-1)?.teletrans?.at(-1)?.volquete,
-            teletran: item?.contratos?.at(-1)?.teletrans?.at(-1)?.teletrans,
-            fecha_inicio: aprobacion.fecha_inicio,
-            fecha_fin: aprobacion.fecha_fin,
-            pagos: pagos,
-            quincena: aprobacion.subarray_id,
-            estado: aprobacion.estado,
-          };
-        });
-      })
-      .filter((item) => item?.aprobacion)
-      .map((item, i) => {
+      if (saldoFinal > 0) {
         return {
           id: i + 1,
-          ...item,
+          dni: "---",
+          nombre: item?.contrato?.asociacion?.nombre,
+          tipo: item?.contrato?.asociacion?.tipo,
+          asociacion_id: item?.contrato?.asociacion?.id,
+          contrato_id: item?.contrato?.id,
+          aprobacion: {
+            id: item.id,
+            firma_jefe: item.firma_jefe,
+            firma_gerente: item.firma_gerente,
+            huella: item.huella,
+            estado: item.estado,
+            fecha_inicio: item.fecha_inicio,
+            subarray_id: item.subarray_id,
+            pagado: item.pagado,
+            fecha_fin: item.fecha_fin,
+            nombre: item.nombre,
+            dias_laborados: item.dias_laborados,
+            volquete: item.volquete,
+            teletran: item.teletran,
+            asociacion_id: item.asociacion_id,
+            dni: item.dni,
+            observaciones: item.observaciones,
+          },
+          saldo: item?.contrato?.teletrans?.at(-1)?.saldo,
+          total_modificado: saldoFinal,
+          total: item?.contrato?.teletrans?.at(-1)?.total,
+          volquete: item?.contrato?.teletrans?.at(-1)?.volquete,
+          teletran: item?.contrato?.teletrans?.at(-1)?.teletrans,
+          fecha_inicio: item.fecha_inicio,
+          fecha_fin: item.fecha_fin,
+          pagos: pagos,
+          quincena: item.subarray_id,
+          estado: item.estado,
+          totalVolquetes: totalVolquetes,
         };
-      });
-    return res.status(200).json({ data: formatAsociacion });
+      }
+    });
+
+    return res.status(200).json({ data: formatData });
   } catch (error) {
     console.log(error);
     res.status(500).json();
   }
 };
 
-function sumarTeletransYVolquete(saldoFinal) {
-  let totalTeletrans = 0;
-
-  for (const item of saldoFinal) {
-    let teletrans = parseInt(item.teletrans);
-    let volquetes = parseInt(item.volquetes);
-
-    if (!isNaN(teletrans) && !isNaN(volquetes)) {
-      if (volquetes > 0 && teletrans >= 4) {
-        totalTeletrans += teletrans;
-      } else if (volquetes > 0 && teletrans < 4) {
-        totalTeletrans += volquetes * 4 + teletrans;
-      } else if (volquetes > 0) {
-        totalTeletrans += volquetes * 4;
-      } else {
-        totalTeletrans += teletrans;
-      }
-    } else if (!isNaN(teletrans)) {
-      totalTeletrans += teletrans;
-    } else if (!isNaN(volquetes)) {
-      totalTeletrans += volquetes * 4;
-    }
+async function updateEstadoAprobacionContratoPago(id) {
+  try {
+    await aprobacion_contrato_pago.update(
+      { estado: true },
+      { where: { id: id } }
+    );
+  } catch (error) {
+    console.log(error);
   }
-
-  return totalTeletrans;
 }
 
 //lista de asociaciones para pago programado
@@ -687,7 +682,6 @@ const campamentoPlanilla = async (req, res, next) => {
   }
 };
 
-// al parecer ya quedo
 const getTareoTrabajador = async (req, res, next) => {
   let id = req.params.id;
 
@@ -934,19 +928,6 @@ const getTareoAsociacion = async (req, res, next) => {
             },
           ],
         },
-        {
-          model: trabajador,
-          attributes: { exclude: ["usuarioId"] },
-          include: [
-            {
-              model: trabajadorAsistencia,
-              attributes: {
-                exclude: ["trabajadorDni", "asistenciumId"],
-              },
-              include: [{ model: asistencia }],
-            },
-          ],
-        },
       ],
     });
     const asociacionData = asociaciones.map((asociacion) => {
@@ -975,7 +956,6 @@ const getTareoAsociacion = async (req, res, next) => {
         });
         let fechaInicioSubarray = null;
         let fechaFinSubarray = null;
-
 
         let asistenciasPrimerTrabajador =
           trabajadorMenorCodigo.trabajador_asistencia
@@ -1079,25 +1059,22 @@ const getTareoAsociacion = async (req, res, next) => {
               }
             );
 
+            const aprobacionData = contrato.aprobacion_contrato_pagos
+              ?.filter((item) => item.subarray_id == subarrayId)
+              .slice(-1)[0];
             subarrays.push({
-              subArray_id: subarrayId,
+              subarray_id: subarrayId,
               nombre: asociacion.nombre,
+              asociacion_id: asociacion.id,
               fecha_inicio: dayjs(fechaInicioSubarray).format("DD-MM-YYYY"),
               fecha_fin: dayjs(fechaFinSubarray).format("DD-MM-YYYY"),
               asistencia: contador,
               trabajadores: trabajadores,
-              estado: contrato.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .slice(-1)[0]?.estado,
-              aprobacion_id: contrato.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .slice(-1)[0]?.id,
-              firma_jefe: contrato.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .slice(-1)[0]?.firma_jefe,
-              firma_gerente: contrato.aprobacion_contrato_pagos
-                ?.filter((item) => item.subarray_id == subarrayId)
-                .slice(-1)[0]?.firma_gerente,
+              estado: aprobacionData?.estado,
+              aprobacion_id: aprobacionData?.id,
+              firma_jefe: aprobacionData?.firma_jefe,
+              firma_gerente: aprobacionData?.firma_gerente,
+              observaciones: aprobacionData?.observaciones,
             });
 
             subarrayId++;

@@ -47,8 +47,29 @@ const getEntradaByAlmacen = async (req, res, next) => {
       ],
     });
 
-    return res.status(200).json({ data: get });
-    next();
+    const format = get.map(item => {
+      return{
+        area: item.area.nombre,
+        area_id: item.area_id,
+        boleta: item.boleta,
+        codigo: item.codigo,
+        codigo_compra: item.codigo_compra,
+        codigo_pedido: item.codigo_pedido,
+        codigo_requerimiento: item.codigo_requerimiento,
+        costo_total: item.costo_total,
+        dni: item.dni,
+        encargado: item.encargado,
+        fecha: item.fecha,
+        id: item.id,
+        motivo: item.motivo,
+        producto_entrada_salidas: item.producto_entrada_salidas,
+        retornable: item.retornable,
+        tipo: item.tipo
+        
+      }
+    })
+
+    return res.status(200).json({ data: format });
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -370,7 +391,6 @@ const deleteEntradaSalida = async (req, res, next) => {
     }
     return res.status(200).json({ msg: "Eliminado con éxito!", status: 200 });
 
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });
@@ -420,9 +440,8 @@ const entradaSalidaEstadistica = async (req, res, next) => {
       }
       return value;
     }, []);
-
+    console.log("pokemon");
     return res.status(200).json({ data: reduce });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ data: error });
