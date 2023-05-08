@@ -70,6 +70,12 @@ const getContratoById = async (req, res, next) => {
             fecha_fin_tabla: dayjs(data?.contrato?.fecha_fin)?.format(
               "DD-MM-YYYY"
             ),
+            fecha_fin_estimada: dayjs(data?.contrato?.fecha_fin_estimada)?.format(
+              "YYYY-MM-DD"
+            ),
+            fecha_fin_tabla_estimada: dayjs(data?.contrato?.fecha_fin_estimada)?.format(
+              "DD-MM-YYYY"
+            ),
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),

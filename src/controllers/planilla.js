@@ -140,6 +140,11 @@ const getPlanilla = async (req, res, next) => {
                 ?.filter((data) => data.finalizado === false)
                 ?.at(-1)?.fecha_fin
             ).format("DD-MM-YYYY"),
+            fecha_fin_estimada: dayjs(
+              item?.contratos
+                ?.filter((data) => data.finalizado === false)
+                ?.at(-1)?.fecha_fin_estimada
+            ).format("DD-MM-YYYY"),
             contratos: item?.contratos
               .filter((data) => data.finalizado === false)
               .at(-1),
@@ -185,6 +190,10 @@ const getPlanilla = async (req, res, next) => {
       const fechaInicioContrato = dayjs(
         contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
       );
+
+      const contratoFinal = item?.trabajador_contratos?.filter(
+        (data) => data.contrato
+      ).at(-1);
       return {
         dni: item?.dni,
         codigo_trabajador: item?.codigo_trabajador,
@@ -202,7 +211,7 @@ const getPlanilla = async (req, res, next) => {
         direccion: item?.direccion,
         asociacion_id: item?.asociacion_id,
         deshabilitado: item?.deshabilitado,
-        contratos: contratoFiltrado,
+        contratos: contratoFinal.contrato,
         gerencia: contratoFiltrado?.at(0)?.contrato?.gerencia?.nombre,
         area: contratoFiltrado?.at(0)?.contrato?.area.nombre,
         puesto: contratoFiltrado?.at(0)?.contrato?.cargo?.nombre,
