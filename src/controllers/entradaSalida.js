@@ -15,7 +15,6 @@ const getEntradaSalida = async (req, res, next) => {
   try {
     const all = await entrada_salida.findAll();
     return res.status(200).json({ data: all });
-    next();
   } catch (error) {
     res.status(500).json();
   }
@@ -47,27 +46,26 @@ const getEntradaByAlmacen = async (req, res, next) => {
       ],
     });
 
-    const format = get.map(item => {
-      return{
+    const format = get.map((item) => {
+      return {
         area: item?.area?.nombre,
         area_id: item?.area_id,
-        boleta: item?.boleta,
+        boleta: item?.boleta ? item?.boleta : "----",
         codigo: item?.codigo,
-        codigo_compra: item?.codigo_compra,
+        codigo_compra: item?.codigo_compra ? item?.codigo_compra : "----",
         codigo_pedido: item?.codigo_pedido,
         codigo_requerimiento: item?.codigo_requerimiento,
         costo_total: item?.costo_total,
         dni: item?.dni,
         encargado: item?.encargado,
-        fecha: item?.fecha,
+        fecha: dayjs(item?.fecha).format("DD-MM-YYYY"),
         id: item?.id,
         motivo: item?.motivo,
         producto_entrada_salidas: item?.producto_entrada_salidas,
         retornable: item?.retornable,
-        tipo: item?.tipo
-        
-      }
-    })
+        tipo: item?.tipo,
+      };
+    });
 
     return res.status(200).json({ data: format });
   } catch (error) {
@@ -186,7 +184,7 @@ const postSalida = async (req, res, next) => {
     fecha: req?.body?.fecha,
     dni: req?.body?.dni,
     encargado: req?.body?.encargado,
-    area_id: req?.body?.area_id ,
+    area_id: req?.body?.area_id,
     codigo_requerimiento: req?.body?.codigo_requerimiento,
     almacen_id: req?.body?.almacen_id,
     costo_total: req?.body?.costo_total,
@@ -292,7 +290,9 @@ const updateEntradaSalida = async (req, res, next) => {
   });
   try {
     let update = await entrada_salida.update(obj, { where: { id: id } });
-    return res.status(200).json({ msg: "Actualizado con éxito !", status: 200 });
+    return res
+      .status(200)
+      .json({ msg: "Actualizado con éxito !", status: 200 });
     next();
   } catch (error) {
     console.log(error);
@@ -312,44 +312,45 @@ const deleteEntradaSalida = async (req, res, next) => {
           stock: parseInt(item.producto.stock) - parseInt(item.cantidad),
         };
       });
-
-      const updatePedido = await pedido.update(
-        { estado: null },
-        { where: { id: req.body.codigo_pedido } }
-      );
-      const updateReqPedido = await requerimiento_pedido.update(
-        { estado: null },
-        { where: { pedido_id: req.body.codigo_pedido } }
-      );
-      const updateRequerimiento = await requerimiento.update(
-        { estado: "Pedido" },
-        {
-          where: {
-            estado: {
-              [Op.like]: "En almacén",
+      if (req.body.codigo_pedido) {
+        const updatePedido = await pedido.update(
+          { estado: null },
+          { where: { id: req.body.codigo_pedido } }
+        );
+        const updateReqPedido = await requerimiento_pedido.update(
+          { estado: null },
+          { where: { pedido_id: req.body.codigo_pedido } }
+        );
+        const updateRequerimiento = await requerimiento.update(
+          { estado: "Pedido" },
+          {
+            where: {
+              estado: {
+                [Op.like]: "En almacén",
+              },
+              id: req.body.codigo_requerimiento,
             },
-            id: req.body.codigo_requerimiento,
-          },
-        }
-      );
-      const filterUpdate = updateRequerimiento.filter((item) => item !== 0);
-      if (filterUpdate.length > 0) {
-        let delete1 = await producto_entrada_salida.destroy({
-          where: { entrada_salida_id: id },
-        });
-        let camp = await entrada_salida.destroy({ where: { id: id } });
-        const updateMultiple = await Promise.all(
-          updateStockProducto.map(
-            async (item) =>
-              await producto.update(
-                { stock: item.stock },
-                {
-                  where: { id: item.id },
-                }
-              )
-          )
+          }
         );
       }
+      let delete1 = await producto_entrada_salida.destroy({
+        where: { entrada_salida_id: id },
+      });
+      let camp = await entrada_salida.destroy({ where: { id: id } });
+      const updateMultiple = await Promise.all(
+        updateStockProducto.map(
+          async (item) =>
+            await producto.update(
+              { stock: item.stock },
+              {
+                where: { id: item.id },
+              }
+            )
+        )
+      );
+      return res
+        .status(200)
+        .json({ msg: "Entrada eliminada con éxito!", status: 200 });
     }
     if (req.body.tipo === "salida") {
       updateStockProducto = req.body.producto_entrada_salidas.map((item) => {
@@ -358,23 +359,25 @@ const deleteEntradaSalida = async (req, res, next) => {
           stock: parseInt(item.producto.stock) + parseInt(item.cantidad),
         };
       });
-
-      const updateRequerimiento = await requerimiento.update(
-        { estado: "En almacén" },
-        {
-          where: {
-            estado: {
-              [Op.like]: "Entregado",
+      if (req.body.codigo_requerimiento) {
+        const updateRequerimiento = await requerimiento.update(
+          { estado: "En almacén" },
+          {
+            where: {
+              estado: {
+                [Op.like]: "Entregado",
+              },
+              id: req.body.codigo_requerimiento,
             },
-            id: req.body.codigo_requerimiento,
-          },
+          }
+        );
+        const filterUpdate = updateRequerimiento.filter((item) => item !== 0);
+        if (filterUpdate.length > 0) {
+          let delete1 = await producto_entrada_salida.destroy({
+            where: { entrada_salida_id: id },
+          });
         }
-      );
-      const filterUpdate = updateRequerimiento.filter((item) => item !== 0);
-      if (filterUpdate.length > 0) {
-        let delete1 = await producto_entrada_salida.destroy({
-          where: { entrada_salida_id: id },
-        });
+
         let camp = await entrada_salida.destroy({ where: { id: id } });
         const updateMultiple = await Promise.all(
           updateStockProducto.map(
@@ -388,10 +391,10 @@ const deleteEntradaSalida = async (req, res, next) => {
           )
         );
       }
+      return res
+        .status(200)
+        .json({ msg: "Salida eliminada con éxito!", status: 200 });
     }
-    return res.status(200).json({ msg: "Eliminado con éxito!", status: 200 });
-
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo eliminar.", status: 500 });

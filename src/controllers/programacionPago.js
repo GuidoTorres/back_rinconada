@@ -87,7 +87,7 @@ const getAprobacion = async (req, res, next) => {
 async function updateEstadoAprobacionContratoPago(id) {
   try {
     await aprobacion_contrato_pago.update(
-      { estado: true },
+      { pagado: true },
       { where: { id: id } }
     );
   } catch (error) {

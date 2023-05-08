@@ -59,6 +59,7 @@ const getContratoById = async (req, res, next) => {
         asociacion_id: item?.asociacion_id,
         deshabilitado: item?.deshabilitado,
         foto: item?.foto,
+        suspendido: item?.suspendido,
         contratos: item.trabajador_contratos.map((data) => {
           return {
             id: data?.contrato_id,

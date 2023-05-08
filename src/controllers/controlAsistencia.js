@@ -266,45 +266,50 @@ const getPlanillaAprobacion = async () => {
               } else {
                 subarrayIdsPorTrabajador[trabajador.dni]++;
               }
+              if (contrato.tipo_contrato !== "Planilla") {
+                aprobacionFilter.push({
+                  subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
+                  dni: trabajador.dni,
+                  nombre:
+                    trabajador.apellido_paterno +
+                    " " +
+                    trabajador.apellido_materno +
+                    " " +
+                    trabajador.nombre,
+                  celular: trabajador.telefono,
+                  fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
+                  fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
+                  volquete:
+                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                      -1
+                    )?.volquete,
+                  teletran:
+                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                      -1
+                    )?.teletrans,
+                  total:
+                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                      -1
+                    )?.total,
+                  contrato_id: trabajador.trabajador_contratos[0].contrato?.id,
 
-              aprobacionFilter.push({
-                subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
-                dni: trabajador.dni,
-                nombre:
-                  trabajador.apellido_paterno +
-                  " " +
-                  trabajador.apellido_materno +
-                  " " +
-                  trabajador.nombre,
-                celular: trabajador.telefono,
-                fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
-                fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
-                volquete:
-                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
-                    ?.volquete,
-                teletran:
-                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
-                    ?.teletrans,
-                total:
-                  trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
-                    ?.total,
-                contrato_id: trabajador.trabajador_contratos[0].contrato?.id,
+                  asistencia: contador,
 
-                asistencia: contador,
+                  aprobacion_id:
+                    trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.id,
+                  firma_jefe:
+                    trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.firma_jefe,
+                  firma_gerente:
+                    trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                      ?.filter((item) => item.subarray_id == subarrayId)
+                      .at(0)?.firma_gerente,
+                });
+              }
 
-                aprobacion_id:
-                  trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                    ?.filter((item) => item.subarray_id == subarrayId)
-                    .at(0)?.id,
-                firma_jefe:
-                  trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                    ?.filter((item) => item.subarray_id == subarrayId)
-                    .at(0)?.firma_jefe,
-                firma_gerente:
-                  trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                    ?.filter((item) => item.subarray_id == subarrayId)
-                    .at(0)?.firma_gerente,
-              });
               contador = 0;
               subAsistencias = [];
               fechaInicio = null;

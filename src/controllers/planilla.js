@@ -507,7 +507,7 @@ const getListaPago = async (req, res, next) => {
 async function updateEstadoAprobacionContratoPago(id) {
   try {
     await aprobacion_contrato_pago.update(
-      { estado: true },
+      { pagado: true },
       { where: { id: id } }
     );
   } catch (error) {
@@ -1304,7 +1304,7 @@ const updateTrabajadorAsistencia = async (req, res, next) => {
 
   try {
     let aprobacionData;
-
+    console.log(req.body);
     if (id === "0") {
       // Si id es 0, crear una nueva aprobación
       aprobacionData = await aprobacion_contrato_pago.create({
