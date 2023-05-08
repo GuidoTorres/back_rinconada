@@ -21,6 +21,7 @@ const getEvaluacionById = async (req, res, next) => {
   let id = req.params.id;
 
   try {
+
     const user = await evaluacion.findAll({
       where: { trabajador_id: id },
       include: [
@@ -30,9 +31,15 @@ const getEvaluacionById = async (req, res, next) => {
           include: [
             {
               model: trabajador_contrato,
+              separate: true, // Indica que la consulta para trabajador_contrato se ejecutará por separado
               include: [
-                { model: contrato, attributes: { exclude: ["contrato_id"] } },
+                {
+                  model: contrato,
+                  attributes: ["suspendido", "nota_contrato"], // Incluye solo los atributos suspendido y nota
+                },
               ],
+              order: [['contrato', 'id', 'DESC']], // Ordena los contratos por id en orden descendente
+              limit: 1, // Limita los resultados a solo el último contrato
             },
           ],
         },
@@ -87,10 +94,12 @@ const getEvaluacionById = async (req, res, next) => {
         estado_contrato: item?.contrato_evaluacions
           ?.map((data) => data?.contrato?.estado)
           .toString(),
-        nota_contrato: item?.contrato_evaluacions
-          ?.map((data) => data?.contrato?.nota_contrato)
+        nota_contrato: item.trabajador.trabajador_contratos
+          .map((item) => item.contrato.nota_contrato)
           .toString(),
-        suspendido: item?.suspendido,
+        suspendido: item.trabajador.trabajador_contratos
+          .map((item) => item.contrato.suspendido)
+          .toString(),
       };
     });
     return res.status(200).json({ data: obj });

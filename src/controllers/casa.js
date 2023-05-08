@@ -138,9 +138,6 @@ const postPagoCasaMultiple = async (req, res, next) => {
         };
       });
 
-      console.log(create);
-      console.log(destinoCreate);
-
       const dest = await destino_pago.bulkCreate(destinoCreate, {
         ignoreDuplicates: false,
       });

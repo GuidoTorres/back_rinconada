@@ -371,26 +371,23 @@ const deleteEntradaSalida = async (req, res, next) => {
             },
           }
         );
-        const filterUpdate = updateRequerimiento.filter((item) => item !== 0);
-        if (filterUpdate.length > 0) {
-          let delete1 = await producto_entrada_salida.destroy({
-            where: { entrada_salida_id: id },
-          });
-        }
-
-        let camp = await entrada_salida.destroy({ where: { id: id } });
-        const updateMultiple = await Promise.all(
-          updateStockProducto.map(
-            async (item) =>
-              await producto.update(
-                { stock: item.stock },
-                {
-                  where: { id: item.id },
-                }
-              )
-          )
-        );
       }
+      let delete1 = await producto_entrada_salida.destroy({
+        where: { entrada_salida_id: id },
+      });
+
+      let camp = await entrada_salida.destroy({ where: { id: id } });
+      const updateMultiple = await Promise.all(
+        updateStockProducto.map(
+          async (item) =>
+            await producto.update(
+              { stock: item.stock },
+              {
+                where: { id: item.id },
+              }
+            )
+        )
+      );
       return res
         .status(200)
         .json({ msg: "Salida eliminada con éxito!", status: 200 });

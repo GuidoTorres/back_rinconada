@@ -339,7 +339,6 @@ const updateContrato = async (req, res, next) => {
         where: { contrato_id: id },
       });
     }
-    console.log(req.body);
     if (req.body.suspendido) {
       // Obtener el trabajador asociado al contrato
       const trabajadorContrato = await trabajador_contrato.findOne({ where: { contrato_id: id } });

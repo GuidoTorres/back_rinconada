@@ -537,7 +537,7 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           volquetes: item?.volquetes,
           teletrans: item?.teletrans,
-          pago_id: item.contrato_pagos.map((data) => data.pago_id).toString(),
+          pago_id: item.contrato_pagos.map((data) => data.pago_id)[0],
           pagos: item?.contrato_pagos
             ?.map((data) => {
               return {

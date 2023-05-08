@@ -102,7 +102,7 @@ const getTrabajador = async (req, res, next) => {
                 suspendido: data?.contrato?.suspendido
               };
             })
-            .filter((item) => item?.finalizado === false),
+            ,
         };
       })
       .sort((a, b) => {
