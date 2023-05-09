@@ -1119,10 +1119,12 @@ trabajador.belongsTo(usuario, {
 });
 
 empresa.hasMany(contrato, {
-  foreignKey: "empresa_id",
+  foreignKey: "empresa_id",  onDelete: "CASCADE",
+
 });
 contrato.belongsTo(empresa, {
-  foreignKey: "empresa_id",
+  foreignKey: "empresa_id",  onDelete: "CASCADE",
+
 });
 
 campamento.hasMany(contrato, {
@@ -1148,152 +1150,153 @@ trabajador.belongsTo(asociacion, {
   hooks: true,
 });
 
-trabajador.hasMany(evaluacion, { foreignKey: "trabajador_id" });
-evaluacion.belongsTo(trabajador, { foreignKey: "trabajador_id" });
+trabajador.hasMany(evaluacion, { foreignKey: "trabajador_id",  onDelete: "CASCADE",
+});
+evaluacion.belongsTo(trabajador, { foreignKey: "trabajador_id",  onDelete: "CASCADE", });
 
-trabajador.hasMany(trabajador_contrato, { foreignKey: "trabajador_dni" });
-trabajador_contrato.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
+trabajador.hasMany(trabajador_contrato, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
+trabajador_contrato.belongsTo(trabajador, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
 
-contrato.hasMany(trabajador_contrato, { foreignKey: "contrato_id" });
-trabajador_contrato.belongsTo(contrato, { foreignKey: "contrato_id" });
+contrato.hasMany(trabajador_contrato, { foreignKey: "contrato_id",  onDelete: "CASCADE", });
+trabajador_contrato.belongsTo(contrato, { foreignKey: "contrato_id",  onDelete: "CASCADE", });
 
-asociacion.hasMany(contrato, { foreignKey: "asociacion_id" });
-contrato.belongsTo(asociacion, { foreignKey: "asociacion_id" });
+asociacion.hasMany(contrato, { foreignKey: "asociacion_id" ,  onDelete: "CASCADE",});
+contrato.belongsTo(asociacion, { foreignKey: "asociacion_id" ,  onDelete: "CASCADE",});
 
-contrato.hasMany(teletrans, { foreignKey: "contrato_id" });
-teletrans.hasMany(contrato, { foreignKey: "contrato_id" });
+contrato.hasMany(teletrans, { foreignKey: "contrato_id",  onDelete: "CASCADE", });
+teletrans.hasMany(contrato, { foreignKey: "contrato_id" ,  onDelete: "CASCADE",});
 
-trabajador.belongsToMany(asistencia, { through: trabajadorAsistencia });
-asistencia.belongsToMany(trabajador, { through: trabajadorAsistencia });
+trabajador.belongsToMany(asistencia, { through: trabajadorAsistencia ,  onDelete: "CASCADE",});
+asistencia.belongsToMany(trabajador, { through: trabajadorAsistencia,  onDelete: "CASCADE", });
 
-campamento.hasMany(asistencia, { foreignKey: "campamento_id" });
-asistencia.belongsTo(campamento, { foreignKey: "campamento_id" });
+campamento.hasMany(asistencia, { foreignKey: "campamento_id",  onDelete: "CASCADE", });
+asistencia.belongsTo(campamento, { foreignKey: "campamento_id",  onDelete: "CASCADE", });
 
-asistencia.hasMany(trabajadorAsistencia, { foreignKey: "asistencia_id" });
-trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id" });
+asistencia.hasMany(trabajadorAsistencia, { foreignKey: "asistencia_id",  onDelete: "CASCADE", });
+trabajadorAsistencia.belongsTo(asistencia, { foreignKey: "asistencia_id",  onDelete: "CASCADE", });
 
-trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id" });
-trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" });
+trabajador.hasMany(trabajadorAsistencia, { foreignKey: "trabajador_id",  onDelete: "CASCADE", });
+trabajadorAsistencia.belongsTo(trabajador, { foreignKey: "trabajador_id" ,  onDelete: "CASCADE",});
 
-sucursal.hasMany(ingresos_egresos, { foreignKey: "sucursal_id" });
-ingresos_egresos.belongsTo(sucursal, { foreignKey: "sucursal_id" });
+sucursal.hasMany(ingresos_egresos, { foreignKey: "sucursal_id",  onDelete: "CASCADE", });
+ingresos_egresos.belongsTo(sucursal, { foreignKey: "sucursal_id",  onDelete: "CASCADE", });
 
-sucursal.hasMany(saldo, { foreignKey: "sucursal_id" });
-saldo.belongsTo(sucursal, { foreignKey: "sucursal_id" });
+sucursal.hasMany(saldo, { foreignKey: "sucursal_id",  onDelete: "CASCADE", });
+saldo.belongsTo(sucursal, { foreignKey: "sucursal_id",  onDelete: "CASCADE", });
 
-almacen.hasMany(producto, { foreignKey: "almacen_id" });
-producto.belongsTo(almacen, { foreignKey: "almacen_id" });
+almacen.hasMany(producto, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
+producto.belongsTo(almacen, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
 
-almacen.hasMany(entrada_salida, { foreignKey: "almacen_id" });
-entrada_salida.belongsTo(almacen, { foreignKey: "almacen_id" });
+almacen.hasMany(entrada_salida, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
+entrada_salida.belongsTo(almacen, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
 
-producto.hasMany(producto_entrada_salida, { foreignKey: "producto_id" });
-producto_entrada_salida.belongsTo(producto, { foreignKey: "producto_id" });
+producto.hasMany(producto_entrada_salida, { foreignKey: "producto_id",  onDelete: "CASCADE", });
+producto_entrada_salida.belongsTo(producto, { foreignKey: "producto_id",  onDelete: "CASCADE", });
 
 entrada_salida.hasMany(producto_entrada_salida, {
-  foreignKey: "entrada_salida_id",
+  foreignKey: "entrada_salida_id",  onDelete: "CASCADE",
 });
 producto_entrada_salida.belongsTo(entrada_salida, {
-  foreignKey: "entrada_salida_id",
+  foreignKey: "entrada_salida_id",  onDelete: "CASCADE",
 });
-almacen.hasMany(requerimiento, { foreignKey: "almacen_id" });
-requerimiento.belongsTo(almacen, { foreignKey: "almacen_id" });
+almacen.hasMany(requerimiento, { foreignKey: "almacen_id" ,  onDelete: "CASCADE",});
+requerimiento.belongsTo(almacen, { foreignKey: "almacen_id" ,  onDelete: "CASCADE",});
 
 requerimiento.hasMany(requerimiento_producto, {
-  foreignKey: "requerimiento_id",
+  foreignKey: "requerimiento_id",  onDelete: "CASCADE",
 });
 requerimiento_producto.belongsTo(requerimiento, {
-  foreignKey: "requerimiento_id",
+  foreignKey: "requerimiento_id",  onDelete: "CASCADE",
 });
 
-producto.hasMany(requerimiento_producto, { foreignKey: "producto_id" });
-requerimiento_producto.belongsTo(producto, { foreignKey: "producto_id" });
+producto.hasMany(requerimiento_producto, { foreignKey: "producto_id",  onDelete: "CASCADE", });
+requerimiento_producto.belongsTo(producto, { foreignKey: "producto_id" ,  onDelete: "CASCADE",});
 
-requerimiento.hasMany(requerimiento_pedido, { foreignKey: "requerimiento_id" });
+requerimiento.hasMany(requerimiento_pedido, { foreignKey: "requerimiento_id",  onDelete: "CASCADE", });
 requerimiento_pedido.belongsTo(requerimiento, {
-  foreignKey: "requerimiento_id",
+  foreignKey: "requerimiento_id",  onDelete: "CASCADE",
 });
 
-pedido.hasMany(requerimiento_pedido, { foreignKey: "pedido_id" });
-requerimiento_pedido.belongsTo(pedido, { foreignKey: "pedido_id" });
+pedido.hasMany(requerimiento_pedido, { foreignKey: "pedido_id",  onDelete: "CASCADE", });
+requerimiento_pedido.belongsTo(pedido, { foreignKey: "pedido_id",  onDelete: "CASCADE", });
 
-categoria.hasMany(producto, { foreignKey: "categoria_id" });
-producto.belongsTo(categoria, { foreignKey: "categoria_id" });
+categoria.hasMany(producto, { foreignKey: "categoria_id",  onDelete: "CASCADE", });
+producto.belongsTo(categoria, { foreignKey: "categoria_id",  onDelete: "CASCADE", });
 
 transferencia.hasMany(transferencia_producto, {
-  foreignKey: "transferencia_id",
+  foreignKey: "transferencia_id",  onDelete: "CASCADE",
 });
 transferencia_producto.belongsTo(transferencia, {
-  foreignKey: "transferencia_id",
+  foreignKey: "transferencia_id",  onDelete: "CASCADE",
 });
 
-almacen.hasMany(transferencia, { foreignKey: "almacen_id" });
-transferencia.belongsTo(almacen, { foreignKey: "almacen_id" });
+almacen.hasMany(transferencia, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
+transferencia.belongsTo(almacen, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
 
-almacen.hasMany(transferencia, { foreignKey: "almacen_id" });
+almacen.hasMany(transferencia, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
 transferencia.belongsTo(almacen, {
   as: "origen",
-  foreignKey: "almacen_origen",
+  foreignKey: "almacen_origen", onDelete: "CASCADE",
 });
 
-almacen.hasMany(transferencia, { foreignKey: "almacen_id" });
+almacen.hasMany(transferencia, { foreignKey: "almacen_id",  onDelete: "CASCADE", });
 transferencia.belongsTo(almacen, {
   as: "destino",
-  foreignKey: "almacen_destino",
+  foreignKey: "almacen_destino",  onDelete: "CASCADE",
 });
 
-producto.hasMany(transferencia_producto, { foreignKey: "producto_id" });
-transferencia_producto.belongsTo(producto, { foreignKey: "producto_id" });
+producto.hasMany(transferencia_producto, { foreignKey: "producto_id",  onDelete: "CASCADE", });
+transferencia_producto.belongsTo(producto, { foreignKey: "producto_id" ,  onDelete: "CASCADE",});
 
-unidad.hasMany(producto, { foreignKey: "unidad_id" });
-producto.belongsTo(unidad, { foreignKey: "unidad_id" });
+unidad.hasMany(producto, { foreignKey: "unidad_id",  onDelete: "CASCADE", });
+producto.belongsTo(unidad, { foreignKey: "unidad_id",  onDelete: "CASCADE", });
 
-categoria.hasMany(producto, { foreignKey: "categoria_id" });
-producto.belongsTo(categoria, { foreignKey: "categoria_id" });
+categoria.hasMany(producto, { foreignKey: "categoria_id" ,  onDelete: "CASCADE",});
+producto.belongsTo(categoria, { foreignKey: "categoria_id",  onDelete: "CASCADE", });
 
-area.hasMany(entrada_salida, { foreignKey: "area_id" });
-entrada_salida.belongsTo(area, { foreignKey: "area_id" });
+area.hasMany(entrada_salida, { foreignKey: "area_id",  onDelete: "CASCADE", });
+entrada_salida.belongsTo(area, { foreignKey: "area_id",  onDelete: "CASCADE", });
 
-rol.hasMany(permisos, { foreignKey: "rol_id" });
-permisos.belongsTo(rol, { foreignKey: "rol_id" });
+rol.hasMany(permisos, { foreignKey: "rol_id",  onDelete: "CASCADE", });
+permisos.belongsTo(rol, { foreignKey: "rol_id" ,  onDelete: "CASCADE",});
 
-contrato.hasMany(contrato_pago, { foreignKey: "contrato_id" });
-contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
+contrato.hasMany(contrato_pago, { foreignKey: "contrato_id",  onDelete: "CASCADE", });
+contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id" ,  onDelete: "CASCADE",});
 
-pago.hasMany(contrato_pago, { foreignKey: "pago_id" });
-contrato_pago.belongsTo(pago, { foreignKey: "pago_id" });
+pago.hasMany(contrato_pago, { foreignKey: "pago_id",  onDelete: "CASCADE", });
+contrato_pago.belongsTo(pago, { foreignKey: "pago_id",  onDelete: "CASCADE", });
 
-trabajador.hasMany(ayuda_pago, { foreignKey: "trabajador_dni" });
-ayuda_pago.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
+trabajador.hasMany(ayuda_pago, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
+ayuda_pago.belongsTo(trabajador, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
 
-pago.hasMany(ayuda_pago, { foreignKey: "pago_id" });
-ayuda_pago.belongsTo(pago, { foreignKey: "pago_id" });
+pago.hasMany(ayuda_pago, { foreignKey: "pago_id",  onDelete: "CASCADE", });
+ayuda_pago.belongsTo(pago, { foreignKey: "pago_id",  onDelete: "CASCADE", });
 
-pago.hasMany(destino_pago, { foreignKey: "pago_id" });
-destino_pago.belongsTo(pago, { foreignKey: "pago_id" });
+pago.hasMany(destino_pago, { foreignKey: "pago_id",  onDelete: "CASCADE", });
+destino_pago.belongsTo(pago, { foreignKey: "pago_id",  onDelete: "CASCADE", });
 
-destino.hasMany(destino_pago, { foreignKey: "destino_id" });
-destino_pago.belongsTo(destino, { foreignKey: "destino_id" });
+destino.hasMany(destino_pago, { foreignKey: "destino_id",  onDelete: "CASCADE", });
+destino_pago.belongsTo(destino, { foreignKey: "destino_id",  onDelete: "CASCADE", });
 
-contrato_pago.hasMany(pago_asociacion, { foreignKey: "contrato_pago_id" });
-pago_asociacion.belongsTo(contrato_pago, { foreignKey: "contrato_pago_id" });
+contrato_pago.hasMany(pago_asociacion, { foreignKey: "contrato_pago_id" ,  onDelete: "CASCADE",});
+pago_asociacion.belongsTo(contrato_pago, { foreignKey: "contrato_pago_id",  onDelete: "CASCADE", });
 
-trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni" });
-pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni" });
+trabajador.hasMany(pago_asociacion, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
+pago_asociacion.belongsTo(trabajador, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
 
-contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id" });
-aprobacion_contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id" });
+contrato.hasMany(aprobacion_contrato_pago, { foreignKey: "contrato_id",  onDelete: "CASCADE", });
+aprobacion_contrato_pago.belongsTo(contrato, { foreignKey: "contrato_id",  onDelete: "CASCADE", });
 
 contrato_pago.hasMany(contrato_pago_trabajador, {
-  foreignKey: "contrato_pago_id",
+  foreignKey: "contrato_pago_id",  onDelete: "CASCADE",
 });
 contrato_pago_trabajador.belongsTo(contrato_pago, {
-  foreignKey: "contrato_pago_id",
+  foreignKey: "contrato_pago_id",  onDelete: "CASCADE",
 });
 
-trabajador.hasMany(contrato_pago_trabajador, { foreignKey: "trabajador_dni" });
+trabajador.hasMany(contrato_pago_trabajador, { foreignKey: "trabajador_dni",  onDelete: "CASCADE", });
 contrato_pago_trabajador.belongsTo(trabajador, {
-  foreignKey: "trabajador_dni",
+  foreignKey: "trabajador_dni",  onDelete: "CASCADE",
 });
 
 module.exports = {
