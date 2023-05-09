@@ -67,19 +67,21 @@ const getContratoById = async (req, res, next) => {
             fecha_inicio_tabla: dayjs(data?.contrato?.fecha_inicio)?.format(
               "DD-MM-YYYY"
             ),
-            fecha_fin_tabla: dayjs(data?.contrato?.fecha_fin)?.format(
-              "DD-MM-YYYY"
-            ),
-            fecha_fin_estimada: dayjs(data?.contrato?.fecha_fin_estimada)?.format(
-              "YYYY-MM-DD"
-            ),
-            fecha_fin_tabla_estimada: dayjs(data?.contrato?.fecha_fin_estimada)?.format(
-              "DD-MM-YYYY"
-            ),
+            fecha_fin_tabla: dayjs(data?.contrato?.fecha_fin_estimada).isValid()
+            ? dayjs(data?.contrato?.fecha_fin_estimada)?.format("DD-MM-YYYY")
+            : dayjs(data?.contrato?.fecha_fin)?.format("DD-MM-YYYY"),
+            fecha_fin_estimada: dayjs(
+              data?.contrato?.fecha_fin_estimada
+            )?.format("YYYY-MM-DD"),
+            fecha_fin_tabla_estimada: dayjs(
+              data?.contrato?.fecha_fin_estimada
+            )?.format("DD-MM-YYYY"),
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),
-            fecha_fin: dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
+            fecha_fin: dayjs(data?.contrato?.fecha_fin_estimada).isValid()
+              ? dayjs(data?.contrato?.fecha_fin_estimada)?.format("YYYY-MM-DD")
+              : dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
             codigo_contrato: data?.contrato?.codigo_contrato,
             tipo_contrato: data?.contrato?.tipo_contrato,
             periodo_trabajo: data?.contrato?.periodo_trabajo,
@@ -347,7 +349,9 @@ const updateContrato = async (req, res, next) => {
     }
     if (req.body.suspendido) {
       // Obtener el trabajador asociado al contrato
-      const trabajadorContrato = await trabajador_contrato.findOne({ where: { contrato_id: id } });
+      const trabajadorContrato = await trabajador_contrato.findOne({
+        where: { contrato_id: id },
+      });
       console.log(trabajadorContrato);
       // Si existe una relación trabajador_contrato
       if (trabajadorContrato) {
@@ -356,12 +360,23 @@ const updateContrato = async (req, res, next) => {
           where: { dni: trabajadorContrato.trabajador_dni },
           attributes: { exclude: ["usuarioId"] },
         });
-    
+
         // Actualizar el campo 'finalizado' en la tabla de contrato activo
-        await contrato.update({ suspendido: true, finalizado: true }, { where: { id: id, finalizado: false } });
-    
+        await contrato.update(
+          { suspendido: true, finalizado: true },
+          { where: { id: id, finalizado: false } }
+        );
+
         // Actualizar las evaluaciones activas relacionadas con el trabajador
-        await evaluacion.update({ suspendido: true, finalizado: true }, { where: { trabajador_id: trabajadorSuspendido.dni, finalizado: false } });
+        await evaluacion.update(
+          { suspendido: true, finalizado: true },
+          {
+            where: {
+              trabajador_id: trabajadorSuspendido.dni,
+              finalizado: false,
+            },
+          }
+        );
       }
     }
 
