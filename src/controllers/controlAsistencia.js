@@ -29,6 +29,10 @@ function contarDomingos(fechaInicio, fechaFin) {
 
 function calcularCantidadReal(trabajadorAsistencias) {
   let cantidadReal = 0;
+  if(!trabajadorAsistencias){
+
+    return
+  }
   trabajadorAsistencias.forEach((asistencia) => {
     const estadoAsistencia = asistencia.asistencia;
     if (estadoAsistencia === "Asistio" || estadoAsistencia === "Comisión") {
@@ -38,7 +42,7 @@ function calcularCantidadReal(trabajadorAsistencias) {
   return cantidadReal;
 }
 
-//lista de trabajadores y planillas para la vista de planillas
+// para crear las aprobaciones en base a las asistencias
 const getPlanillaAprobacion = async () => {
   try {
     const trabajadores = trabajador.findAll({
@@ -127,6 +131,7 @@ const getPlanillaAprobacion = async () => {
             "YYYY-MM-DD",
             "YYYY-MM-DD HH:mm:ss",
           ]).toDate();
+
 
           if (fechaInicio.getTime() > fechaFin.getTime()) {
             return [];
@@ -328,7 +333,6 @@ const getPlanillaAprobacion = async () => {
         }
       }
     });
-
     if (asociacionData.length > 0) {
       const data = asociacionData.map((item) => {
         return {
@@ -345,7 +349,6 @@ const getPlanillaAprobacion = async () => {
         };
       });
 
-      console.log(data);
 
       for (const aprobacion of data) {
         await guardarAprobacion(aprobacion);
@@ -387,6 +390,8 @@ async function guardarAprobacion(aprobacion) {
     await aprobacion_contrato_pago.create(aprobacion);
   }
 }
+
+//Para finalizar los contratos de las asocaciones si se completan las asistencias
 const asociacionData = async () => {
   try {
     // Obtén todos los contratos activos
@@ -535,6 +540,7 @@ const asociacionData = async () => {
     console.error(error);
   }
 };
+//Para finalizar los contratos de las trabajadores individuales si se completan las asistencias
 const individual = async () => {
   try {
     // Obtén todos los contratos activos
@@ -567,7 +573,8 @@ const individual = async () => {
     const updatePromises = [];
     for (const contrato of contratosActivos) {
       let trabajadorAsistencias =
-        contrato.trabajador_contratos[0].trabajador.trabajador_asistencia;
+        contrato?.trabajador_contratos[0]?.trabajador?.trabajador_asistencia;
+
 
       let cantidadEstimada = 0;
       let cantidadReal = 0;
@@ -585,7 +592,7 @@ const individual = async () => {
         });
       } else {
         // La fecha estimada aún no ha sido establecida, entonces solo considerar las asistencias desde la fecha de inicio del contrato
-        trabajadorAsistencias = trabajadorAsistencias.filter((asistencia) => {
+        trabajadorAsistencias = trabajadorAsistencias?.filter((asistencia) => {
           const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
           const fechaInicioContrato = dayjs(contrato.fecha_inicio);
 
@@ -596,17 +603,17 @@ const individual = async () => {
         });
       }
 
-      let faltas = 0;
+
+    let faltas = 0;
+
       cantidadEstimada = contarDomingos(
         dayjs(contrato.fecha_inicio),
         dayjs(contrato.fecha_fin)
       );
       let domingosTrabajados = 0;
-      trabajadorAsistencias.forEach((asistencia) => {
+      trabajadorAsistencias?.forEach((asistencia) => {
         fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-        if (asistencia.revisada) {
-          return; // Salir de este bucle y continuar con el siguiente
-        }
+
         const estadoAsistencia = asistencia.asistencia;
         if (estadoAsistencia === "Asistio" || estadoAsistencia === "Comisión") {
           asistencia.update({ revisada: true });
@@ -620,7 +627,7 @@ const individual = async () => {
           asistencia.update({ revisada: true });
         }
       });
-
+      
       cantidadReal = calcularCantidadReal(trabajadorAsistencias);
       fechaEstimada = dayjs(contrato.fecha_fin);
       fechaEstimada = fechaEstimada.subtract(domingosTrabajados, "day");
@@ -645,11 +652,10 @@ const individual = async () => {
           dayjs(contrato.fecha_inicio),
           fechaFinEstimada
         );
-
-        cantidadEstimada =
-          (diasEnPeriodo - domingosEnPeriodo) * contrato.periodo_trabajo;
+      
+        cantidadEstimada = diasEnPeriodo - domingosEnPeriodo;
       } else if (contrato.tareo === "Lunes a sabado") {
-        cantidadEstimada = 15 * contrato.periodo_trabajo;
+        cantidadEstimada = 15 * parseInt(contrato.periodo_trabajo);
       }
 
       if (cantidadReal >= cantidadEstimada) {
@@ -660,6 +666,7 @@ const individual = async () => {
           })
         );
       } else {
+
         updatePromises.push(
           contrato.update({
             fecha_fin: fechaEstimada.toDate(),

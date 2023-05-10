@@ -126,6 +126,7 @@ const getPlanilla = async (req, res, next) => {
             item?.contratos?.filter((data) => data.finalizado === false)?.at(-1)
               ?.fecha_inicio
           );
+
           return {
             nombre: item?.nombre,
             asociacion_id: item?.id,
@@ -692,7 +693,6 @@ const campamentoPlanilla = async (req, res, next) => {
     const trabajadoresCapamento = await campamento.findAll({});
 
     return res.status(200).json({ data: trabajadoresCapamento });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -833,6 +833,9 @@ const getTareoTrabajador = async (req, res, next) => {
       subarrayId++;
     };
 
+    if (!filterContrato) {
+        return;
+    }
     filterContrato.map((trabajador) => {
       let contador = 0;
 
@@ -864,7 +867,7 @@ const getTareoTrabajador = async (req, res, next) => {
           const asistencia = sortedAsistencias[i];
           if (
             (asistencia && asistencia.asistencia === "Asistio") ||
-            asistencia.asistencia === "Comisión"
+            asistencia?.asistencia === "Comisión"
           ) {
             contador++;
           }
@@ -876,7 +879,7 @@ const getTareoTrabajador = async (req, res, next) => {
           }
 
           if (contador >= minAsistencias || i === numAsistencias - 1) {
-            fechaFin = asistencia.asistencium.fecha;
+            fechaFin = asistencia?.asistencium?.fecha;
             createSubarray(
               trabajador,
               subAsistencias,
