@@ -104,16 +104,7 @@ const postPagoExtraordinario = async (req, res, next) => {
         };
       });
 
-      console.log(formatDestinoIds);
       const pagoDestino = await destino_pago.bulkCreate(formatDestinoIds);
-      const pagoEstado = {
-        estado: "completado",
-      };
-      const updatePago = await pago.update(pagoEstado, {
-        where: {
-          id: post.id,
-        },
-      });
     }
 
     return res

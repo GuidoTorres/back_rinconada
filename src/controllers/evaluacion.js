@@ -6,6 +6,7 @@ const {
   trabajador_contrato,
 } = require("../../config/db");
 const dayjs = require("dayjs");
+const { Op } = require("sequelize");
 
 const getEvaluacion = async (req, res, next) => {
   try {
@@ -21,31 +22,30 @@ const getEvaluacionById = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-
-    const user = await evaluacion.findAll({
+    const evaluaciones = await evaluacion.findAll({
       where: { trabajador_id: id },
+      order: [['id', 'ASC']],
       include: [
         {
           model: trabajador,
           attributes: { exclude: ["usuarioId"] },
-          include: [
-            {
-              model: trabajador_contrato,
-              separate: true, // Indica que la consulta para trabajador_contrato se ejecutará por separado
-              include: [
-                {
-                  model: contrato,
-                  attributes: ["suspendido", "nota_contrato"], // Incluye solo los atributos suspendido y nota
-                },
-              ],
-              order: [['contrato', 'id', 'DESC']], // Ordena los contratos por id en orden descendente
-              limit: 1, // Limita los resultados a solo el último contrato
-            },
-          ],
         },
       ],
     });
-    const obj = user.map((item) => {
+    
+    const contratos = await trabajador_contrato.findAll({
+      where: { trabajador_dni: id },
+      order: [['id', 'ASC']],
+      include: [
+        {
+          model: contrato,
+          attributes: ["suspendido", "nota_contrato"],
+        },
+      ],
+    });
+    const obj = evaluaciones.map((item, index) => {
+      let contrato = contratos[index] ? contratos[index].contrato : null;
+
       return {
         evaluacion_id: item?.id,
         trabajador_id: item?.trabajador?.id,
@@ -91,15 +91,8 @@ const getEvaluacionById = async (req, res, next) => {
         medio_ambiente_observacion: item?.medio_ambiente_observacion,
         recursos_humanos: item?.recursos_humanos,
         recursos_humanos_observacion: item?.recursos_humanos_observacion,
-        estado_contrato: item?.contrato_evaluacions
-          ?.map((data) => data?.contrato?.estado)
-          .toString(),
-        nota_contrato: item.trabajador.trabajador_contratos
-          .map((item) => item.contrato.nota_contrato)
-          .toString(),
-        suspendido: item.trabajador.trabajador_contratos
-          .map((item) => item.contrato.suspendido)
-          .toString(),
+        suspendido: contrato ? contrato.suspendido.toString() : null,
+    nota_contrato: contrato ? contrato.nota_contrato : null,
       };
     });
     return res.status(200).json({ data: obj });

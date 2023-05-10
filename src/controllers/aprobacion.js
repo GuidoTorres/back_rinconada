@@ -110,8 +110,8 @@ const aprobacionAsistencias = async (req, res, next) => {
       const firstTrabajador = asociacionAsistencia?.trabajadors[0];
 
       const contratos = asociacionAsistencia.contratos[0];
-      const aprobaciones = contratos.aprobacion_contrato_pagos[0].dataValues;
-      const pago = contratos.teletrans[0].dataValues;
+      const aprobaciones = contratos?.aprobacion_contrato_pagos[0]?.dataValues;
+      const pago = contratos?.teletrans[0]?.dataValues;
       const initialAsistenciasObj = {};
       // Sobrescribe las asistencias del primer trabajador en el objeto
 
@@ -144,8 +144,8 @@ const aprobacionAsistencias = async (req, res, next) => {
           // Si se encuentra una aprobación correspondiente, agrega las propiedades al objeto
           if (aprobaciones) {
             obj.id = aprobaciones.id;
-            obj.teletrans = pago.volquete || 0;
-            obj.volquetes = pago.teletrans || 0;
+            obj.teletrans = pago?.volquete || 0;
+            obj.volquetes = pago?.teletrans || 0;
             obj.huella = aprobaciones.huella;
             obj.quincena = aprobaciones.subarray_id;
             obj.observaciones = aprobaciones.observaciones;
@@ -162,8 +162,6 @@ const aprobacionAsistencias = async (req, res, next) => {
             obj.asociacion = asociacionAsistencia.nombre;
             obj.cargo = asociacionAsistencia.tipo;
             obj.area = contratoAsociacion;
-            obj.volquetes = pago.volquete || 0;
-            obj.teletrans = pago.teletrans || 0;
             obj.nombres =
               trabajador?.dataValues.apellido_paterno +
               " " +

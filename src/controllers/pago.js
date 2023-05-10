@@ -128,7 +128,7 @@ const createProgramacionMultiple = async (req, res, next) => {
         pago_id: post.id,
         volquetes: req.body.volquetes,
         teletrans: req.body.teletrans,
-        quincena: req.body.quincena
+        quincena: req.body.quincena,
       };
       console.log(contra_pago);
 
@@ -508,12 +508,6 @@ const getPagoFecha = async (req, res, next) => {
             },
           ],
         },
-        {
-          model: ayuda_pago,
-          include: [
-            { model: trabajador, attributes: { exclude: ["usuarioId"] } },
-          ],
-        },
       ],
     });
 
@@ -522,14 +516,6 @@ const getPagoFecha = async (req, res, next) => {
         (item) => item?.contrato_pagos?.at(-1)?.pago_asociacions?.length > 0
       )
       .map((item) => {
-        const trabajadoresProgramados = item?.contrato_pagos
-          ?.map((data) =>
-            data.pago_asociacions.map((item) => {
-              return { dni: item.trabajador_dni, teletrans: item.teletrans };
-            })
-          )
-          .flat();
-
         return {
           observacion: item?.observacion,
           fecha_pago: item?.fecha_pago,
@@ -569,53 +555,13 @@ const getPagoFecha = async (req, res, next) => {
             })
             .at(-1),
         };
-      });
-
-    const formatAyuda = getPago
-      .filter(
-        (item) =>
-          item?.contrato_pagos?.at(-1)?.pago_asociacions?.length === 0 &&
-          item?.ayuda_pagos.length > 0
-      )
-      .map((item) => {
-        return {
-          observacion: item?.observacion,
-          fecha_pago: item?.fecha_pago,
-          tipo: item?.tipo,
-          estado: item?.estado,
-          volquetes: item?.volquetes,
-          teletrans: item?.teletrans,
-          pagos: item?.contrato_pagos
-            ?.map((data) => {
-              return {
-                contrato_id: "---",
-                pago_id: data?.pago_id,
-                nombre:
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                    ?.nombre +
-                  " " +
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                    ?.apellido_paterno +
-                  " " +
-                  data?.contrato?.trabajador_contratos.at(-1)?.trabajador
-                    ?.apellido_materno,
-                area: "---",
-                cargo: "---",
-                celular: data?.trabajador?.telefono,
-                dni: data?.trabajador?.dni,
-                teletrans: data?.teletrans,
-                volquetes: data?.volquetes,
-              };
-            })
-            .at(-1),
-        };
-      });
+      })
+      .filter((item) => item.tipo === "asociacion");
 
     const formatPagoNormal = getPago
       .filter(
         (item) =>
           item?.contrato_pagos?.at(-1)?.pago_asociacions?.length === 0 &&
-          item?.ayuda_pagos.length === 0 &&
           item.contrato_pagos.length > 0
       )
       .map((item) => {
@@ -660,7 +606,6 @@ const getPagoFecha = async (req, res, next) => {
       .filter(
         (item) =>
           item?.contrato_pagos?.at(-1)?.pago_asociacions?.length === 0 &&
-          item?.ayuda_pagos.length === 0 &&
           item.contrato_pagos.length > 0
       )
       .map((item) => {
@@ -692,13 +637,13 @@ const getPagoFecha = async (req, res, next) => {
       })
       .filter((item) => item.tipo === "casa");
 
-    const concatData = formatAsociacion.concat(formatAyuda);
-    const concat2 = concatData.concat(formatPagoNormal);
-    const concat3 = concat2
+    const concatData = formatAsociacion.concat(formatPagoNormal);
+    const concat2 = concatData
+      .concat(formatPagoCasa)
       .concat(formatPagoCasa)
       .filter((item) => item.estado === "programado");
 
-    return res.status(200).json({ data: concat3, status: 200 });
+    return res.status(200).json({ data: concat2, status: 200 });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo obtener.", status: 500 });
@@ -807,9 +752,10 @@ const historialProgramacion = async (req, res, next) => {
                 cargo: "---",
                 celular: "---",
                 dni: "---",
-                tipo_asociacion: data?.pago_asociacions.map(
-                  (dat) => dat.trabajador.asociacion.tipo
-                ).at(-1).toString(),
+                tipo_asociacion: data?.pago_asociacions
+                  .map((dat) => dat.trabajador.asociacion.tipo)
+                  .at(-1)
+                  .toString(),
                 trabajadores: data?.pago_asociacions.map((dat) => {
                   return {
                     contrato_id: data?.contrato_id,

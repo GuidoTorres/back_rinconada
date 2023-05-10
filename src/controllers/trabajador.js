@@ -389,7 +389,9 @@ const updateTrabajador = async (req, res, next) => {
       .status(200)
       .json({ msg: "Trabajador actualizado con éxito!", status: 200 });
   } catch (error) {
-    console.log(error);
+    console.log("Error:", error); // Muestra el error completo
+    console.log("Error message:", error.message); // Muestra solo el mensaje del error
+    console.log("Error details:", error.original);
     res
       .status(500)
       .json({ msg: "No se pudo actualizar el trabajador.", status: 500 });

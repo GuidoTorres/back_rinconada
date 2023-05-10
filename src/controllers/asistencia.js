@@ -72,11 +72,12 @@ const getExcelAsistencia = async (req, res, next) => {
         salida: item.__EMPTY_4 === undefined ? "" : item.__EMPTY_4,
       };
     });
-    console.log(jsonFormat);
     //obtengo solo las asistencias del dia actual que se encuentran en el excel
     const asistenciaExcelDiaActual = jsonFormat.filter(
       (item) => item.fecha === fecha
     );
+
+    console.log(asistenciaExcelDiaActual);
     //creo array de dnis para hacer busqueda
     const dni = jsonFormat.map((item) => item.dni).flat();
     const filtereDni = [...new Set(dni)];
@@ -122,9 +123,7 @@ const getExcelAsistencia = async (req, res, next) => {
       attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
       where: { trabajador_id: filtereDni, asistencia_id: idFechaAsistencia },
     });
-
     //json con formato para guardar en la db de todos los trabajadores del excel
-    console.log(hora_bd);
     const guardarTrabajadores = asistenciaExcelDiaActual.map((item) => {
       const fecha = "2023-04-20T";
       const fecha_hora_bd = new Date(fecha + hora_bd);
@@ -157,7 +156,6 @@ const getExcelAsistencia = async (req, res, next) => {
       },
       { conAsistencia: [], sinAsistencia: [] }
     );
-
     if (trabajadoresAsistencia.conAsistencia.length > 0) {
       // Actualizar asistencias de trabajadores con asistencia existente
       await Promise.all(
@@ -181,6 +179,7 @@ const getExcelAsistencia = async (req, res, next) => {
         .status(200)
         .json({ msg: "Asistencias actualizadas con éxito!", status: 200 });
     } else if (trabajadoresAsistencia.sinAsistencia.length > 0) {
+      
       // Crear nuevas asistencias para trabajadores sin asistencia existente
       await trabajadorAsistencia.bulkCreate(
         trabajadoresAsistencia.sinAsistencia
@@ -333,7 +332,6 @@ const getTrabajadorByCampamento = async (req, res, next) => {
     const filterAsistencia = obj2.filter((item) =>
       item.trabajador_asistencia.filter((data) => data.asistencia_id == id_asis)
     );
-    console.log("pokemon");
     // const filter = obj2.filter((item) => item !== null);
     return res.status(200).json({ data: filterAsistencia });
     next();
