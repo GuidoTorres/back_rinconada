@@ -123,15 +123,17 @@ const getPlanillaAprobacion = async () => {
       .map((asociacion) => {
         return asociacion.contratos.flatMap((contrato) => {
           let fechaInicioData = dayjs(contrato.fecha_inicio).toDate();
-          let fechaFinData = dayjs(contrato.fecha_fin_estimada).toDate() || dayjs(contrato.fecha_fin).toDate();
+          let fechaFinData =
+            dayjs(contrato.fecha_fin_estimada).toDate() ||
+            dayjs(contrato.fecha_fin).toDate();
 
           let fechaInicio = dayjs(contrato.fecha_inicio);
-          let fechaFin = dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
+          let fechaFin =
+            dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
           if (fechaInicioData.getTime() > fechaFinData.getTime()) {
             return [];
           }
-
           let subarrays = [];
           const contratoData = contrato;
 
@@ -155,12 +157,9 @@ const getPlanillaAprobacion = async () => {
                   asistenciaFecha.isAfter(fechaInicio)) &&
                 (asistenciaFecha.isSame(fechaFin) ||
                   asistenciaFecha.isBefore(fechaFin)) &&
-                (asistencia.asistencia === "Asistio" ||
-                  asistencia.asistencia === "Comisión")
+                ["Asistio", "Comisión"].includes(asistencia.asistencia)
               );
             });
-
-          const asistencia = asistencias[0];
 
           let contadorAsistencias = 0;
           let subAsistencias = [];
@@ -168,10 +167,13 @@ const getPlanillaAprobacion = async () => {
           let fechaFinSubarray = null;
           let subarrayId = 1;
           let currentDate = dayjs(contrato.fecha_inicio);
+          let indexAsistencia = 0;
           while (
             currentDate.isBefore(fechaFin) ||
             currentDate.isSame(fechaFin)
           ) {
+            const asistencia = asistencias[indexAsistencia];
+
             if (!asistencia) {
               currentDate = currentDate.add(1, "day");
               continue;
@@ -181,9 +183,8 @@ const getPlanillaAprobacion = async () => {
             if (contadorAsistencias === 1) {
               fechaInicioSubarray = asistencia.asistencium.fecha;
             }
+            fechaFinSubarray = asistencia.asistencium.fecha;
             if (contadorAsistencias === 15) {
-              fechaFinSubarray = asistencia.asistencium.fecha;
-
               subarrays.push({
                 subArray_id: subarrayId,
                 asociacion_id: asociacion?.id,
@@ -191,20 +192,21 @@ const getPlanillaAprobacion = async () => {
                 fecha_inicio: dayjs(fechaInicioSubarray)?.format("DD-MM-YYYY"),
                 fecha_fin: dayjs(fechaFinSubarray)?.format("DD-MM-YYYY"),
                 asistencia: contadorAsistencias,
-                volquete: contratoData?.teletrans?.at(-1)?.volquete,
-                teletran: contratoData?.teletrans?.at(-1)?.teletran,
-                total: contratoData?.teletrans?.at(-1)?.saldo,
-                contrato_id: contratoData?.id,
-                estado: contratoData?.aprobacion_contrato_pagos
+                volquete: contrato?.dataValues.teletrans?.at(-1)?.volquete || 0,
+                teletran:
+                  contrato?.dataValues?.teletrans?.at(-1)?.teletran || 0,
+                total: contrato?.dataValues?.teletrans?.at(-1)?.saldo,
+                contrato_id: contrato?.dataValues?.id,
+                estado: contrato?.dataValues?.aprobacion_contrato_pagos
                   ?.filter((item) => item.subarray_id == subarrayId)
                   .at(0)?.estado,
-                aprobacion_id: contratoData.aprobacion_contrato_pagos
+                aprobacion_id: contrato?.dataValues?.aprobacion_contrato_pagos
                   ?.filter((item) => item.subarray_id == subarrayId)
                   .at(0)?.id,
-                firma_jefe: contratoData.aprobacion_contrato_pagos
+                firma_jefe: contrato?.dataValues?.aprobacion_contrato_pagos
                   ?.filter((item) => item.subarray_id == subarrayId)
                   .at(0)?.firma_jefe,
-                firma_gerente: contratoData.aprobacion_contrato_pagos
+                firma_gerente: contrato?.dataValues?.aprobacion_contrato_pagos
                   ?.filter((item) => item.subarray_id == subarrayId)
                   .at(0)?.firma_gerente,
               });
@@ -215,8 +217,9 @@ const getPlanillaAprobacion = async () => {
               fechaFinSubarray = null;
               subarrayId++;
             }
+            currentDate = currentDate.add(1, "day");
+            indexAsistencia++;
           }
-
           return subarrays;
         });
       })
@@ -234,34 +237,39 @@ const getPlanillaAprobacion = async () => {
     const subarrayIdsPorTrabajador = {};
     filterContrato.forEach((trabajador) => {
       const contrato = trabajador.trabajador_contratos[0].contrato;
-      const fechaInicioContrato = new Date(contrato.fecha_inicio);
+      const fechaInicioContrato = dayjs(contrato.fecha_inicio);
+      const fechaInicioData = dayjs(contrato.fecha_inicio);
+      const fechaFinData =
+        dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
       const asistencias = trabajador?.trabajador_asistencia
-        ?.filter(
-          (asistencia) =>
-            (asistencia.asistencia === "Asistio" ||
-              asistencia.asistencia === "Comisión") &&
-            (dayjs(asistencia.asistencium.fecha).isSame(
-              contrato.fecha_inicio
-            ) ||
-              dayjs(asistencia.asistencium.fecha).isAfter(
-                contrato.fecha_inicio
-              ))
-        )
+        ?.filter((asistencia) => {
+          const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
+            "YYYY-MM-DD",
+            "YYYY-MM-DD HH:mm:ss",
+          ]);
+          return ((asistencia.asistencia === "Asistio" ||
+            asistencia.asistencia === "Comisión") &&
+            (asistenciaFecha.isSame(fechaInicioData) ||
+              asistenciaFecha.isAfter(fechaInicioData)) &&
+            (asistenciaFecha.isSame(fechaFinData) ||
+              asistenciaFecha.isBefore(fechaFinData)));
+        })
         .sort(
           (a, b) =>
             new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
         );
-
       const numAsistencias = asistencias?.length;
       if (numAsistencias >= 15) {
         let contador = 0;
         let subAsistencias = [];
-        let fechaInicio = null;
-        let fechaFin = null;
+        let fechaInicio = null
+        let fechaFin = null
         let currentDate = fechaInicioContrato;
+        let indexAsistencia = 0;
 
-        while (currentDate.isBefore(dayjs())) {
+        while (currentDate.isBefore(fechaFinData) ||
+        currentDate.isSame(fechaFinData)) {
           const asistencia = asistencias.find((asistencia) => {
             const asistenciaFecha = dayjs(asistencia.asistencium.fecha);
             return asistenciaFecha.isSame(currentDate, "day");
@@ -347,51 +355,51 @@ const getPlanillaAprobacion = async () => {
               fechaFin = null;
             }
           }
+          currentDate = currentDate.add(1, "day");
+
         }
       }
     });
+    if (asociacionData.length > 0) {
+      const data = asociacionData.map((item) => {
+        return {
+          subarray_id: item.subArray_id,
+          nombre: item.nombre,
+          fecha_inicio: item.fecha_inicio,
+          fecha_fin: item.fecha_fin,
+          asistencia: item.asistencia,
+          volquete: item.volquete,
+          teletran: item.teletran ? item.teletran : 0,
+          dias_laborados: item.asistencia,
+          contrato_id: item.contrato_id,
+          asociacion_id: item.asociacion_id,
+        };
+      });
 
-    console.log(asociacionData);
-    // if (asociacionData.length > 0) {
-    //   const data = asociacionData.map((item) => {
-    //     return {
-    //       subarray_id: item.subArray_id,
-    //       nombre: item.nombre,
-    //       fecha_inicio: item.fecha_inicio,
-    //       fecha_fin: item.fecha_fin,
-    //       asistencia: item.asistencia,
-    //       volquete: item.volquete,
-    //       teletran: item.teletran ? item.teletran : 0,
-    //       dias_laborados: item.asistencia,
-    //       contrato_id: item.contrato_id,
-    //       asociacion_id: item.asociacion_id,
-    //     };
-    //   });
+      for (const aprobacion of data) {
+        await guardarAprobacion(aprobacion);
+      }
+    }
+    if (aprobacionFilter.length > 0) {
+      const data = aprobacionFilter.map((item) => {
+        return {
+          subarray_id: item.subArray_id,
+          nombre: item.nombre,
+          fecha_inicio: item.fecha_inicio,
+          fecha_fin: item.fecha_fin,
+          asistencia: item.asistencia,
+          volquete: item.volquete,
+          teletran: item.teletran ? item.teletran : 0,
+          dias_laborados: item.asistencia,
+          contrato_id: item.contrato_id,
+          dni: item.dni,
+        };
+      });
 
-    //   for (const aprobacion of data) {
-    //     await guardarAprobacion(aprobacion);
-    //   }
-    // }
-    // if (aprobacionFilter.length > 0) {
-    //   const data = aprobacionFilter.map((item) => {
-    //     return {
-    //       subarray_id: item.subArray_id,
-    //       nombre: item.nombre,
-    //       fecha_inicio: item.fecha_inicio,
-    //       fecha_fin: item.fecha_fin,
-    //       asistencia: item.asistencia,
-    //       volquete: item.volquete,
-    //       teletran: item.teletran ? item.teletran : 0,
-    //       dias_laborados: item.asistencia,
-    //       contrato_id: item.contrato_id,
-    //       dni: item.dni,
-    //     };
-    //   });
-
-    //   for (const aprobacion of data) {
-    //     await guardarAprobacion(aprobacion);
-    //   }
-    // }
+      for (const aprobacion of data) {
+        await guardarAprobacion(aprobacion);
+      }
+    }
   } catch (error) {
     console.log(error);
   }
@@ -455,26 +463,28 @@ const asociacionData = async () => {
       let fechaFinal =
         dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
+      // La fecha estimada aún no ha sido establecida, entonces solo considerar las asistencias desde la fecha de inicio del contrato
+      asistencias = asistencias.filter((asistencia) => {
+        const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+        const fechaInicioContrato = dayjs(contrato.fecha_inicio);
+        const fechaFinContrato =
+          dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
-
-        // La fecha estimada aún no ha sido establecida, entonces solo considerar las asistencias desde la fecha de inicio del contrato
-        asistencias = asistencias.filter((asistencia) => {
-          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-          const fechaInicioContrato = dayjs(contrato.fecha_inicio);
-          const fechaFinContrato =
-            dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
-
-          return (
-            fechaAsistencia.isSame(fechaInicioContrato, "day") ||
-            (fechaAsistencia.isAfter(fechaInicioContrato, "day") &&
-              fechaAsistencia.isSame(fechaFinContrato, "day")) ||
-            fechaAsistencia.isBefore(fechaFinContrato, "day")
-          );
-        })
+        return (
+          fechaAsistencia.isSame(fechaInicioContrato, "day") ||
+          (fechaAsistencia.isAfter(fechaInicioContrato, "day") &&
+            fechaAsistencia.isSame(fechaFinContrato, "day")) ||
+          fechaAsistencia.isBefore(fechaFinContrato, "day")
+        );
+      });
       // Llama a la función calculateEstimatedDate con los argumentos correspondientes.
-      if (asistencias && asistencias.length > 0 && asistencias[asistencias.length - 1].asistencium && asistencias[asistencias.length - 1].asistencium.fecha) {
+      if (
+        asistencias &&
+        asistencias.length > 0 &&
+        asistencias[asistencias.length - 1].asistencium &&
+        asistencias[asistencias.length - 1].asistencium.fecha
+      ) {
         let result = calculateEstimatedDate(
-
           dayjs(asistencias[asistencias.length - 1].asistencium.fecha),
           fechaEstimada,
           dayjs(contrato.fecha_inicio),
@@ -684,9 +694,6 @@ function calculateEstimatedDate(
     if (!hasRecord && currentDate.day() !== 0) {
       daysToAdd++;
     }
-    console.log(currentDate);
-    console.log(hasRecord);
-
     let hasAttendance = workerAttendances.some(
       (a) =>
         a.asistencia !== "Asistio" &&
@@ -708,20 +715,18 @@ function calculateEstimatedDate(
       daysToAdd--;
     }
   }
-  console.log(daysToAdd);
   // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
   estimatedDate = estimatedDate.add(daysToAdd, "day");
-  console.log(estimatedDate);
   // Devuelve un objeto con la nueva fecha estimada.
   return { estimatedDate };
 }
 
 const actulizarFechaFin = async (req, res, next) => {
   try {
-    // await getPlanillaAprobacion();
+    await getPlanillaAprobacion();
     await Promise.all([asociacionData(), individual()]);
 
-    res
+    return res
       .status(200)
       .json({ msg: "Asistencias validadas con éxito!.", status: 200 });
   } catch (error) {
