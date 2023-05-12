@@ -162,7 +162,7 @@ const getPlanilla = async (req, res, next) => {
               "DD-MM-YYYY"
             ),
             fecha_fin: dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
-            fecha_fin_estimada: dayjs(contratoActivo.fecha_fin_estimada).format(
+            fecha_fin_estimada: dayjs(contratoActivo?.fecha_fin_estimada).format(
               "DD-MM-YYYY"
             ),
             contratos: contratoActivo,
