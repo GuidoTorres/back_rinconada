@@ -29,9 +29,8 @@ function contarDomingos(fechaInicio, fechaFin) {
 
 function calcularCantidadReal(trabajadorAsistencias) {
   let cantidadReal = 0;
-  if(!trabajadorAsistencias){
-
-    return
+  if (!trabajadorAsistencias) {
+    return;
   }
   trabajadorAsistencias.forEach((asistencia) => {
     const estadoAsistencia = asistencia.asistencia;
@@ -123,17 +122,13 @@ const getPlanillaAprobacion = async () => {
     const asociacionData = asociacionFetch
       .map((asociacion) => {
         return asociacion.contratos.flatMap((contrato) => {
-          let fechaInicio = dayjs(contrato.fecha_inicio, [
-            "YYYY-MM-DD",
-            "YYYY-MM-DD HH:mm:ss",
-          ]).toDate();
-          let fechaFin = dayjs(contrato.fecha_fin, [
-            "YYYY-MM-DD",
-            "YYYY-MM-DD HH:mm:ss",
-          ]).toDate();
+          let fechaInicioData = dayjs(contrato.fecha_inicio).toDate();
+          let fechaFinData = dayjs(contrato.fecha_fin_estimada).toDate() || dayjs(contrato.fecha_fin).toDate();
 
+          let fechaInicio = dayjs(contrato.fecha_inicio);
+          let fechaFin = dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
-          if (fechaInicio.getTime() > fechaFin.getTime()) {
+          if (fechaInicioData.getTime() > fechaFinData.getTime()) {
             return [];
           }
 
@@ -154,21 +149,33 @@ const getPlanillaAprobacion = async () => {
               const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
                 "YYYY-MM-DD",
                 "YYYY-MM-DD HH:mm:ss",
-              ]).toDate();
+              ]);
               return (
-                asistenciaFecha.getTime() >= fechaInicio.getTime() &&
-                asistenciaFecha.getTime() <= fechaFin.getTime() &&
+                (asistenciaFecha.isSame(fechaInicio) ||
+                  asistenciaFecha.isAfter(fechaInicio)) &&
+                (asistenciaFecha.isSame(fechaFin) ||
+                  asistenciaFecha.isBefore(fechaFin)) &&
                 (asistencia.asistencia === "Asistio" ||
                   asistencia.asistencia === "Comisión")
               );
             });
+
+          const asistencia = asistencias[0];
 
           let contadorAsistencias = 0;
           let subAsistencias = [];
           let fechaInicioSubarray = null;
           let fechaFinSubarray = null;
           let subarrayId = 1;
-          asistencias.forEach((asistencia, index) => {
+          let currentDate = dayjs(contrato.fecha_inicio);
+          while (
+            currentDate.isBefore(fechaFin) ||
+            currentDate.isSame(fechaFin)
+          ) {
+            if (!asistencia) {
+              currentDate = currentDate.add(1, "day");
+              continue;
+            }
             contadorAsistencias++;
             subAsistencias.push(asistencia);
             if (contadorAsistencias === 1) {
@@ -208,7 +215,7 @@ const getPlanillaAprobacion = async () => {
               fechaFinSubarray = null;
               subarrayId++;
             }
-          });
+          }
 
           return subarrays;
         });
@@ -252,8 +259,18 @@ const getPlanillaAprobacion = async () => {
         let subAsistencias = [];
         let fechaInicio = null;
         let fechaFin = null;
-        for (let i = 0; i < numAsistencias; i++) {
-          const asistencia = asistencias[i];
+        let currentDate = fechaInicioContrato;
+
+        while (currentDate.isBefore(dayjs())) {
+          const asistencia = asistencias.find((asistencia) => {
+            const asistenciaFecha = dayjs(asistencia.asistencium.fecha);
+            return asistenciaFecha.isSame(currentDate, "day");
+          });
+
+          if (!asistencia) {
+            currentDate = currentDate.add(1, "day");
+            continue;
+          }
           if (
             asistencia.asistencia === "Asistio" ||
             asistencia.asistencia === "Comisión"
@@ -333,47 +350,48 @@ const getPlanillaAprobacion = async () => {
         }
       }
     });
-    if (asociacionData.length > 0) {
-      const data = asociacionData.map((item) => {
-        return {
-          subarray_id: item.subArray_id,
-          nombre: item.nombre,
-          fecha_inicio: item.fecha_inicio,
-          fecha_fin: item.fecha_fin,
-          asistencia: item.asistencia,
-          volquete: item.volquete,
-          teletran: item.teletran ? item.teletran : 0,
-          dias_laborados: item.asistencia,
-          contrato_id: item.contrato_id,
-          asociacion_id: item.asociacion_id,
-        };
-      });
 
+    console.log(asociacionData);
+    // if (asociacionData.length > 0) {
+    //   const data = asociacionData.map((item) => {
+    //     return {
+    //       subarray_id: item.subArray_id,
+    //       nombre: item.nombre,
+    //       fecha_inicio: item.fecha_inicio,
+    //       fecha_fin: item.fecha_fin,
+    //       asistencia: item.asistencia,
+    //       volquete: item.volquete,
+    //       teletran: item.teletran ? item.teletran : 0,
+    //       dias_laborados: item.asistencia,
+    //       contrato_id: item.contrato_id,
+    //       asociacion_id: item.asociacion_id,
+    //     };
+    //   });
 
-      for (const aprobacion of data) {
-        await guardarAprobacion(aprobacion);
-      }
-    }
-    if (aprobacionFilter.length > 0) {
-      const data = aprobacionFilter.map((item) => {
-        return {
-          subarray_id: item.subArray_id,
-          nombre: item.nombre,
-          fecha_inicio: item.fecha_inicio,
-          fecha_fin: item.fecha_fin,
-          asistencia: item.asistencia,
-          volquete: item.volquete,
-          teletran: item.teletran ? item.teletran : 0,
-          dias_laborados: item.asistencia,
-          contrato_id: item.contrato_id,
-          dni: item.dni,
-        };
-      });
+    //   for (const aprobacion of data) {
+    //     await guardarAprobacion(aprobacion);
+    //   }
+    // }
+    // if (aprobacionFilter.length > 0) {
+    //   const data = aprobacionFilter.map((item) => {
+    //     return {
+    //       subarray_id: item.subArray_id,
+    //       nombre: item.nombre,
+    //       fecha_inicio: item.fecha_inicio,
+    //       fecha_fin: item.fecha_fin,
+    //       asistencia: item.asistencia,
+    //       volquete: item.volquete,
+    //       teletran: item.teletran ? item.teletran : 0,
+    //       dias_laborados: item.asistencia,
+    //       contrato_id: item.contrato_id,
+    //       dni: item.dni,
+    //     };
+    //   });
 
-      for (const aprobacion of data) {
-        await guardarAprobacion(aprobacion);
-      }
-    }
+    //   for (const aprobacion of data) {
+    //     await guardarAprobacion(aprobacion);
+    //   }
+    // }
   } catch (error) {
     console.log(error);
   }
@@ -428,70 +446,45 @@ const asociacionData = async () => {
         a.codigo_trabajador.localeCompare(b.codigo_trabajador)
       )[0];
 
-      let asistencias = trabajadorAsistencias.trabajador_asistencia; // Accede a las asistencias del trabajador
+      let asistencias = trabajadorAsistencias.trabajador_asistencia.sort(
+        (a, b) => new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
+      ); // Accede a las asistencias del trabajador
       let cantidadEstimada = 0;
       let cantidadReal = 0;
-      let fechaEstimada = dayjs(contrato.fecha_estimada || contrato.fecha_fin);
+      let fechaEstimada = dayjs(contrato.fecha_fin);
+      let fechaFinal =
+        dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
-      if (contrato.fecha_estimada) {
-        // La fecha estimada ya ha sido establecida, entonces solo considerar las asistencias desde la última fecha estimada
-        asistencias = asistencias.filter((asistencia) => {
-          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-          const fechaEstimada = dayjs(contrato.fecha_estimada);
-          return (
-            fechaAsistencia.isSame(fechaEstimada, "day") ||
-            fechaAsistencia.isAfter(fechaEstimada, "day")
-          );
-        });
-      } else {
+
+
         // La fecha estimada aún no ha sido establecida, entonces solo considerar las asistencias desde la fecha de inicio del contrato
         asistencias = asistencias.filter((asistencia) => {
           const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
           const fechaInicioContrato = dayjs(contrato.fecha_inicio);
+          const fechaFinContrato =
+            dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
           return (
             fechaAsistencia.isSame(fechaInicioContrato, "day") ||
-            fechaAsistencia.isAfter(fechaInicioContrato, "day")
+            (fechaAsistencia.isAfter(fechaInicioContrato, "day") &&
+              fechaAsistencia.isSame(fechaFinContrato, "day")) ||
+            fechaAsistencia.isBefore(fechaFinContrato, "day")
           );
-        });
+        })
+      // Llama a la función calculateEstimatedDate con los argumentos correspondientes.
+      if (asistencias && asistencias.length > 0 && asistencias[asistencias.length - 1].asistencium && asistencias[asistencias.length - 1].asistencium.fecha) {
+        let result = calculateEstimatedDate(
+
+          dayjs(asistencias[asistencias.length - 1].asistencium.fecha),
+          fechaEstimada,
+          dayjs(contrato.fecha_inicio),
+          asistencias
+        );
+        // Actualiza la fecha estimada con el resultado.
+        fechaEstimada = result.estimatedDate;
       }
-
-      let faltas = 0;
-      cantidadEstimada = contarDomingos(
-        dayjs(contrato.fecha_inicio),
-        dayjs(contrato.fecha_fin)
-      );
-      let domingosTrabajados = 0;
-      asistencias.forEach((asistencia) => {
-        // Cambiar a "asistencias"
-        fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-        if (asistencia.revisada) {
-          return; // Salir de este bucle y continuar con el siguiente
-        }
-        const estadoAsistencia = asistencia.asistencia;
-        if (estadoAsistencia === "Asistio" || estadoAsistencia === "Comisión") {
-          asistencia.update({ revisada: true });
-
-          if (fechaAsistencia.day() === 0) {
-            domingosTrabajados++;
-          }
-        } else {
-          faltas++;
-          cantidadEstimada++; // Incrementar cantidadEstimada por cada falta
-          asistencia.update({ revisada: true });
-        }
-      });
-
-      cantidadReal = calcularCantidadReal(asistencias); // Cambiar a "asistencias"
-      fechaEstimada = dayjs(contrato.fecha_fin);
-      fechaEstimada = fechaEstimada.subtract(domingosTrabajados, "day");
-      for (let i = 0; i < faltas; i++) {
-        fechaEstimada = fechaEstimada.add(1, "day");
-        if (fechaEstimada.day() === 0) {
-          // Si es domingo, agregar un día más
-          fechaEstimada = fechaEstimada.add(1, "day");
-        }
-      }
+      // Calcula la cantidad real basándose en las asistencias.
+      cantidadReal = calcularCantidadReal(asistencias);
 
       if (contrato.tareo === "Mes cerrado") {
         const fechaFinEstimada = dayjs(contrato.fecha_inicio).add(
@@ -531,7 +524,7 @@ const asociacionData = async () => {
         }
       } else {
         await contrato.update({
-          fecha_fin: fechaEstimada.toDate(),
+          // fecha_fin: fechaEstimada.toDate(),
           fecha_fin_estimada: fechaEstimada.toDate(),
         });
       }
@@ -563,82 +556,58 @@ const individual = async () => {
                   attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
                   include: [{ model: asistencia }],
                 },
+                { model: evaluacion },
               ],
             },
           ],
         },
       ],
     });
-
+    let currentEstimatedDate = dayjs();
     const updatePromises = [];
     for (const contrato of contratosActivos) {
       let trabajadorAsistencias =
         contrato?.trabajador_contratos[0]?.trabajador?.trabajador_asistencia;
-
-
       let cantidadEstimada = 0;
       let cantidadReal = 0;
-      let fechaEstimada = dayjs(contrato.fecha_estimada || contrato.fecha_fin);
+      let fechaEstimada = dayjs(contrato.fecha_fin);
+      let contractStartDate = dayjs(contrato.fecha_inicio);
+      let fechaFinal = dayjs(contrato.fecha_estimada || contrato.fecha_fin);
 
-      if (contrato.fecha_estimada) {
-        // La fecha estimada ya ha sido establecida, entonces solo considerar las asistencias desde la última fecha estimada
-        trabajadorAsistencias = trabajadorAsistencias.filter((asistencia) => {
-          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-          const fechaEstimada = dayjs(contrato.fecha_estimada);
-          return (
-            fechaAsistencia.isSame(fechaEstimada, "day") ||
-            fechaAsistencia.isAfter(fechaEstimada, "day")
-          );
-        });
-      } else {
-        // La fecha estimada aún no ha sido establecida, entonces solo considerar las asistencias desde la fecha de inicio del contrato
-        trabajadorAsistencias = trabajadorAsistencias?.filter((asistencia) => {
-          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-          const fechaInicioContrato = dayjs(contrato.fecha_inicio);
-
-          return (
-            fechaAsistencia.isSame(fechaInicioContrato, "day") ||
-            fechaAsistencia.isAfter(fechaInicioContrato, "day")
-          );
-        });
-      }
-
-
-    let faltas = 0;
-
-      cantidadEstimada = contarDomingos(
-        dayjs(contrato.fecha_inicio),
-        dayjs(contrato.fecha_fin)
+      trabajadorAsistencias.sort(
+        (a, b) => new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
       );
-      let domingosTrabajados = 0;
-      trabajadorAsistencias?.forEach((asistencia) => {
-        fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+      let asistencia;
 
-        const estadoAsistencia = asistencia.asistencia;
-        if (estadoAsistencia === "Asistio" || estadoAsistencia === "Comisión") {
-          asistencia.update({ revisada: true });
+      asistencia = trabajadorAsistencias.filter((asistencia) => {
+        const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+        const fechaInicioContrato = dayjs(contrato.fecha_inicio);
+        const fechaFinContrato =
+          dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
-          if (fechaAsistencia.day() === 0) {
-            domingosTrabajados++;
-          }
-        } else {
-          faltas++;
-          cantidadEstimada++; // Incrementar cantidadEstimada por cada falta
-          asistencia.update({ revisada: true });
-        }
+        return (
+          fechaAsistencia.isSame(fechaInicioContrato, "day") ||
+          (fechaAsistencia.isAfter(fechaInicioContrato, "day") &&
+            fechaAsistencia.isSame(fechaFinContrato, "day")) ||
+          fechaAsistencia.isBefore(fechaFinContrato, "day")
+        );
       });
-      
-      cantidadReal = calcularCantidadReal(trabajadorAsistencias);
-      fechaEstimada = dayjs(contrato.fecha_fin);
-      fechaEstimada = fechaEstimada.subtract(domingosTrabajados, "day");
-      for (let i = 0; i < faltas; i++) {
-        fechaEstimada = fechaEstimada.add(1, "day");
-        if (fechaEstimada.day() === 0) {
-          // Si es domingo, agregar un día más
-          fechaEstimada = fechaEstimada.add(1, "day");
-        }
+
+      if (asistencia.length > 0) {
+        // Call the calculateEstimatedDate function with the last attendance object, the current estimated date, the contract start date, and the worker attendances array.
+        let result = calculateEstimatedDate(
+          dayjs(asistencia[asistencia.length - 1].asistencium.fecha),
+          fechaEstimada,
+          contractStartDate,
+          trabajadorAsistencias
+        );
+        // Update the current estimated date with the result.
+        fechaEstimada = result.estimatedDate;
+        // Calculate the real quantity based on the worker attendances.
+        cantidadReal = calcularCantidadReal(asistencia);
       }
 
+      // Check the tareo type of the contract and calculate the estimated quantity accordingly.
       if (contrato.tareo === "Mes cerrado") {
         const fechaFinEstimada = dayjs(contrato.fecha_inicio).add(
           contrato.periodo_trabajo,
@@ -652,38 +621,104 @@ const individual = async () => {
           dayjs(contrato.fecha_inicio),
           fechaFinEstimada
         );
-      
         cantidadEstimada = diasEnPeriodo - domingosEnPeriodo;
       } else if (contrato.tareo === "Lunes a sabado") {
         cantidadEstimada = 15 * parseInt(contrato.periodo_trabajo);
       }
 
+      // Check if the real quantity is greater than or equal to the estimated quantity and update the contract accordingly.
       if (cantidadReal >= cantidadEstimada) {
-        updatePromises.push(
-          contrato.update({
-            finalizado: true,
-            fecha_fin: fechaEstimada.toDate(),
-          })
-        );
-      } else {
+        const contratoUpdatePromise = contrato.update({
+          finalizado: true,
+          fecha_fin: fechaEstimada.toDate(),
+          fecha_fin_estimada: fechaEstimada.toDate(),
+        });
+        updatePromises.push(contratoUpdatePromise);
 
-        updatePromises.push(
-          contrato.update({
-            fecha_fin: fechaEstimada.toDate(),
-            fecha_fin_estimada: fechaEstimada.toDate(),
-          })
-        );
+        // Finalizamos la evaluacion activa del trabajador, si existe
+        const trabajadorEvaluacion =
+          contrato?.trabajador_contratos[0]?.trabajador.evaluacions[0];
+        if (trabajadorEvaluacion) {
+          const evaluacionUpdatePromise = trabajadorEvaluacion.update({
+            finalizado: true,
+          });
+          updatePromises.push(evaluacionUpdatePromise);
+        }
+      } else {
+        const contratoUpdatePromise = contrato.update({
+          fecha_fin_estimada: fechaEstimada.toDate(),
+        });
+        updatePromises.push(contratoUpdatePromise);
       }
+
+      return await Promise.all(updatePromises);
     }
-    return await Promise.all(updatePromises);
+    // Return a promise that resolves when all the update promises are fulfilled.
   } catch (error) {
     console.error(error);
   }
 };
 
+function calculateEstimatedDate(
+  attendance,
+  estimatedDate,
+  contractStartDate,
+  workerAttendances
+) {
+  // Obtiene la fecha de la última asistencia registrada como un objeto dayjs.
+  let lastAttendanceDate = attendance;
+  // Inicializa una variable para llevar la cuenta de los días que hay que añadir o restar a la fecha de finalización.
+  let daysToAdd = 0;
+  // Recorre todos los días entre la fecha de inicio del contrato y la fecha de la última asistencia registrada.
+  for (
+    let currentDate = contractStartDate;
+    currentDate.isBefore(lastAttendanceDate) ||
+    currentDate.isSame(lastAttendanceDate);
+    currentDate = currentDate.add(1, "day")
+  ) {
+    // Comprueba si hay algún elemento en el array workerAttendances que coincida con la fecha actual.
+    let hasRecord = workerAttendances.some(
+      (a) => a.asistencium.fecha === currentDate.format("YYYY-MM-DD")
+    );
+    // Si no lo hay, y no es un domingo (suponiendo que los domingos no son días laborables), incrementa la variable daysToAdd en uno.
+    if (!hasRecord && currentDate.day() !== 0) {
+      daysToAdd++;
+    }
+    console.log(currentDate);
+    console.log(hasRecord);
+
+    let hasAttendance = workerAttendances.some(
+      (a) =>
+        a.asistencia !== "Asistio" &&
+        a.asistencia !== "Comisión" &&
+        a.asistencium.fecha === currentDate.format("YYYY-MM-DD")
+    );
+    if (hasAttendance && currentDate.day() !== 0) {
+      daysToAdd++;
+    }
+
+    let hasAttendanceOnSunday = workerAttendances.some(
+      (a) =>
+        (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
+        a.asistencium.fecha === currentDate.format("YYYY-MM-DD") &&
+        currentDate.day() === 0
+    );
+
+    if (hasAttendanceOnSunday) {
+      daysToAdd--;
+    }
+  }
+  console.log(daysToAdd);
+  // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
+  estimatedDate = estimatedDate.add(daysToAdd, "day");
+  console.log(estimatedDate);
+  // Devuelve un objeto con la nueva fecha estimada.
+  return { estimatedDate };
+}
+
 const actulizarFechaFin = async (req, res, next) => {
   try {
-    await getPlanillaAprobacion();
+    // await getPlanillaAprobacion();
     await Promise.all([asociacionData(), individual()]);
 
     res

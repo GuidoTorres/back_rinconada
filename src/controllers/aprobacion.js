@@ -139,13 +139,12 @@ const aprobacionAsistencias = async (req, res, next) => {
         (trabajador, index) => {
           // Crea un objeto con las mismas propiedades que el objeto del primer trabajador
           const obj = Object.assign({}, initialAsistenciasObj);
-          
 
           // Si se encuentra una aprobación correspondiente, agrega las propiedades al objeto
           if (aprobaciones) {
             obj.id = aprobaciones.id;
-            obj.teletrans = pago?.volquete || 0;
-            obj.volquetes = pago?.teletrans || 0;
+            obj.teletrans = pago?.teletran || 0;
+            obj.volquetes = pago?.volquete || 0;
             obj.huella = aprobaciones.huella;
             obj.quincena = aprobaciones.subarray_id;
             obj.observaciones = aprobaciones.observaciones;

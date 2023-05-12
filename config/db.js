@@ -9,6 +9,7 @@ const sequelize = new Sequelize({
   host: "localhost",
   dialect: "mysql",
   port: "3306",
+
   define: { timestamps: false, freezeTableName: true },
   dialectOptions: { decimalNumbers: true },
 });

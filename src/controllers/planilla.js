@@ -18,7 +18,6 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const { format } = require("path");
 
 //lista de trabajadores y planillas para la vista de planillas
 const getPlanilla = async (req, res, next) => {
@@ -108,9 +107,7 @@ const getPlanilla = async (req, res, next) => {
     const filterAsociacion = asoci?.filter(
       (item) => item?.contratos?.length > 0
     );
-    const filterTrabajador = traba?.filter(
-      (item) => item?.trabajador_contratos?.length > 0
-    );
+
     const mapAsociacion =
       filterAsociacion.length > 0 &&
       filterAsociacion
@@ -122,10 +119,35 @@ const getPlanilla = async (req, res, next) => {
                   : curr;
               })
             : null;
+
+          console.log(item);
+
           const fechaInicioContrato = dayjs(
             item?.contratos?.filter((data) => data.finalizado === false)?.at(-1)
               ?.fecha_inicio
           );
+          const fechaFinContrato =
+            dayjs(
+              item?.contratos
+                ?.filter((data) => data.finalizado === false)
+                ?.at(-1)?.fecha_fin_estimada
+            ) ||
+            dayjs(
+              item?.contratos
+                ?.filter((data) => data.finalizado === false)
+                ?.at(-1)?.fecha_fin
+            );
+          const asistencia =
+            trabajadorCodigoMenor?.trabajador_asistencia?.filter((data) => {
+              const fechaAsistencia = dayjs(data.asistencium.fecha);
+              return (
+                ["Asistio", "Comisión"].includes(data.asistencia) &&
+                (fechaAsistencia.isSame(fechaInicioContrato) ||
+              fechaAsistencia.isAfter(fechaInicioContrato)) &&
+            (fechaAsistencia.isSame(fechaFinContrato) ||
+              fechaAsistencia.isBefore(fechaFinContrato))
+              );
+            }).length;
 
           return {
             nombre: item?.nombre,
@@ -169,32 +191,40 @@ const getPlanilla = async (req, res, next) => {
               .filter((data) => data.finalizado === false)
               .at(-1)
               ?.teletrans.at(-1)?.saldo,
-            asistencia: trabajadorCodigoMenor?.trabajador_asistencia
-              ?.map((data) => {
-                const fechaAsistencia = dayjs(data.asistencium.fecha);
-                return (
-                  (data.asistencia === "Asistio" ||
-                    data.asistencia === "Comisión") &&
-                  (fechaAsistencia.isAfter(fechaInicioContrato) ||
-                    fechaAsistencia.isSame(fechaInicioContrato))
-                );
-              })
-              .filter((item) => item === true).length,
+            asistencia: asistencia,
           };
         })
         .filter((item) => item.contratos);
-
+    const filterTrabajador = traba?.filter(
+      (item) => item?.trabajador_contratos?.length > 0
+    );
     const mapTrabajador = filterTrabajador?.map((item, i) => {
       const contratoFiltrado = item?.trabajador_contratos?.filter(
+        (data) => data.contrato
+      );
+      const contratoFinal = item?.trabajador_contratos?.filter(
         (data) => data.contrato
       );
       const fechaInicioContrato = dayjs(
         contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
       );
 
-      const contratoFinal = item?.trabajador_contratos?.filter(
-        (data) => data.contrato
-      ).at(-1);
+      // Crear una variable que almacene la fecha de fin estimada o la fecha de fin
+      const fechaFinContrato =
+        dayjs(
+          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
+        ) || dayjs(contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin));
+
+      const asistencia = item.trabajador_asistencia.filter((data) => {
+        const fechaAsistencia = dayjs(data.asistencium.fecha);
+        return (
+          (fechaAsistencia.isSame(fechaInicioContrato) ||
+              fechaAsistencia.isAfter(fechaInicioContrato)) &&
+            (fechaAsistencia.isSame(fechaFinContrato) ||
+              fechaAsistencia.isBefore(fechaFinContrato))&& ["Asistio", "Comisión"].includes(data.asistencia)
+        );
+      }).length;
+
       return {
         dni: item?.dni,
         codigo_trabajador: item?.codigo_trabajador,
@@ -219,32 +249,21 @@ const getPlanilla = async (req, res, next) => {
         fecha_inicio: dayjs(
           contratoFiltrado?.map(
             (dat) => dat?.contrato?.fecha_inicio,
-            ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:s"]
           )
         ).format("DD-MM-YYYY"),
         fecha_fin: dayjs(
           contratoFiltrado?.map(
             (dat) => dat?.contrato?.fecha_fin,
-            ["YYYY-MM-DD", "YYYY-MM-DD HH:mm:s"]
+            
           )
         ).format("DD-MM-YYYY"),
-        fecha_fin_estimada: dayjs(
-          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
-        ).format("DD-MM-YYYY"),
+        fecha_fin_estimada: dayjs(contratoFiltrado
+          ?.map((dat) => dat?.contrato?.fecha_fin_estimada)).format("DD-MM-YYYY")
+          ,
         campamento: contratoFiltrado
           ?.map((dat) => dat?.contrato?.campamento?.nombre)
           .toString(),
-        asistencia: item?.trabajador_asistencia
-          ?.map((data) => {
-            const fechaAsistencia = dayjs(data.asistencium.fecha);
-            return (
-              (data.asistencia === "Asistio" ||
-                data.asistencia === "Comisión") &&
-              (fechaAsistencia.isAfter(fechaInicioContrato) ||
-                fechaAsistencia.isSame(fechaInicioContrato))
-            );
-          })
-          .filter((item) => item === true).length,
+        asistencia: asistencia,
         evaluacion: item?.evaluacions,
         volquete:
           contratoFiltrado
@@ -736,12 +755,11 @@ const getTareoTrabajador = async (req, res, next) => {
       ],
     });
 
-    const filterContrato = trabajadores.filter(
+    const filterContrato = trabajadores?.filter(
       (trabajador) =>
-        trabajador.trabajador_contratos.length > 0 &&
-        trabajador.trabajador_asistencia.length > 0
+        trabajador?.trabajador_contratos?.length > 0 &&
+        trabajador?.trabajador_asistencia?.length > 0
     );
-
     const aprobacionFilter = [];
     let subarrayId = 1;
 
@@ -755,24 +773,22 @@ const getTareoTrabajador = async (req, res, next) => {
       const fechaInicioDayjs = dayjs(fechaInicio);
       const fechaFinDayjs = dayjs(fechaFin);
       let asistenciasValidas = 0;
-      const asistenciasEnRango = [];
+      const asistenciasEnRango = trabajador?.trabajador_asistencia?.filter(
+        (asistencia) => {
+          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
 
-      trabajador?.trabajador_asistencia?.forEach((asistencia) => {
-        const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+          return (
+            (fechaAsistencia.isSame(fechaInicioDayjs) ||
+              fechaAsistencia.isAfter(fechaInicioDayjs)) &&
+            (fechaAsistencia.isSame(fechaFinDayjs) ||
+              fechaAsistencia.isBefore(fechaFinDayjs))
+          );
+        }
+      );
 
-        if (
-          (fechaAsistencia.isSame(fechaInicioDayjs) ||
-            fechaAsistencia.isAfter(fechaInicioDayjs)) &&
-          (fechaAsistencia.isSame(fechaFinDayjs) ||
-            fechaAsistencia.isBefore(fechaFinDayjs))
-        ) {
-          asistenciasEnRango.push(asistencia);
-          if (
-            asistencia.asistencia === "Asistio" ||
-            asistencia.asistencia === "Comisión"
-          ) {
-            asistenciasValidas++;
-          }
+      asistenciasEnRango.forEach((asistencia) => {
+        if (["Asistio", "Comisión"].includes(asistencia.asistencia)) {
+          asistenciasValidas++;
         }
       });
 
@@ -781,7 +797,7 @@ const getTareoTrabajador = async (req, res, next) => {
       });
 
       const contrato = trabajador.trabajador_contratos[0].contrato;
-      const teletrans = contrato?.teletrans?.slice(-1)[0] || {};
+      const teletrans = { ...contrato?.teletrans?.slice(-1)[0] };
 
       const asistenciaCompleta = asistenciasEnRango.map((item, a) => {
         return {
@@ -795,32 +811,22 @@ const getTareoTrabajador = async (req, res, next) => {
       });
 
       const aprobacionFiltered =
-        contrato.aprobacion_contrato_pagos
-          ?.filter((item) => item.subarray_id == subarrayId)
-          .slice(-1)[0] || {};
+        contrato.aprobacion_contrato_pagos?.find(
+          (item) => item.subarray_id === subarrayId
+        ) || {};
 
       aprobacionFilter.push({
         subarray_id: subarrayId,
-        nombre:
-          trabajador?.apellido_paterno +
-          " " +
-          trabajador?.apellido_materno +
-          " " +
-          trabajador?.nombre,
+        nombre: `${trabajador?.apellido_paterno} ${trabajador?.apellido_materno} ${trabajador?.nombre}`,
         celular: trabajador?.telefono,
         dni: trabajador?.dni,
         fecha_inicio: dayjs(fechaInicio)?.format("DD-MM-YYYY"),
         fecha_fin: dayjs(fechaFin)?.format("DD-MM-YYYY"),
-        volquete:
-          trabajador?.trabajador_contratos[0]?.contrato?.teletrans?.at(-1)
-            ?.volquete,
-        teletran:
-          trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)
-            ?.teletrans,
-        total:
-          trabajador.trabajador_contratos[0].contrato?.teletrans?.at(-1)?.total,
+        volquete: teletrans.volquete,
+        teletran: teletrans.teletrans,
+        total: teletrans.total,
         trabajador_asistencia: asistenciasEnRango,
-        cargo: trabajador?.trabajador_contratos[0]?.contrato?.puesto,
+        cargo: contrato.puesto,
         asistencia: asistenciasValidas,
         asistencia_completa: asistenciaCompleta,
         estado: aprobacionFiltered.estado,
@@ -834,7 +840,7 @@ const getTareoTrabajador = async (req, res, next) => {
     };
 
     if (!filterContrato) {
-        return;
+      return;
     }
     filterContrato.map((trabajador) => {
       let contador = 0;
@@ -843,53 +849,59 @@ const getTareoTrabajador = async (req, res, next) => {
         trabajador.trabajador_contratos[0].contrato.fecha_inicio
       );
 
-      const numAsistencias = trabajador?.trabajador_asistencia?.length;
+      const contratoFechaFin =
+        dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada) ||
+        dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin);
+
       const minAsistencias = 15;
+      const sortedAsistencias = trabajador?.trabajador_asistencia
+        ?.filter((asistencia) => {
+          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+          return (
+            (fechaAsistencia.isSame(contratoFechaInicio) ||
+              fechaAsistencia.isAfter(contratoFechaInicio)) &&
+            (fechaAsistencia.isSame(contratoFechaFin) ||
+              fechaAsistencia.isBefore(contratoFechaFin))
+          );
+        })
+        .sort((a, b) => a.asistencium.fecha.localeCompare(b.asistencium.fecha));
+
+      const numAsistencias = sortedAsistencias.length;
 
       if (numAsistencias >= 1) {
         let subAsistencias = [];
         let fechaInicio = null;
         let fechaFin = null;
 
-        const sortedAsistencias = trabajador?.trabajador_asistencia
-          ?.filter((asistencia) => {
-            const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-            return (
-              fechaAsistencia.isSame(contratoFechaInicio) ||
-              fechaAsistencia.isAfter(contratoFechaInicio)
-            );
-          })
-          .sort((a, b) =>
-            a.asistencium.fecha.localeCompare(b.asistencium.fecha)
-          );
-
         for (let i = 0; i < numAsistencias; i++) {
           const asistencia = sortedAsistencias[i];
           if (
-            (asistencia && asistencia.asistencia === "Asistio") ||
-            asistencia?.asistencia === "Comisión"
+            asistencia &&
+            ["Asistio", "Comisión"].includes(asistencia.asistencia)
           ) {
             contador++;
           }
 
           subAsistencias.push(asistencia);
-
           if (contador === 1) {
             fechaInicio = asistencia.asistencium.fecha;
+            console.log(fechaInicio);
           }
 
           if (contador >= minAsistencias || i === numAsistencias - 1) {
-            fechaFin = asistencia?.asistencium?.fecha;
-            createSubarray(
-              trabajador,
-              subAsistencias,
-              fechaInicio,
-              fechaFin,
-              contador
-            );
+            if (asistencia) {
+              fechaFin = asistencia.asistencium.fecha;
 
+              createSubarray(
+                trabajador,
+                subAsistencias,
+                fechaInicio,
+                fechaFin,
+                contador
+              );
+            }
             // Actualiza la fecha de inicio del siguiente subarray.
-            if (i < numAsistencias - 1) {
+            if (i < numAsistencias - 1 && sortedAsistencias[i + 1]) {
               fechaInicio = sortedAsistencias[i + 1].asistencium.fecha;
             }
 
@@ -904,7 +916,6 @@ const getTareoTrabajador = async (req, res, next) => {
         }
       }
     });
-
     return res.status(200).json({ data: aprobacionFilter });
   } catch (error) {
     console.log(error);
@@ -983,10 +994,12 @@ const getTareoAsociacion = async (req, res, next) => {
               const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
                 "YYYY-MM-DD",
                 "YYYY-MM-DD HH:mm:ss",
-              ]).toDate();
+              ]);
               return (
-                asistenciaFecha.getTime() >= fechaInicio.getTime() &&
-                asistenciaFecha.getTime() <= fechaFin.getTime()
+                (asistenciaFecha.isSame(fechaInicio) ||
+                  asistenciaFecha.isAfter(fechaInicio)) &&
+                (asistenciaFecha.isSame(fechaFin) ||
+                  asistenciaFecha.isBefore(fechaFin))
               );
             })
             .sort((a, b) => {
