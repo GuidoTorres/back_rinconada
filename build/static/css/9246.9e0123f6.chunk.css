@@ -1,0 +1,2 @@
+.estadisticas-container{display:grid;grid-template-rows:10% 1fr;height:90%;margin-top:30px;padding:20px 30px}.estadisticas-container .estadisticas-layout{grid-gap:10px;display:grid;gap:10px;grid-template-columns:40% 1fr 1fr;width:40%}.estadisticas-container .grafico-container{display:flex;height:90%;justify-content:center;margin-bottom:20px;padding:10px}.estadisticas-container .grafico-container .barChart{border:1px solid #d9d9d9;border-radius:6px;height:100%;padding:10px;width:80%}
+/*# sourceMappingURL=9246.9e0123f6.chunk.css.map*/

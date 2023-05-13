@@ -67,21 +67,21 @@ const getContratoById = async (req, res, next) => {
             fecha_inicio_tabla: dayjs(data?.contrato?.fecha_inicio)?.format(
               "DD-MM-YYYY"
             ),
-            fecha_fin_tabla: dayjs(data?.contrato?.fecha_fin_estimada).isValid()
-            ? dayjs(data?.contrato?.fecha_fin_estimada)?.format("DD-MM-YYYY")
-            : dayjs(data?.contrato?.fecha_fin)?.format("DD-MM-YYYY"),
+            fecha_fin_tabla:
+              dayjs(data?.contrato?.fecha_fin_estimada)?.format("DD-MM-YYYY") ||
+              dayjs(data?.contrato?.fecha_fin)?.format("DD-MM-YYYY"),
             fecha_fin_estimada: dayjs(
               data?.contrato?.fecha_fin_estimada
             )?.format("YYYY-MM-DD"),
-            fecha_fin_tabla_estimada: dayjs(
-              data?.contrato?.fecha_fin_estimada
-            )?.format("DD-MM-YYYY"),
+            fecha_fin_tabla_estimada:
+              dayjs(data?.contrato?.fecha_fin_estimada)?.format("DD-MM-YYYY") ||
+              dayjs(data?.contrato?.fecha_fin)?.format("DD-MM-YYYY"),
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),
-            fecha_fin: dayjs(data?.contrato?.fecha_fin_estimada).isValid()
-              ? dayjs(data?.contrato?.fecha_fin_estimada)?.format("YYYY-MM-DD")
-              : dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
+            fecha_fin:
+              dayjs(data?.contrato?.fecha_fin_estimada)?.format("YYYY-MM-DD") ||
+              dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
             codigo_contrato: data?.contrato?.codigo_contrato,
             tipo_contrato: data?.contrato?.tipo_contrato,
             periodo_trabajo: data?.contrato?.periodo_trabajo,

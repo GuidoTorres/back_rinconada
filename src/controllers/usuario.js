@@ -37,6 +37,7 @@ const postUsuario = async (req, res, next) => {
     rol_id: req.body.rol_id,
     cargo_id: req.body.cargo_id,
     foto: req.file ? process.env.LOCAL_IMAGE + req?.file?.filename : "",
+    caja: req.body.caja,
   };
 
   try {
@@ -73,6 +74,7 @@ const updateUsuario = async (req, res, next) => {
     estado: req.body.estado,
     rol_id: req.body.rol_id,
     cargo_id: req.body.cargo_id,
+    caja: req.body.caja,
     foto: req.file
       ? process.env.LOCAL_IMAGE + req.file.filename
       : req.body.foto,
@@ -95,7 +97,6 @@ const updateUsuario = async (req, res, next) => {
     return res
       .status(200)
       .json({ msg: "Usuario actualizado con éxito!", status: 200 });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo actualizar", status: 500 });
@@ -109,7 +110,6 @@ const deleteUsuario = async (req, res, next) => {
     return res
       .status(200)
       .json({ msg: "Usuario eliminado con éxito!", status: 200 });
-    next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo eliminar", status: 500 });
   }
@@ -169,6 +169,7 @@ const updatePermisos = async (req, res, next) => {
     planillas_incentivos: req?.body?.planillas_incentivos,
     planillas_casa: req?.body?.planillas_casa,
     planillas_asociacion: req?.body?.planillas_asociacion,
+    planillas_aprobacion: req?.body?.planillas_aprobacion,
     logistica_aprobacion_jefe: req?.body?.logistica_aprobacion_jefe,
     logistica_aprobacion_gerente: req?.body?.logistica_aprobacion_gerente,
     logistica_aprobacion_superintendente:

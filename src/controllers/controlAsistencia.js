@@ -248,12 +248,14 @@ const getPlanillaAprobacion = async () => {
             "YYYY-MM-DD",
             "YYYY-MM-DD HH:mm:ss",
           ]);
-          return ((asistencia.asistencia === "Asistio" ||
-            asistencia.asistencia === "Comisión") &&
+          return (
+            (asistencia.asistencia === "Asistio" ||
+              asistencia.asistencia === "Comisión") &&
             (asistenciaFecha.isSame(fechaInicioData) ||
               asistenciaFecha.isAfter(fechaInicioData)) &&
             (asistenciaFecha.isSame(fechaFinData) ||
-              asistenciaFecha.isBefore(fechaFinData)));
+              asistenciaFecha.isBefore(fechaFinData))
+          );
         })
         .sort(
           (a, b) =>
@@ -263,13 +265,15 @@ const getPlanillaAprobacion = async () => {
       if (numAsistencias >= 15) {
         let contador = 0;
         let subAsistencias = [];
-        let fechaInicio = null
-        let fechaFin = null
+        let fechaInicio = null;
+        let fechaFin = null;
         let currentDate = fechaInicioContrato;
         let indexAsistencia = 0;
 
-        while (currentDate.isBefore(fechaFinData) ||
-        currentDate.isSame(fechaFinData)) {
+        while (
+          currentDate.isBefore(fechaFinData) ||
+          currentDate.isSame(fechaFinData)
+        ) {
           const asistencia = asistencias.find((asistencia) => {
             const asistenciaFecha = dayjs(asistencia.asistencium.fecha);
             return asistenciaFecha.isSame(currentDate, "day");
@@ -356,7 +360,6 @@ const getPlanillaAprobacion = async () => {
             }
           }
           currentDate = currentDate.add(1, "day");
-
         }
       }
     });
@@ -467,14 +470,12 @@ const asociacionData = async () => {
       asistencias = asistencias.filter((asistencia) => {
         const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
         const fechaInicioContrato = dayjs(contrato.fecha_inicio);
-        const fechaFinContrato =
-          dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
         return (
-          fechaAsistencia.isSame(fechaInicioContrato, "day") ||
-          (fechaAsistencia.isAfter(fechaInicioContrato, "day") &&
-            fechaAsistencia.isSame(fechaFinContrato, "day")) ||
-          fechaAsistencia.isBefore(fechaFinContrato, "day")
+          (fechaAsistencia.isSame(fechaInicioContrato, "day") ||
+            fechaAsistencia.isAfter(fechaInicioContrato, "day")) &&
+          (fechaAsistencia.isSame(fechaFinal, "day") ||
+            fechaAsistencia.isBefore(fechaFinal, "day"))
         );
       });
       // Llama a la función calculateEstimatedDate con los argumentos correspondientes.
@@ -515,11 +516,11 @@ const asociacionData = async () => {
       } else if (contrato.tareo === "Lunes a sabado") {
         cantidadEstimada = 15 * contrato.periodo_trabajo;
       }
-
       if (cantidadReal >= cantidadEstimada) {
         await contrato.update({
           finalizado: true,
           fecha_fin: fechaEstimada.toDate(),
+          fecha_fin_estimada: fechaEstimada.toDate(),
         });
         // Desligar trabajadores de la asociación y finalizar evaluaciones
         for (const trabajador of contrato.asociacion.trabajadors) {
@@ -682,25 +683,33 @@ function calculateEstimatedDate(
   // Recorre todos los días entre la fecha de inicio del contrato y la fecha de la última asistencia registrada.
   for (
     let currentDate = contractStartDate;
-    currentDate.isBefore(lastAttendanceDate) ||
-    currentDate.isSame(lastAttendanceDate);
+    dayjs(currentDate).isSame(dayjs(lastAttendanceDate)) ||
+    dayjs(currentDate).isBefore(dayjs(lastAttendanceDate));
     currentDate = currentDate.add(1, "day")
   ) {
     // Comprueba si hay algún elemento en el array workerAttendances que coincida con la fecha actual.
     let hasRecord = workerAttendances.some(
-      (a) => a.asistencium.fecha === currentDate.format("YYYY-MM-DD")
+      (a) =>
+        dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+        dayjs(currentDate).format("YYYY-MM-DD")
     );
+
     // Si no lo hay, y no es un domingo (suponiendo que los domingos no son días laborables), incrementa la variable daysToAdd en uno.
     if (!hasRecord && currentDate.day() !== 0) {
+      console.log(
+        "No record for date:",
+        dayjs(currentDate).format("YYYY-MM-DD")
+      );
       daysToAdd++;
     }
     let hasAttendance = workerAttendances.some(
       (a) =>
-        a.asistencia !== "Asistio" &&
-        a.asistencia !== "Comisión" &&
-        a.asistencium.fecha === currentDate.format("YYYY-MM-DD")
+        a.asistencia === "Asistio" ||
+        (a.asistencia === "Comisión" &&
+          dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+            dayjs(currentDate).format("YYYY-MM-DD"))
     );
-    if (hasAttendance && currentDate.day() !== 0) {
+    if (!hasAttendance && currentDate.day() !== 0) {
       daysToAdd++;
     }
 
@@ -715,9 +724,13 @@ function calculateEstimatedDate(
       daysToAdd--;
     }
   }
+  console.log(daysToAdd);
+  console.log(estimatedDate);
   // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
-  estimatedDate = estimatedDate.add(daysToAdd, "day");
+  estimatedDate = dayjs(estimatedDate).add(daysToAdd, "day");
   // Devuelve un objeto con la nueva fecha estimada.
+  console.log(estimatedDate);
+
   return { estimatedDate };
 }
 
