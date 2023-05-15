@@ -29,7 +29,16 @@ const getTrabajador = async (req, res, next) => {
       include: [
         {
           model: evaluacion,
-          
+          attributes: [
+            "fiscalizador_aprobado",
+            "control",
+            "topico",
+            "seguridad",
+            "medio_ambiente",
+            "recursos_humanos",
+            "finalizado",
+            "id",
+          ],
         },
         {
           model: trabajador_contrato,
@@ -38,8 +47,8 @@ const getTrabajador = async (req, res, next) => {
           include: [
             {
               model: contrato,
+              attributes: ["nota_contrato", "finalizado"],
               include: [{ model: area }],
-              attributes: { exclude: ["contrato_id"] },
               include: [
                 {
                   model: campamento,
@@ -54,6 +63,10 @@ const getTrabajador = async (req, res, next) => {
 
     const obj = get
       .map((item) => {
+        const evaluacionActiva = item?.evaluacions.find(
+          (item) => item.finalizado === false
+        );
+
         return {
           dni: item?.dni,
           codigo_trabajador: item?.codigo_trabajador,
@@ -70,46 +83,19 @@ const getTrabajador = async (req, res, next) => {
           deshabilitado: item?.deshabilitado,
           foto: item?.foto,
           eliminar: item?.eliminar,
-          evaluacion: item?.evaluacions.filter(
-            (item) => item.finalizado === false
-          ),
-          contrato: item?.trabajador_contratos
-            ?.map((data) => {
-              return {
-                id: data?.contrato?.id,
-                fecha_inicio: data?.contrato?.fecha_inicio,
-                codigo_contrato: data?.contrato?.codigo_contrato,
-                tipo_contrato: data?.contrato?.tipo_contrato,
-                periodo_trabajo: data?.contrato?.periodo_trabajo,
-                fech_fin: data?.contrato?.fech_fin,
-                gerencia: data?.contrato?.gerencia,
-                area: data?.contrato?.area,
-                jefe_directo: data?.contrato?.jefe,
-                base: data?.contrato?.base,
-                termino_contrato: data?.contrato?.termino_contrato,
-                nota_contrato: data?.contrato?.nota_contrato,
-                puesto: data?.contrato?.puesto,
-                campamento_id: data?.contrato?.campamento_id,
-                asociacion_id: data?.contrato?.asociacion_id,
-                estado: data?.contrato?.estado,
-                volquete: data?.contrato?.volquete,
-                teletran: data?.contrato?.teletran,
-                suspendido: data?.contrato?.suspendido,
-                finalizado: data?.contrato?.finalizado,
-                tareo: data?.contrato?.tareo,
-                deshabilitado: data?.contrato?.deshabilitado,
-                campamento: data?.contrato?.campamento?.nombre,
-                suspendido: data?.contrato?.suspendido
-              };
-            })
-            ,
+          evaluacion: evaluacionActiva,
+          contrato: item?.trabajador_contratos?.map((data) => {
+            return {
+              finalizado: data?.contrato?.finalizado,
+              nota_contrato: data?.contrato?.nota_contrato,
+              campamento: data?.contrato?.campamento?.nombre,
+              id: data?.contrato?.id,
+            };
+          }),
         };
       })
       .sort((a, b) => {
-        // Ordena por deshabilitado en orden descendente
         if (a.deshabilitado === b.deshabilitado) {
-          // Si los dos objetos tienen el mismo valor de 'deshabilitado'
-          // entonces se ordena por 'codigo_trabajador' en orden ascendente
           return a.codigo_trabajador.localeCompare(b.codigo_trabajador);
         } else {
           return a.deshabilitado ? 1 : -1;
@@ -122,40 +108,6 @@ const getTrabajador = async (req, res, next) => {
   }
 };
 
-const getTrabajadorById = async (req, res, next) => {
-  let id = req.params.id;
-  // try {
-  //   const get = await trabajador.findAll({
-  //     attributes: { exclude: ["usuarioId"] },
-  //   });
-
-  //   const obj = get.map((item) => {
-  //     return {
-  //       dni: item?.dni,
-  //       codigo_trabajador: item?.codigo_trabajador,
-  //       fecha_nacimiento: dayjs(item?.fecha_nacimiento).format("DD/MM/YYYY"),
-  //       telefono: item?.telefono,
-  //       nombre: item?.nombre,
-  //       apellido_paterno: item?.apellido_paterno,
-  //       apellido_materno: item?.apellido_materno,
-  //       email: item?.email,
-  //       estado_civil: item?.estado_civil,
-  //       genero: item?.genero,
-  //       direccion: item?.direccion,
-  //       asociacion_id: item?.asociacion_id,
-  //       deshabilitado: item?.deshabilitado,
-  //       foto: item?.foto,
-  //       eliminar: item?.eliminar,
-  //     };
-  //   });
-
-  //   res.status(200).json({ data: obj });
-  //   next();
-  // } catch (error) {
-  //   console.log(error);
-  //   res.status(500).json();
-  // }
-};
 
 const postTrabajador = async (req, res, next) => {
   let info;
@@ -196,7 +148,6 @@ const postTrabajador = async (req, res, next) => {
       return res
         .status(200)
         .json({ msg: "Trabajador registrado con éxito!", status: 200 });
-      next();
     } else if (filterRepeated.length > 0) {
       return res
         .status(200)
@@ -424,7 +375,6 @@ const softDeleteTrabajador = async (req, res, next) => {
     return res
       .status(200)
       .json({ msg: "Trabajador eliminado con éxito", status: 200 });
-    next();
   } catch (error) {
     console.log(error);
     res
@@ -520,7 +470,9 @@ const getTrabajadorPagoAprobado = async (req, res, next) => {
             aprobacion: item.trabajador_contratos
               .at(-1)
               .contrato.aprobacion_contrato_pagos.filter(
-                (item) => item.estado === true && item.pagado === false || item.pagado === null
+                (item) =>
+                  (item.estado === true && item.pagado === false) ||
+                  item.pagado === null
               ),
           };
         }
@@ -540,7 +492,6 @@ module.exports = {
   postTrabajador,
   updateTrabajador,
   deleteTrabajador,
-  getTrabajadorById,
   postMultipleTrabajador,
   softDeleteTrabajador,
   getLastId,

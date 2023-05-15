@@ -11,7 +11,6 @@ const getAlmacen = async (req, res, next) => {
   try {
     const get = await almacen.findAll();
     return res.status(200).json({ data: get });
-    next();
   } catch (error) {
     res.status(500).json();
   }
@@ -25,7 +24,6 @@ const getAlmacenById = async (req, res, next) => {
       where: { id: id },
     });
     return res.status(200).json({ data: getById });
-    next();
   } catch (error) {
     res.status(500).json({ error: error });
   }
@@ -38,7 +36,6 @@ const postAlmacen = async (req, res, next) => {
       .status(200)
       .json({ msg: "Almacén registrado con éxito!", status: 200 });
 
-    next();
   } catch (error) {
     res
       .status(500)

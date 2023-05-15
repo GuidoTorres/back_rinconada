@@ -4,6 +4,8 @@ const {
   evaluacion,
   teletrans,
   trabajador_contrato,
+  aprobacion_contrato_pago,
+  contrato_pago,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -395,6 +397,9 @@ const deleteContrato = async (req, res, next) => {
   let id = req.params.id;
   try {
     let removeTtrans = await teletrans.destroy({ where: { contrato_id: id } });
+    let contra_pago = await contrato_pago.destroy({where:{contrato_id:id}})
+
+    let aproba = await aprobacion_contrato_pago.destroy({where:{contrato_id:id}})
     let removeTrabajadorContrato = await trabajador_contrato.destroy({
       where: { contrato_id: id },
     });

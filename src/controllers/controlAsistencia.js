@@ -696,10 +696,6 @@ function calculateEstimatedDate(
 
     // Si no lo hay, y no es un domingo (suponiendo que los domingos no son días laborables), incrementa la variable daysToAdd en uno.
     if (!hasRecord && currentDate.day() !== 0) {
-      console.log(
-        "No record for date:",
-        dayjs(currentDate).format("YYYY-MM-DD")
-      );
       daysToAdd++;
     }
     let hasAttendance = workerAttendances.some(
@@ -724,12 +720,10 @@ function calculateEstimatedDate(
       daysToAdd--;
     }
   }
-  console.log(daysToAdd);
-  console.log(estimatedDate);
+
   // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
   estimatedDate = dayjs(estimatedDate).add(daysToAdd, "day");
   // Devuelve un objeto con la nueva fecha estimada.
-  console.log(estimatedDate);
 
   return { estimatedDate };
 }

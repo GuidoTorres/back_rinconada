@@ -7,7 +7,6 @@ const multer = require("../middleware/multer")
 router.get("/", trabajador.getTrabajador);
 router.get("/aprobado", trabajador.getTrabajadorPagoAprobado);
 router.get("/last/id", trabajador.getLastId);
-router.get("/:id", trabajador.getTrabajadorById);
 router.post("/bulk",  multer(),trabajador.postMultipleTrabajador);
 router.post("/",  images(),trabajador.postTrabajador);
 router.put("/:id", images(),trabajador.updateTrabajador);

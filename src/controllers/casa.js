@@ -5,7 +5,6 @@ const {
   contrato,
   destino,
   destino_pago,
-  trabajador,
 } = require("../../config/db");
 
 const getEmpresaPago = async (req, res, next) => {
@@ -74,12 +73,14 @@ const createProgramacionCasa = async (req, res, next) => {
       });
     } else {
       const post = await pago.create(info);
+
       let contra_pago = {
         teletrans: info.teletrans,
         volquetes: info.volquetes,
         contrato_id: req.body.contrato_id,
         pago_id: post.id,
       };
+      console.log(contra_pago);
       const pagoContrato = await contrato_pago.create(contra_pago);
       return res
         .status(200)

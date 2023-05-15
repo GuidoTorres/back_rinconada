@@ -12,7 +12,6 @@ const getEvaluacion = async (req, res, next) => {
   try {
     const get = await evaluacion.findAll();
     return res.status(200).json({ data: get });
-    next();
   } catch (error) {
     res.status(500).json();
   }
@@ -24,7 +23,7 @@ const getEvaluacionById = async (req, res, next) => {
   try {
     const evaluaciones = await evaluacion.findAll({
       where: { trabajador_id: id },
-      order: [['id', 'ASC']],
+      order: [["id", "ASC"]],
       include: [
         {
           model: trabajador,
@@ -32,10 +31,10 @@ const getEvaluacionById = async (req, res, next) => {
         },
       ],
     });
-    
+
     const contratos = await trabajador_contrato.findAll({
       where: { trabajador_dni: id },
-      order: [['id', 'ASC']],
+      order: [["id", "ASC"]],
       include: [
         {
           model: contrato,
@@ -92,7 +91,7 @@ const getEvaluacionById = async (req, res, next) => {
         recursos_humanos: item?.recursos_humanos,
         recursos_humanos_observacion: item?.recursos_humanos_observacion,
         suspendido: contrato ? contrato.suspendido.toString() : null,
-    nota_contrato: contrato ? contrato.nota_contrato : null,
+        nota_contrato: contrato ? contrato.nota_contrato : null,
       };
     });
     return res.status(200).json({ data: obj });
@@ -200,7 +199,6 @@ const deleteEvaluacion = async (req, res, next) => {
     return res
       .status(200)
       .json({ msg: "Evaluación eliminada con éxito!", status: 200 });
-    next();
   } catch (error) {
     res
       .status(500)

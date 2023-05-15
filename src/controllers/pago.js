@@ -1,6 +1,5 @@
 const dayjs = require("dayjs");
-const { filter, concat } = require("lodash");
-const { where, Op } = require("sequelize");
+const { Op } = require("sequelize");
 const {
   pago,
   contrato,

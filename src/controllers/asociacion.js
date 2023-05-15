@@ -39,6 +39,42 @@ const getAsociacion = async (req, res, next) => {
     });
 
     const formatData = all.map((item) => {
+      const trabajadors = item.trabajadors
+        .map((data, i) => {
+          return {
+            dni: data.dni,
+            codigo_trabajador: data.codigo_trabajador,
+            campamento: item.contratos
+              .map((data) => data.campamento.nombre)
+              .toString(),
+            fecha_nacimiento: data.fecha_nacimiento,
+            telefono: data.telefono,
+            nombre: data.nombre,
+            apellido_paterno: data.apellido_paterno,
+            apellido_materno: data.apellido_materno,
+            email: data.email,
+            estado_civil: data.estado_civil,
+            genero: data.genero,
+            direccion: data.direccion,
+            asociacion_id: data.asociacion_id,
+            deshabilitado: data.deshabilitado,
+            foto: data.foto,
+            eliminar: data.eliminar,
+            evaluacions: data.evaluacions.filter(
+              (dat) => dat.finalizado === false
+            ),
+          };
+        })
+        .sort((a, b) =>
+          a.codigo_trabajador.localeCompare(b.codigo_trabajador)
+        );
+    
+      // Aquí es donde se agrega el campo 'nro'
+      const trabajadorsWithNro = trabajadors.map((trabajador, index) => ({
+        ...trabajador,
+        nro: index + 1,
+      }));
+    
       return {
         id: item?.id,
         nombre: item?.nombre,
@@ -74,37 +110,10 @@ const getAsociacion = async (req, res, next) => {
             };
           })
           .filter((item) => item.finalizado === false),
-        trabajadors: item.trabajadors
-          .map((data) => {
-            return {
-              dni: data.dni,
-              codigo_trabajador: data.codigo_trabajador,
-              campamento: item.contratos
-                .map((data) => data.campamento.nombre)
-                .toString(),
-              fecha_nacimiento: data.fecha_nacimiento,
-              telefono: data.telefono,
-              nombre: data.nombre,
-              apellido_paterno: data.apellido_paterno,
-              apellido_materno: data.apellido_materno,
-              email: data.email,
-              estado_civil: data.estado_civil,
-              genero: data.genero,
-              direccion: data.direccion,
-              asociacion_id: data.asociacion_id,
-              deshabilitado: data.deshabilitado,
-              foto: data.foto,
-              eliminar: data.eliminar,
-              evaluacions: data.evaluacions.filter(
-                (dat) => dat.finalizado === false
-              ),
-            };
-          })
-          .sort((a, b) =>
-            a.codigo_trabajador.localeCompare(b.codigo_trabajador)
-          ),
+        trabajadors: trabajadorsWithNro,
       };
     });
+    
 
     return res.status(200).json({ data: formatData });
   } catch (error) {

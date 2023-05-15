@@ -4,12 +4,10 @@ const {
   campamento,
   evaluacion,
   trabajador,
-  contratoEvaluacion,
   trabajadorAsistencia,
   trabajador_contrato,
 } = require("../../config/db");
 const XLSX = require("xlsx");
-const date = require("date-and-time");
 const { Op, Sequelize } = require("sequelize");
 const dayjs = require("dayjs");
 
@@ -76,8 +74,6 @@ const getExcelAsistencia = async (req, res, next) => {
     const asistenciaExcelDiaActual = jsonFormat.filter(
       (item) => item.fecha === fecha
     );
-
-    console.log(asistenciaExcelDiaActual);
     //creo array de dnis para hacer busqueda
     const dni = jsonFormat.map((item) => item.dni).flat();
     const filtereDni = [...new Set(dni)];
@@ -131,11 +127,18 @@ const getExcelAsistencia = async (req, res, next) => {
       const diferencia_minutos =
         (fecha_hora_bd.getTime() - fecha_entrada.getTime()) / 60000;
       const umbral_tardanza = 15;
+      const decimalTime = item.entrada;
+      const hours = Math.floor(decimalTime * 24);
+      const minutes = Math.floor((decimalTime * 24 - hours) * 60);
+
+      const timeString = `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}`;
       return {
         asistencia_id: idFechaAsistencia,
         trabajador_id: item.dni.toString(),
         asistencia: item.entrada ? "Asistio" : "Falto",
-        hora_ingreso: item.entrada,
+        hora_ingreso: timeString,
         tarde: diferencia_minutos > umbral_tardanza ? "Si" : "No",
       };
     });
@@ -145,7 +148,6 @@ const getExcelAsistencia = async (req, res, next) => {
         const tieneAsistencia = trabajadorTieneAsistencia.some(
           (asistencia) => asistencia.trabajador_id === item.trabajador_id
         );
-
         if (tieneAsistencia) {
           acumulador.conAsistencia.push(item);
         } else {
@@ -156,6 +158,11 @@ const getExcelAsistencia = async (req, res, next) => {
       },
       { conAsistencia: [], sinAsistencia: [] }
     );
+
+    let responseMessages = [];
+
+    const conAsistencia = trabajadoresAsistencia.conAsistencia.length;
+    const sinAsistencia = trabajadoresAsistencia.sinAsistencia.length;
     if (trabajadoresAsistencia.conAsistencia.length > 0) {
       // Actualizar asistencias de trabajadores con asistencia existente
       await Promise.all(
@@ -175,28 +182,38 @@ const getExcelAsistencia = async (req, res, next) => {
           );
         })
       );
-      return res
-        .status(200)
-        .json({ msg: "Asistencias actualizadas con éxito!", status: 200 });
-    } else if (trabajadoresAsistencia.sinAsistencia.length > 0) {
-      
+      responseMessages.push(`Se actualizó ${conAsistencia} asistencia(s).`);
+    }
+
+    if (trabajadoresAsistencia?.sinAsistencia.length > 0) {
       // Crear nuevas asistencias para trabajadores sin asistencia existente
       await trabajadorAsistencia.bulkCreate(
         trabajadoresAsistencia.sinAsistencia
       );
-      return res
-        .status(200)
-        .json({ msg: "Asistencias registradas con éxito!", status: 200 });
-    } else {
+      responseMessages.push(`Se añadió ${sinAsistencia} asistencia(s).`);
+    }
+    let responseMessage;
+    if (responseMessages.length === 0) {
+      responseMessage =
+        "No se encontraron registros de asistencia para esta fecha.";
       return res.status(500).json({
-        msg: "No se encontraron registros de asistencia para esta fecha.",
+        msg: responseMessage,
         status: 500,
       });
+    } else if (responseMessages.length === 1) {
+      responseMessage = responseMessages[0];
+    } else {
+      responseMessage = responseMessages.join("      \n ");
     }
+
+    return res.status(200).json({
+      msg: responseMessage,
+      status: 200,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({
-      msg: "No se pudo registrar las asistencias.",
+      msg: "Hubo un error al registrar las asistencias.",
       status: 500,
     });
   }
@@ -419,7 +436,7 @@ const postTrabajadorAsistencia = async (req, res, next) => {
         .json({ msg: "Actualizado con éxito!", status: 200 });
     } else if (!getAsistencia) {
       const createAsistencia = await trabajadorAsistencia.create(info);
-      return res.status(200).json({ msg: "Creado con éxito!", status: 200 });
+      return res.status(200).json({ msg: "Registrada con éxito!", status: 200 });
     }
     next();
   } catch (error) {

@@ -27,16 +27,29 @@ const getPlanilla = async (req, res, next) => {
         asociacion_id: { [Op.is]: null },
         deshabilitado: { [Op.not]: true },
       },
-      attributes: { exclude: ["usuarioId"] },
+      attributes: [
+        "nombre",
+        "apellido_paterno",
+        "apellido_materno",
+        "telefono",
+        "asociacion_id",
+        "dni",
+      ],
       include: [
         {
           model: trabajadorAsistencia,
-          attributes: {
-            exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
-          },
-          include: [{ model: asistencia }],
+          attributes: ["id", "asistencia_id", "asistencia", "trabajador_id"],
+          include: [
+            {
+              model: asistencia,
+              attributes: ["id", "fecha"],
+            },
+          ],
         },
-        { model: evaluacion },
+        {
+          model: evaluacion,
+          attributes: ["id", "condicion_cooperativa", "recomendado_por"],
+        },
         {
           model: trabajador_contrato,
           attributes: { exclude: ["contrato_id"] },
@@ -44,19 +57,28 @@ const getPlanilla = async (req, res, next) => {
           include: [
             {
               model: contrato,
-              attributes: { exclude: ["contrato_id"] },
+              attributes: [
+                "suspendido",
+                "fecha_inicio",
+                "fecha_fin",
+                "fecha_fin_estimada",
+              ],
               where: {
                 finalizado: false,
                 suspendido: { [Op.not]: true },
               },
               include: [
                 { model: teletrans },
+                {
+                  model: campamento,
+                  attributes: { exclude: ["campamento_id"] },
+                },
 
-                { model: gerencia },
-                { model: area, attributes: { exclude: ["area_id"] } },
+                { model: gerencia, attributes: ["nombre"] },
+                { model: area, attributes: ["nombre"] },
                 {
                   model: cargo,
-                  attributes: { exclude: ["puesto_id", "cargo_id"] },
+                  attributes: ["nombre"],
                 },
               ],
             },
@@ -69,38 +91,46 @@ const getPlanilla = async (req, res, next) => {
       include: [
         {
           model: contrato,
-          attributes: { exclude: ["contrato_id"] },
+          attributes: [
+            "suspendido",
+            "fecha_inicio",
+            "fecha_fin",
+            "fecha_fin_estimada",
+            "finalizado",
+          ],
           include: [
             { model: teletrans },
             {
               model: campamento,
               attributes: { exclude: ["campamento_id"] },
             },
-            { model: gerencia },
-            { model: area, attributes: { exclude: ["area_id"] } },
+            { model: gerencia, attributes: ["nombre"] },
+            { model: area, attributes: ["nombre"] },
             {
               model: cargo,
-              attributes: { exclude: ["puesto_id", "cargo_id"] },
+              attributes: ["nombre"],
             },
           ],
         },
         {
           model: trabajador,
-          attributes: {
-            exclude: [
-              "trabajadorId",
-              "asistenciumId",
-              "trabajadorDni",
-              "usuarioId",
-            ],
-          },
+          attributes: [
+            "nombre",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "codigo_trabajador",
+          ],
           include: [
             {
               model: trabajadorAsistencia,
-              attributes: {
-                exclude: ["trabajadorId", "asistenciumId", "trabajadorDni"],
-              },
-              include: [{ model: asistencia }],
+              attributes: [
+                "id",
+                "asistencia_id",
+                "asistencia",
+                "trabajador_id",
+              ],
+              include: [{ model: asistencia, attributes: ["id", "fecha"] }],
             },
           ],
         },
@@ -162,9 +192,9 @@ const getPlanilla = async (req, res, next) => {
               "DD-MM-YYYY"
             ),
             fecha_fin: dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
-            fecha_fin_estimada: dayjs(contratoActivo?.fecha_fin_estimada).format(
-              "DD-MM-YYYY"
-            ),
+            fecha_fin_estimada: dayjs(
+              contratoActivo?.fecha_fin_estimada
+            ).format("DD-MM-YYYY"),
             contratos: contratoActivo,
             volquete: contratoActivo?.teletrans.at(-1)?.volquete,
             puesto: "",
@@ -915,9 +945,8 @@ const getTareoAsociacion = async (req, res, next) => {
         {
           model: contrato,
           attributes: { exclude: ["contrato_id"] },
-          where: {
-            finalizado: false,
-          },
+          where:{finalizado:false},
+
           include: [
             { model: teletrans },
             { model: aprobacion_contrato_pago },
@@ -954,7 +983,8 @@ const getTareoAsociacion = async (req, res, next) => {
           "YYYY-MM-DD HH:mm:ss",
         ]).toDate();
         let fechaInicioData = dayjs(contrato.fecha_inicio);
-        let fechaFinData = dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
+        let fechaFinData =
+          dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
 
         if (fechaInicio.getTime() > fechaFin.getTime()) {
           return [];
