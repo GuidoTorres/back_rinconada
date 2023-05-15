@@ -191,7 +191,9 @@ const getPlanilla = async (req, res, next) => {
             fecha_inicio: dayjs(contratoActivo?.fecha_inicio).format(
               "DD-MM-YYYY"
             ),
-            fecha_fin: dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
+            fecha_fin: dayjs(
+              contratoActivo?.fecha_fin_estimada
+            ).format("DD-MM-YYYY") || dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
             fecha_fin_estimada: dayjs(
               contratoActivo?.fecha_fin_estimada
             ).format("DD-MM-YYYY"),
@@ -267,6 +269,8 @@ const getPlanilla = async (req, res, next) => {
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
         ).format("DD-MM-YYYY"),
         fecha_fin: dayjs(
+          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
+        ).format("DD-MM-YYYY") || dayjs(
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin)
         ).format("DD-MM-YYYY"),
         fecha_fin_estimada: dayjs(

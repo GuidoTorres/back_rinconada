@@ -3,12 +3,12 @@ const { Sequelize, DataTypes } = require("sequelize");
 const DB_URI = process.env.DB_URI;
 
 const sequelize = new Sequelize({
-  database: "rinconada",
+  database: "heroku_30cfe8f0814e57f",
   username: "root",
-  password: "root",
+  password: "Tupapi00",
   host: "localhost",
   dialect: "mysql",
-  port: "3306",
+  port: 3306,
   define: { timestamps: false, freezeTableName: true },
   dialectOptions: { decimalNumbers: true },
 });
