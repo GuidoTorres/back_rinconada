@@ -724,7 +724,11 @@ function calculateEstimatedDate(
   // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
   estimatedDate = dayjs(estimatedDate).add(daysToAdd, "day");
   // Devuelve un objeto con la nueva fecha estimada.
+  if (estimatedDate.day() === 0) {
+    estimatedDate = estimatedDate.add(1, "day");
+  }
 
+  // Devuelve un objeto con la nueva fecha estimada.
   return { estimatedDate };
 }
 

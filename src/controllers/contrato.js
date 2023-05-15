@@ -132,8 +132,12 @@ const getContratoAsociacionById = async (req, res, next) => {
         id: item?.id,
         fecha_inicio_tabla: dayjs(item?.fecha_inicio)?.format("DD-MM-YYYY"),
         fecha_inicio: dayjs(item?.fecha_inicio)?.format("YYYY-MM-DD"),
-        fecha_fin_tabla: dayjs(item?.fecha_fin)?.format("DD-MM-YYYY"),
-        fecha_fin: dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
+        fecha_fin_tabla:
+          dayjs(item?.fecha_fin_estimada)?.format("DD-MM-YYYY") ||
+          dayjs(item?.fecha_fin)?.format("DD-MM-YYYY"),
+        fecha_fin:
+          dayjs(item?.fecha_fin_estimada)?.format("YYYY-MM-DD") ||
+          dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
         codigo_contrato: item?.codigo_contrato,
         tipo_contrato: item?.tipo_contrato,
         periodo_trabajo: item?.periodo_trabajo,
@@ -397,9 +401,13 @@ const deleteContrato = async (req, res, next) => {
   let id = req.params.id;
   try {
     let removeTtrans = await teletrans.destroy({ where: { contrato_id: id } });
-    let contra_pago = await contrato_pago.destroy({where:{contrato_id:id}})
+    let contra_pago = await contrato_pago.destroy({
+      where: { contrato_id: id },
+    });
 
-    let aproba = await aprobacion_contrato_pago.destroy({where:{contrato_id:id}})
+    let aproba = await aprobacion_contrato_pago.destroy({
+      where: { contrato_id: id },
+    });
     let removeTrabajadorContrato = await trabajador_contrato.destroy({
       where: { contrato_id: id },
     });
