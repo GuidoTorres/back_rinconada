@@ -223,13 +223,13 @@ const getTrabajadorAsistencia = async (req, res, next) => {
   let id = req.params.id;
   try {
     const get = await trabajador.findAll({
-      attributes: { exclude: ["usuarioId"] },
+      attributes: ["dni", "apellido_paterno", "apellido_materno", "asociacion_id" ,"nombre"],
       where: { deshabilitado: { [Op.not]: true } },
       include: [
         {
           model: trabajadorAsistencia,
           // where: { asistencia_id: id },
-          attributes: { exclude: ["trabajadorDni", "asistenciumId"] },
+          attributes: ["id", "asistencia_id", "asistencia"],
         },
         {
           model: trabajador_contrato,
@@ -237,10 +237,10 @@ const getTrabajadorAsistencia = async (req, res, next) => {
             {
               model: contrato,
               where: {
-                finalizado: false,
-                suspendido: false,
+                finalizado: {[Op.not]: true},
+                suspendido: {[Op.not]: true},
               },
-              attributes: { exclude: ["contrato_id"] },
+              attributes: ["id"],
             },
           ],
         },
@@ -254,15 +254,9 @@ const getTrabajadorAsistencia = async (req, res, next) => {
       ?.map((item, i) => {
         return {
           dni: item?.dni,
-          codigo_trabajador: item?.codigo_trabajador,
-          fecha_nacimiento: item?.fecha_nacimiento,
-          telefono: item?.telefono,
           apellido_paterno: item?.apellido_paterno,
           apellido_materno: item?.apellido_materno,
           nombre: item?.nombre,
-          email: item?.email,
-          estado_civil: item?.estado_civil,
-          genero: item?.genero,
           asociacion_id: item?.asociacion_id,
           trabajador_asistencia: item?.trabajador_asistencia?.filter(
             (item) => parseInt(item.asistencia_id) === parseInt(id)

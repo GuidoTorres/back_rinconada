@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const compression = require('compression')
 require("./src/controllers/controlAsistencia")
 const trabajadorRouter = require("./src/routes/trabajador");
 const usuarioRouter = require("./src/routes/usuario");
@@ -44,7 +45,7 @@ const programacionRouter = require("./src/routes/programacion");
 const authRouter = require("./src/routes/auth");
 
 const app = express();
-
+app.use(compression())
 const PORT = process.env.PORT || 3002;
 app.use(express.json());
 app.use(cors({ origin: "*" }));
