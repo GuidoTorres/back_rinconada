@@ -9,6 +9,9 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
+const  utc =  require('dayjs/plugin/utc')
+
+dayjs.extend(utc); 
 
 const getContrato = async (req, res, next) => {
   try {
@@ -16,7 +19,6 @@ const getContrato = async (req, res, next) => {
       attributes: { exclude: ["contrato_id"] },
     });
     return res.status(200).json({ data: get });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();
@@ -46,6 +48,7 @@ const getContratoById = async (req, res, next) => {
     });
 
     const format = user.map((item) => {
+      const sortedEvaluations = item.evaluacions.sort((a, b) => b.id - a.id);
       return {
         dni: item?.dni,
         codigo_trabajador: item?.codigo_trabajador,
@@ -69,21 +72,13 @@ const getContratoById = async (req, res, next) => {
             fecha_inicio_tabla: dayjs(data?.contrato?.fecha_inicio)?.format(
               "DD-MM-YYYY"
             ),
-            fecha_fin_tabla:
-              dayjs(data?.contrato?.fecha_fin_estimada)?.format("DD-MM-YYYY") ||
-              dayjs(data?.contrato?.fecha_fin)?.format("DD-MM-YYYY"),
-            fecha_fin_estimada: dayjs(
-              data?.contrato?.fecha_fin_estimada
-            )?.format("YYYY-MM-DD"),
-            fecha_fin_tabla_estimada:
-              dayjs(data?.contrato?.fecha_fin_estimada)?.format("DD-MM-YYYY") ||
-              dayjs(data?.contrato?.fecha_fin)?.format("DD-MM-YYYY"),
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),
-            fecha_fin:
-              dayjs(data?.contrato?.fecha_fin_estimada)?.format("YYYY-MM-DD") ||
-              dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
+            fecha_fin_tabla:
+              dayjs(data?.contrato?.fecha_fin_estimada, ["YYYY-MM-DD"])?.format("DD-MM-YYYY") ||
+              dayjs(data?.contrato?.fecha_fin, ["YYYY-MM-DD"])?.format("DD-MM-YYYY"),
+            fecha_fin: dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
             codigo_contrato: data?.contrato?.codigo_contrato,
             tipo_contrato: data?.contrato?.tipo_contrato,
             periodo_trabajo: data?.contrato?.periodo_trabajo,
@@ -106,13 +101,11 @@ const getContratoById = async (req, res, next) => {
             suspendido: data?.contrato?.suspendido,
           };
         }),
-        evaluacion: item.evaluacions.at(0),
+        evaluacion: sortedEvaluations,
       };
     });
 
     return res.status(200).json({ data: format });
-
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json(error);
@@ -196,7 +189,8 @@ const postContrato = async (req, res, next) => {
         });
       } else {
         if (filterEva.length > 0) {
-          const post = await contrato.create(req.body);
+          let obj = { ...req.body, fecha_fin_estimada: req.body.fecha_fin}
+          const post = await contrato.create(obj);
 
           const contraPago = {
             contrato_id: post.id,
@@ -438,7 +432,6 @@ const getLastId = async (req, res, next) => {
         },
       ],
     });
-    console.log(contratos?.at(0)?.contrato.codigo_contrato);
     const nuevoId =
       contratos.length > 0
         ? parseInt(contratos?.at(0)?.contrato.codigo_contrato) + 1

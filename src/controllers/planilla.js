@@ -18,6 +18,9 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
+const  utc =  require('dayjs/plugin/utc')
+
+dayjs.extend(utc); 
 
 //lista de trabajadores y planillas para la vista de planillas
 const getPlanilla = async (req, res, next) => {
@@ -194,9 +197,7 @@ const getPlanilla = async (req, res, next) => {
             fecha_fin: dayjs(
               contratoActivo?.fecha_fin_estimada
             ).format("DD-MM-YYYY") || dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
-            fecha_fin_estimada: dayjs(
-              contratoActivo?.fecha_fin_estimada
-            ).format("DD-MM-YYYY"),
+
             contratos: contratoActivo,
             volquete: contratoActivo?.teletrans.at(-1)?.volquete,
             puesto: "",
@@ -268,14 +269,12 @@ const getPlanilla = async (req, res, next) => {
         fecha_inicio: dayjs(
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
         ).format("DD-MM-YYYY"),
-        fecha_fin: dayjs(
+        fecha_fin: dayjs.utc(
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
         ).format("DD-MM-YYYY") || dayjs(
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin)
         ).format("DD-MM-YYYY"),
-        fecha_fin_estimada: dayjs(
-          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
-        ).format("DD-MM-YYYY"),
+
         campamento: contratoFiltrado
           ?.map((dat) => dat?.contrato?.campamento?.nombre)
           .toString(),

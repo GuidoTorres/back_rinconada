@@ -338,17 +338,17 @@ const aprobacionAsistencias = async (req, res, next) => {
         const fecha = item.asistencium.fecha;
         initialAsistenciasObj[fecha] = item.asistencia;
       });
-      const cargoNombre = trabajadorAsis.trabajador_contratos
-        .map((item) => item.contrato.cargo.nombre)
+      const cargoNombre = trabajadorAsis?.trabajador_contratos
+        ?.map((item) => item?.contrato?.cargo?.nombre)
         .toString();
-      const areaNombre = trabajadorAsis.trabajador_contratos
-        .map((item) => item.contrato.area.nombre)
+      const areaNombre = trabajadorAsis?.trabajador_contratos
+        ?.map((item) => item?.contrato?.area?.nombre)
         .toString();
-      const volquetesData = trabajadorAsis.trabajador_contratos
-        .map((item) => item.contrato.teletrans[0].volquete)
+      const volquetesData = trabajadorAsis?.trabajador_contratos
+        ?.map((item) => item?.contrato?.teletrans[0]?.volquete)
         .toString();
-      const teletransData = trabajadorAsis.trabajador_contratos
-        .map((item) => item.contrato.teletrans[0].teletrans)
+      const teletransData = trabajadorAsis?.trabajador_contratos
+        ?.map((item) => item.contrato?.teletrans[0]?.teletrans)
         .toString();
 
       const keys = Object.keys(initialAsistenciasObj);
@@ -368,24 +368,24 @@ const aprobacionAsistencias = async (req, res, next) => {
         const obj = Object.assign({}, sortedAsistenciasObj);
 
         // Obtén las aprobaciones del contrato actual
-        const aprobaciones = trabajador.trabajador_contratos
-          .map((item) => item.contrato.aprobacion_contrato_pagos)
+        const aprobaciones = trabajador?.trabajador_contratos
+          ?.map((item) => item?.contrato?.aprobacion_contrato_pagos)
           .flat();
         // Si se encuentra una aprobación correspondiente, agrega las propiedades al objeto
         if (aprobaciones) {
-          obj.huella = aprobaciones[0].dataValues.huella;
-          obj.quincena = aprobaciones[0].dataValues.subarray_id;
+          obj.huella = aprobaciones[0]?.dataValues?.huella;
+          obj.quincena = aprobaciones[0]?.dataValues?.subarray_id;
           obj.textoQuincena = obtenerRangoQuincena(
-            parseInt(aprobaciones[0].dataValues.subarray_id),
-            aprobaciones[0].dataValues.fecha_inicio,
-            aprobaciones[0].dataValues.fecha_fin
+            parseInt(aprobaciones[0]?.dataValues?.subarray_id),
+            aprobaciones[0]?.dataValues?.fecha_inicio,
+            aprobaciones[0]?.dataValues?.fecha_fin
           );
-          obj.observaciones = aprobaciones[0].dataValues.observaciones;
-          obj.id = aprobaciones[0].dataValues.id;
+          obj.observaciones = aprobaciones[0]?.dataValues?.observaciones;
+          obj.id = aprobaciones[0]?.dataValues?.id;
           obj.teletrans = teletransData || 0;
           obj.volquetes = volquetesData || 0;
-          obj.firma_jefe = aprobaciones[0].dataValues.firma_jefe;
-          obj.firma_gerente = aprobaciones[0].dataValues.firma_gerente;
+          obj.firma_jefe = aprobaciones[0]?.dataValues?.firma_jefe;
+          obj.firma_gerente = aprobaciones[0]?.dataValues?.firma_gerente;
           obj.nro = index + 1;
           obj.nombres =
             trabajador?.apellido_paterno +

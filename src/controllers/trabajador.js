@@ -13,6 +13,9 @@ const XLSX = require("xlsx");
 const dayjs = require("dayjs");
 require("dayjs/locale/es");
 const fs = require("fs");
+const  utc =  require('dayjs/plugin/utc')
+
+dayjs.extend(utc); 
 
 const getTrabajador = async (req, res, next) => {
   // trabajadores que no son de asociación
@@ -38,6 +41,7 @@ const getTrabajador = async (req, res, next) => {
             "recursos_humanos",
             "finalizado",
             "id",
+            "area_id", "gerencia_id", "puesto_id", "campamento_id"
           ],
         },
         {
@@ -63,9 +67,7 @@ const getTrabajador = async (req, res, next) => {
 
     const obj = get
       .map((item) => {
-        const evaluacionActiva = item?.evaluacions.find(
-          (item) => item.finalizado === false
-        );
+        const sortedEvaluations = item.evaluacions.sort((a, b) => b.id - a.id);
 
         return {
           dni: item?.dni,
@@ -83,19 +85,44 @@ const getTrabajador = async (req, res, next) => {
           deshabilitado: item?.deshabilitado,
           foto: item?.foto,
           eliminar: item?.eliminar,
-          evaluacion: evaluacionActiva,
+          evaluacion: sortedEvaluations.filter(
+            (item) => item.finalizado === false
+          ),
           contrato: item?.trabajador_contratos?.map((data) => {
             return {
-              finalizado: data?.contrato?.finalizado,
-              nota_contrato: data?.contrato?.nota_contrato,
-              campamento: data?.contrato?.campamento?.nombre,
               id: data?.contrato?.id,
+              fecha_inicio: data?.contrato?.fecha_inicio,
+              codigo_contrato: data?.contrato?.codigo_contrato,
+              tipo_contrato: data?.contrato?.tipo_contrato,
+              periodo_trabajo: data?.contrato?.periodo_trabajo,
+              fech_fin: data?.contrato?.fech_fin,
+              gerencia: data?.contrato?.gerencia,
+              area: data?.contrato?.area,
+              jefe_directo: data?.contrato?.jefe,
+              base: data?.contrato?.base,
+              termino_contrato: data?.contrato?.termino_contrato,
+              nota_contrato: data?.contrato?.nota_contrato,
+              puesto: data?.contrato?.puesto,
+              campamento_id: data?.contrato?.campamento_id,
+              asociacion_id: data?.contrato?.asociacion_id,
+              estado: data?.contrato?.estado,
+              volquete: data?.contrato?.volquete,
+              teletran: data?.contrato?.teletran,
+              suspendido: data?.contrato?.suspendido,
+              finalizado: data?.contrato?.finalizado,
+              tareo: data?.contrato?.tareo,
+              deshabilitado: data?.contrato?.deshabilitado,
+              campamento: data?.contrato?.campamento?.nombre,
+              suspendido: data?.contrato?.suspendido,
             };
           }),
         };
       })
       .sort((a, b) => {
+        // Ordena por deshabilitado en orden descendente
         if (a.deshabilitado === b.deshabilitado) {
+          // Si los dos objetos tienen el mismo valor de 'deshabilitado'
+          // entonces se ordena por 'codigo_trabajador' en orden ascendente
           return a.codigo_trabajador.localeCompare(b.codigo_trabajador);
         } else {
           return a.deshabilitado ? 1 : -1;
@@ -107,7 +134,6 @@ const getTrabajador = async (req, res, next) => {
     res.status(500).json();
   }
 };
-
 
 const postTrabajador = async (req, res, next) => {
   let info;
@@ -340,7 +366,9 @@ const updateTrabajador = async (req, res, next) => {
       .status(200)
       .json({ msg: "Trabajador actualizado con éxito!", status: 200 });
   } catch (error) {
-
+    console.log("Error:", error); // Muestra el error completo
+    console.log("Error message:", error.message); // Muestra solo el mensaje del error
+    console.log("Error details:", error.original);
     res
       .status(500)
       .json({ msg: "No se pudo actualizar el trabajador.", status: 500 });

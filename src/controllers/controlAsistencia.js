@@ -452,6 +452,9 @@ const asociacionData = async () => {
       ],
     });
 
+    const fechaUpdatePromises = [];
+    const finalizarPromises = [];
+
     for (const contrato of contratosActivos) {
       let trabajadorAsistencias = contrato.asociacion.trabajadors.sort((a, b) =>
         a.codigo_trabajador.localeCompare(b.codigo_trabajador)
@@ -518,29 +521,38 @@ const asociacionData = async () => {
         cantidadEstimada = 15 * contrato.periodo_trabajo;
       }
       if (cantidadReal >= cantidadEstimada) {
-        await contrato.update({
-          finalizado: true,
-          fecha_fin: fechaEstimada.toDate(),
-          fecha_fin_estimada: fechaEstimada.toDate(),
-        });
+        finalizarPromises.push(
+          contrato.update({
+            finalizado: true,
+            fecha_fin: fechaEstimada.toDate(),
+            fecha_fin_estimada: fechaEstimada.toDate(),
+          })
+        );
         // Desligar trabajadores de la asociación y finalizar evaluaciones
         for (const trabajador of contrato.asociacion.trabajadors) {
-          await trabajador.update({ asociacion_id: null });
+          finalizarPromises.push(trabajador.update({ asociacion_id: null }));
 
           // Finalizar evaluaciones de trabajador
           for (const evaluacion of trabajador.evaluacions) {
             if (!evaluacion.finalizado) {
-              await evaluacion.update({ finalizado: true });
+              finalizarPromises.push(evaluacion.update({ finalizado: true }));
             }
           }
         }
       } else {
-        await contrato.update({
-          // fecha_fin: fechaEstimada.toDate(),
-          fecha_fin_estimada: fechaEstimada.toDate(),
-        });
+        fechaUpdatePromises.push(
+          contrato.update({
+            fecha_fin_estimada: fechaEstimada.toDate(),
+          })
+        );
       }
     }
+    // Primero se actualizan las fechas
+    await Promise.all(fechaUpdatePromises);
+    // Luego, una vez las fechas se hayan actualizado, se finalizan los contratos
+    await Promise.all(finalizarPromises);
+
+    return true;
   } catch (error) {
     console.error(error);
   }
@@ -576,7 +588,8 @@ const individual = async () => {
       ],
     });
 
-    const updatePromises = [];
+    const fechaUpdatePromises = [];
+    const finalizarPromises = [];
     for (const contrato of contratosActivos) {
       let trabajadorAsistencias =
         contrato?.trabajador_contratos[0]?.trabajador?.trabajador_asistencia;
@@ -611,7 +624,7 @@ const individual = async () => {
         asistencias[asistencias.length - 1].asistencium.fecha
       ) {
         //    Call the calculateEstimatedDate function with the last attendance object, the current estimated date, the contract start date, and the worker attendances array.
-        let result = calculateEstimatedDateIndividual(
+        let result = calculateEstimatedDate(
           dayjs(asistencias[asistencias.length - 1].asistencium.fecha),
           dayjs(fechaEstimada),
           dayjs(contrato.fecha_inicio),
@@ -645,31 +658,37 @@ const individual = async () => {
 
       // Check if the real quantity is greater than or equal to the estimated quantity and update the contract accordingly.
       if (cantidadReal >= cantidadEstimada) {
-        const contratoUpdatePromise = contrato.update({
-          finalizado: true,
-          fecha_fin: fechaEstimada.toDate(),
-          fecha_fin_estimada: fechaEstimada.toDate(),
-        });
-        updatePromises.push(contratoUpdatePromise);
-
-        //   Finalizamos la evaluacion activa del trabajador, si existe
+        finalizarPromises.push(
+          contrato.update({
+            finalizado: true,
+            fecha_fin: fechaEstimada.toDate(),
+            fecha_fin_estimada: fechaEstimada.toDate(),
+          })
+        );
+        // Finalizamos la evaluacion activa del trabajador, si existe
         const trabajadorEvaluacion =
           contrato?.trabajador_contratos[0]?.trabajador.evaluacions[0];
         if (trabajadorEvaluacion) {
-          const evaluacionUpdatePromise = trabajadorEvaluacion.update({
-            finalizado: true,
-          });
-          updatePromises.push(evaluacionUpdatePromise);
+          finalizarPromises.push(
+            trabajadorEvaluacion.update({
+              finalizado: true,
+            })
+          );
         }
       } else {
-        const contratoUpdatePromise = contrato.update({
-          fecha_fin_estimada: fechaEstimada.toDate(),
-        });
-        updatePromises.push(contratoUpdatePromise);
+        fechaUpdatePromises.push(
+          contrato.update({
+            fecha_fin_estimada: fechaEstimada.toDate(),
+          })
+        );
       }
     }
-    return await Promise.all(updatePromises);
-    // Return a promise that resolves when all the update promises are fulfilled.
+    // Primero se actualizan las fechas
+    await Promise.all(fechaUpdatePromises);
+    // Luego, una vez las fechas se hayan actualizado, se finalizan los contratos
+    await Promise.all(finalizarPromises);
+
+    return true;
   } catch (error) {
     console.error(error);
   }
@@ -685,6 +704,8 @@ function calculateEstimatedDate(
   let lastAttendanceDate = attendance;
   // Inicializa una variable para llevar la cuenta de los días que hay que añadir o restar a la fecha de finalización.
   let daysToAdd = 0;
+  // Inicializa una variable para llevar la cuenta de los días que hay que restar si se trabaja los domingos.
+  let daysToSubtract = 0;
   // Recorre todos los días entre la fecha de inicio del contrato y la fecha de la última asistencia registrada.
   for (
     let currentDate = contractStartDate;
@@ -722,78 +743,29 @@ function calculateEstimatedDate(
     );
 
     if (hasAttendanceOnSunday) {
-      daysToAdd--;
+      // Incrementa la variable daysToSubtract en uno si se trabaja un domingo.
+      daysToSubtract++;
     }
   }
 
   // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
-  estimatedDate = dayjs(estimatedDate).add(daysToAdd, "day");
-  // Devuelve un objeto con la nueva fecha estimada.
-  if (estimatedDate.day() === 0) {
-    estimatedDate = estimatedDate.add(1, "day");
-  }
-
-  // Devuelve un objeto con la nueva fecha estimada.
-  return { estimatedDate };
-}
-function calculateEstimatedDateIndividual(
-  attendance,
-  estimatedDate,
-  contractStartDate,
-  workerAttendances
-) {
-  // Obtiene la fecha de la última asistencia registrada como un objeto dayjs.
-  let lastAttendanceDate = attendance;
-  // Inicializa una variable para llevar la cuenta de los días que hay que añadir o restar a la fecha de finalización.
-  let daysToAdd = 0;
-  // Recorre todos los días entre la fecha de inicio del contrato y la fecha de la última asistencia registrada.
-  for (
-    let currentDate = contractStartDate;
-    dayjs(currentDate).isSame(dayjs(lastAttendanceDate)) ||
-    dayjs(currentDate).isBefore(dayjs(lastAttendanceDate));
-    currentDate = currentDate.add(1, "day")
-  ) {
-    // Comprueba si hay algún elemento en el array workerAttendances que coincida con la fecha actual.
-    let hasRecord = workerAttendances.some(
-      (a) =>
-        dayjs(a.dataValues.asistencium.fecha).format("YYYY-MM-DD") ===
-        dayjs(currentDate).format("YYYY-MM-DD")
-    );
-
-    // Si no lo hay, y no es un domingo (suponiendo que los domingos no son días laborables), incrementa la variable daysToAdd en uno.
-    if (!hasRecord && currentDate.day() !== 0) {
-      daysToAdd++;
-    }
-    let hasAttendance = workerAttendances.some(
-      (a) =>
-        a.dataValues.asistencia === "Asistio" ||
-        (a.dataValues.asistencia === "Comisión" &&
-          dayjs(a.dataValues.asistencium.fecha).format("YYYY-MM-DD") ===
-            dayjs(currentDate).format("YYYY-MM-DD"))
-    );
-
-    if (!hasAttendance && currentDate.day() !== 0) {
-      daysToAdd++;
-    }
-
-    let hasAttendanceOnSunday = workerAttendances.some(
-      (a) =>
-        (a.dataValues.asistencia === "Asistio" ||
-          a.dataValues.asistencia === "Comisión") &&
-        a.dataValues.asistencium.fecha === currentDate.format("YYYY-MM-DD") &&
-        currentDate.day() === 0
-    );
-
-    if (hasAttendanceOnSunday) {
+  while (daysToAdd > 0) {
+    estimatedDate = dayjs(estimatedDate).add(1, "day");
+    // Si el día añadido no es un domingo, decrementa daysToAdd
+    if (estimatedDate.day() !== 0) {
       daysToAdd--;
     }
   }
 
-  // Añade los daysToAdd a la estimatedDate para obtener la nueva fecha estimada de finalización.
-  estimatedDate = dayjs(estimatedDate).add(daysToAdd, "day");
-  // Devuelve un objeto con la nueva fecha estimada.
-  if (estimatedDate.day() === 0) {
-    estimatedDate = estimatedDate.add(1, "day");
+  // Resta los daysToSubtract a la estimatedDate para ajustarla por los domingos trabajados.
+  while (daysToSubtract > 0) {
+    estimatedDate = dayjs(estimatedDate).subtract(1, "day");
+    // Si el día restado es un domingo, resta otro día más.
+    if (estimatedDate.day() === 0) {
+      estimatedDate = dayjs(estimatedDate).subtract(1, "day");
+    }
+    // Decrementa daysToSubtract
+    daysToSubtract--;
   }
 
   // Devuelve un objeto con la nueva fecha estimada.
@@ -803,7 +775,8 @@ function calculateEstimatedDateIndividual(
 const actulizarFechaFin = async (req, res, next) => {
   try {
     await getPlanillaAprobacion();
-    await Promise.all([asociacionData(), individual()]);
+    await asociacionData();
+    await individual();
 
     return res
       .status(200)

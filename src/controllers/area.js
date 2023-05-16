@@ -16,9 +16,12 @@ const getArea = async (req, res, next) => {
 const getPrueba = async (req, res, next) => {
   try {
     const all = await gerencia.findAll({
-
-      include:[{model:area, include:[{model:cargo, attributes:{exclude:["cargo_id"]}}]}]
-      
+      include: [
+        {
+          model: area,
+          include: [{ model: cargo, attributes: { exclude: ["cargo_id"] } }],
+        },
+      ],
     });
     return res.status(200).json({ data: all });
   } catch (error) {
