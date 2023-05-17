@@ -706,7 +706,7 @@ const historialProgramacion = async (req, res, next) => {
             {
               model: contrato,
               attributes: { exclude: ["contrato_id"] },
-              include: [{ model: empresa }],
+              include: [{model:aprobacion_contrato_pago},{ model: empresa }],
             },
           ],
         },
@@ -857,7 +857,7 @@ const historialProgramacion = async (req, res, next) => {
     const concat2 = concatData
       .concat(formatPagoCasa)
       .filter((item) => item.estado !== "programado");
-    return res.status(200).json({ data: concat2 });
+    return res.status(200).json({ data: getPago });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo obtener.", status: 500 });

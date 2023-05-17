@@ -438,14 +438,6 @@ const getListaPago = async (req, res, next) => {
       ],
     });
 
-    for (let aprobacion of allAprobaciones) {
-
-      aprobacion.dataValues.contrato.asociacion = allAsociaciones.find(
-        (asociacion) =>
-          asociacion.id == aprobacion.dataValues.asociacion_id
-      );
-      console.log(aprobacion.dataValues);
-    }
 
     const formatData = allAprobaciones
       ?.map((item, i) => {
@@ -468,10 +460,10 @@ const getListaPago = async (req, res, next) => {
           }, 0);
 
         const pagos = {
-          trabajadores: item?.contrato?.asociacion?.trabajadors
+          trabajadores: item?.contrato?.trabajador_contratos
             .map((trabajador, i) => {
               const trabajadorProgramado = trabajadoresProgramados.find(
-                (item) => item.dni === trabajador.dataValues.dni
+                (item) => item.dni === trabajador.trabajador.dni
               );
 
               return {
@@ -479,14 +471,14 @@ const getListaPago = async (req, res, next) => {
                 teletrans: trabajadorProgramado
                   ? trabajadorProgramado.teletrans
                   : 0,
-                dni: trabajador.dataValues.dni,
+                dni: trabajador.trabajador.dni,
                 nombre:
-                  trabajador.dataValues.apellido_paterno +
+                  trabajador.trabajador.apellido_paterno +
                   " " +
-                  trabajador.dataValues.apellido_materno +
+                  trabajador.trabajador.apellido_materno +
                   " " +
-                  trabajador.dataValues.nombre,
-                telefono: trabajador.dataValues.telefono,
+                  trabajador.trabajador.nombre,
+                telefono: trabajador.trabajador.telefono,
                 cargo: item.tipo,
                 programado: trabajadorProgramado ? true : false,
                 contrato_id: item?.contratos?.at(-1)?.id,
@@ -495,19 +487,19 @@ const getListaPago = async (req, res, next) => {
             .sort((a, b) => a.nombre.localeCompare(b.nombre)),
         };
         const saldoFinal =
-          item?.contrato?.teletrans?.at(-1)?.saldo - totalVolquetes * 4;
-
+          parseFloat(item?.contrato?.teletrans?.at(-1)?.saldo) - parseFloat(totalVolquetes * 4);
+        const asociacion = allAsociaciones.find(ele => ele.id == item.asociacion_id)
         if (saldoFinal < 1) {
           updateEstadoAprobacionContratoPago(item.id);
         }
-
+        console.log(item);
         if (saldoFinal > 0) {
           return {
             id: i + 1,
             dni: "---",
-            nombre: item?.contrato?.asociacion?.nombre +" - "+item.subarray_id,
-            tipo: item?.contrato?.asociacion?.tipo,
-            asociacion_id: item?.contrato?.asociacion?.id,
+            nombre: asociacion.nombre +" - "+ item.subarray_id,
+            tipo: asociacion.tipo,
+            asociacion_id: asociacion.id,
             contrato_id: item?.contrato?.id,
             aprobacion: {
               id: item.id,
