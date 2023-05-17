@@ -68,7 +68,7 @@ const aprobacionAsistencias = async (req, res, next) => {
 
   try {
     if (asociacion_id !== null) {
-      const asocia =  asociacion.findOne({
+      const asocia = asociacion.findOne({
         where: { id: asociacion_id },
         include: [
           {
@@ -300,6 +300,8 @@ const aprobacionAsistencias = async (req, res, next) => {
             include: [
               {
                 model: contrato,
+                where: { id: contrato_id },
+
                 attributes: { exclude: ["contrato_id"] },
                 include: [
                   {

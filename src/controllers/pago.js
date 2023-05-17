@@ -20,6 +20,7 @@ const {
   area,
   contrato_pago_trabajador,
   sequelize,
+  aprobacion_contrato_pago,
 } = require("../../config/db");
 
 const createProgramacion = async (req, res, next) => {
@@ -659,6 +660,7 @@ const historialProgramacion = async (req, res, next) => {
           model: contrato_pago,
           attributes: { exclude: ["contrato_pago_id"] },
           include: [
+            { model: contrato, include: [{ model: aprobacion_contrato_pago }] },
             {
               model: pago_asociacion,
               include: [
@@ -686,6 +688,7 @@ const historialProgramacion = async (req, res, next) => {
                           where: { finalizado: false },
 
                           include: [
+                            { model: aprobacion_contrato_pago },
                             { model: asociacion },
                             { model: area },
                             {
@@ -851,7 +854,8 @@ const historialProgramacion = async (req, res, next) => {
       .filter((item) => item.tipo === "casa");
 
     const concatData = formatAsociacion.concat(formatPagoNormal);
-    const concat2 = concatData.concat(formatPagoCasa)
+    const concat2 = concatData
+      .concat(formatPagoCasa)
       .filter((item) => item.estado !== "programado");
     return res.status(200).json({ data: concat2 });
   } catch (error) {
