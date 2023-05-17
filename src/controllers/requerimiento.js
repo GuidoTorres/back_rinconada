@@ -67,7 +67,7 @@ const getRequerimiento = async (req, res, next) => {
       .sort((a, b) => {
         return b.id - a.id;
       });
-      return res.status(200).json({ data: formatData });
+    return res.status(200).json({ data: formatData });
     next();
   } catch (error) {
     console.log(error);
@@ -148,8 +148,6 @@ const updateRequerimiento = async (req, res, next) => {
         status: 200,
       });
     }
-
-    next();
   } catch (error) {
     res.status(500).json({ msg: "No se pudo actualizar.", status: 500 });
   }
@@ -247,20 +245,34 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
     const getArea = await area.findAll();
     const get = await trabajador.findAll({
       where: {
-        [Op.and]: [{ deshabilitado: { [Op.not]: true } }],
+        deshabilitado: { [Op.not]: true },
       },
       attributes: ["dni", "apellido_paterno", "apellido_materno", "nombre"],
       include: [
         {
           model: trabajador_contrato,
           include: [
-            { model: contrato, attributes: { exclude: ["contrato_id"] } },
+            {
+              model: contrato,
+              attributes: [
+                "id",
+                "gerencia_id",
+                "area_id",
+                "puesto_id",
+                "finalizado",
+              ],
+              where: {
+                suspendido: { [Op.not]: true },
+                finalizado: { [Op.not]: true },
+              },
+            },
           ],
         },
       ],
     });
 
     const format = get.map((item) => {
+      const areaContrato = item?.trabajador_contratos?.at(0)?.contrato?.area_id;
       return {
         dni: item?.dni,
         nombre:
@@ -269,24 +281,12 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
           item?.apellido_materno +
           " " +
           item?.nombre,
-        contrato: item?.trabajador_contratos
-          ?.map((data) => data?.contrato)
-          ?.filter((data) => data?.finalizado === false),
-        area: getArea
-          ?.filter(
-            (data) =>
-              data?.nombre ===
-              item?.trabajador_contratos
-                ?.map((data) => data?.contrato)
-                ?.filter((data) => data?.finalizado === false)
-                ?.at(-1)?.area
-          )
-          .at(-1),
+
+        area: getArea?.filter((data) => data?.id === areaContrato)?.at(-1)?.nombre,
       };
-    });
+    }).filter(item => item.area);
 
     return res.status(200).json({ data: format });
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json();

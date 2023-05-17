@@ -4,7 +4,6 @@ const getSaldo = async (req, res, next) => {
   try {
     const all = await saldo.findAll();
     return res.status(200).json({ data: all });
-    next();
   } catch (error) {
     res.status(500).json();
   }
@@ -18,7 +17,6 @@ const getSaldoById = async (req, res, next) => {
       where: { sucursal_id: id },
     });
     return res.status(200).json({ data: all });
-    next();
   } catch (error) {
     res.status(500).json({ error: error });
   }

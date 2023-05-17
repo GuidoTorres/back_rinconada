@@ -18,9 +18,9 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const  utc =  require('dayjs/plugin/utc')
+const utc = require("dayjs/plugin/utc");
 
-dayjs.extend(utc); 
+dayjs.extend(utc);
 
 //lista de trabajadores y planillas para la vista de planillas
 const getPlanilla = async (req, res, next) => {
@@ -194,9 +194,9 @@ const getPlanilla = async (req, res, next) => {
             fecha_inicio: dayjs(contratoActivo?.fecha_inicio).format(
               "DD-MM-YYYY"
             ),
-            fecha_fin: dayjs(
-              contratoActivo?.fecha_fin_estimada
-            ).format("DD-MM-YYYY") || dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
+            fecha_fin:
+              dayjs(contratoActivo?.fecha_fin_estimada).format("DD-MM-YYYY") ||
+              dayjs(contratoActivo?.fecha_fin).format("DD-MM-YYYY"),
 
             contratos: contratoActivo,
             volquete: contratoActivo?.teletrans.at(-1)?.volquete,
@@ -269,11 +269,15 @@ const getPlanilla = async (req, res, next) => {
         fecha_inicio: dayjs(
           contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
         ).format("DD-MM-YYYY"),
-        fecha_fin: dayjs.utc(
-          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
-        ).format("DD-MM-YYYY") || dayjs(
-          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin)
-        ).format("DD-MM-YYYY"),
+        fecha_fin:
+          dayjs
+            .utc(
+              contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
+            )
+            .format("DD-MM-YYYY") ||
+          dayjs(
+            contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin)
+          ).format("DD-MM-YYYY"),
 
         campamento: contratoFiltrado
           ?.map((dat) => dat?.contrato?.campamento?.nombre)
@@ -395,16 +399,11 @@ const getPlanillaHistoriaTrabajador = async (req, res, next) => {
 const getListaPago = async (req, res, next) => {
   try {
     const getAll = await aprobacion_contrato_pago.findAll({
+      where: { dni: { [Op.is]: null } },
       include: [
         {
           model: contrato,
-          where: {
-            finalizado: false,
-            asociacion_id: {
-              [Op.not]: null,
-              [Op.ne]: 0,
-            },
-          },
+
           attributes: { exclude: ["contrato_id"] },
           include: [
             {
@@ -439,107 +438,102 @@ const getListaPago = async (req, res, next) => {
       ],
     });
 
-    const filterAprobaciones = getAll.filter(
-      (item) =>
-        item.firma_jefe !== null &&
-        item.firma_jefe &&
-        item.firma_gerente !== null &&
-        item.firma_gerente
-    );
+    const formatData = getAll
+      ?.map((item, i) => {
+        const trabajadoresProgramados = item?.contrato?.contrato_pagos
+          ?.filter((data) => data.quincena === item.subarray_id)
+          .map((data) =>
+            data.pago_asociacions.map((item) => {
+              return {
+                dni: item.trabajador_dni,
+                volquete: item.volquetes,
+                quincena: data.quincena,
+              };
+            })
+          )
+          .flat();
+        const totalVolquetes = item?.contrato?.contrato_pagos
+          ?.filter((data) => data.quincena === item.subarray_id)
+          .reduce((accumulator, current) => {
+            return accumulator + parseInt(current.volquetes);
+          }, 0);
 
-    const formatData = filterAprobaciones?.map((item, i) => {
-      const trabajadoresProgramados = item?.contrato?.contrato_pagos
-        ?.filter((data) => data.quincena === item.subarray_id)
-        .map((data) =>
-          data.pago_asociacions.map((item) => {
-            return {
-              dni: item.trabajador_dni,
-              volquete: item.volquetes,
-              quincena: data.quincena,
-            };
-          })
-        )
-        .flat();
-      const totalVolquetes = item?.contrato?.contrato_pagos
-        ?.filter((data) => data.quincena === item.subarray_id)
-        .reduce((accumulator, current) => {
-          return accumulator + parseInt(current.volquetes);
-        }, 0);
+        const pagos = {
+          trabajadores: item?.contrato?.asociacion?.trabajadors
+            .map((trabajador, i) => {
+              const trabajadorProgramado = trabajadoresProgramados.find(
+                (item) => item.dni === trabajador.dataValues.dni
+              );
 
-      const pagos = {
-        trabajadores: item?.contrato?.asociacion?.trabajadors
-          .map((trabajador, i) => {
-            const trabajadorProgramado = trabajadoresProgramados.find(
-              (item) => item.dni === trabajador.dataValues.dni
-            );
-
-            return {
-              id: i + 1,
-              teletrans: trabajadorProgramado
-                ? trabajadorProgramado.teletrans
-                : 0,
-              dni: trabajador.dataValues.dni,
-              nombre:
-                trabajador.dataValues.apellido_paterno +
-                " " +
-                trabajador.dataValues.apellido_materno +
-                " " +
-                trabajador.dataValues.nombre,
-              telefono: trabajador.dataValues.telefono,
-              cargo: item.tipo,
-              programado: trabajadorProgramado ? true : false,
-              contrato_id: item?.contratos?.at(-1)?.id,
-            };
-          })
-          .sort((a, b) => a.nombre.localeCompare(b.nombre)),
-      };
-      const saldoFinal =
-        item?.contrato?.teletrans?.at(-1)?.saldo - totalVolquetes * 4;
-
-      if (saldoFinal < 1) {
-        updateEstadoAprobacionContratoPago(item.id);
-      }
-
-      if (saldoFinal > 0) {
-        return {
-          id: i + 1,
-          dni: "---",
-          nombre: item?.contrato?.asociacion?.nombre,
-          tipo: item?.contrato?.asociacion?.tipo,
-          asociacion_id: item?.contrato?.asociacion?.id,
-          contrato_id: item?.contrato?.id,
-          aprobacion: {
-            id: item.id,
-            firma_jefe: item.firma_jefe,
-            firma_gerente: item.firma_gerente,
-            huella: item.huella,
-            estado: item.estado,
-            fecha_inicio: item.fecha_inicio,
-            subarray_id: item.subarray_id,
-            pagado: item.pagado,
-            fecha_fin: item.fecha_fin,
-            nombre: item.nombre,
-            dias_laborados: item.dias_laborados,
-            volquete: item.volquete,
-            teletran: item.teletran,
-            asociacion_id: item.asociacion_id,
-            dni: item.dni,
-            observaciones: item.observaciones,
-          },
-          saldo: item?.contrato?.teletrans?.at(-1)?.saldo,
-          total_modificado: saldoFinal,
-          total: item?.contrato?.teletrans?.at(-1)?.total,
-          volquete: item?.contrato?.teletrans?.at(-1)?.volquete,
-          teletran: item?.contrato?.teletrans?.at(-1)?.teletrans,
-          fecha_inicio: item.fecha_inicio,
-          fecha_fin: item.fecha_fin,
-          pagos: pagos,
-          quincena: item.subarray_id,
-          estado: item.estado,
-          totalVolquetes: totalVolquetes,
+              return {
+                id: i + 1,
+                teletrans: trabajadorProgramado
+                  ? trabajadorProgramado.teletrans
+                  : 0,
+                dni: trabajador.dataValues.dni,
+                nombre:
+                  trabajador.dataValues.apellido_paterno +
+                  " " +
+                  trabajador.dataValues.apellido_materno +
+                  " " +
+                  trabajador.dataValues.nombre,
+                telefono: trabajador.dataValues.telefono,
+                cargo: item.tipo,
+                programado: trabajadorProgramado ? true : false,
+                contrato_id: item?.contratos?.at(-1)?.id,
+              };
+            })
+            .sort((a, b) => a.nombre.localeCompare(b.nombre)),
         };
-      }
-    });
+        const saldoFinal =
+          item?.contrato?.teletrans?.at(-1)?.saldo - totalVolquetes * 4;
+
+        if (saldoFinal <= 1) {
+          updateEstadoAprobacionContratoPago(item.id);
+        }
+
+        if (saldoFinal > 0) {
+          return {
+            id: i + 1,
+            dni: "---",
+            nombre:
+              item?.contrato?.asociacion?.nombre + " - " + item.subarray_id,
+            tipo: item?.contrato?.asociacion?.tipo,
+            asociacion_id: item?.contrato?.asociacion?.id,
+            contrato_id: item?.contrato?.id,
+            aprobacion: {
+              id: item.id,
+              firma_jefe: item.firma_jefe,
+              firma_gerente: item.firma_gerente,
+              huella: item.huella,
+              estado: item.estado,
+              fecha_inicio: item.fecha_inicio,
+              subarray_id: item.subarray_id,
+              pagado: item.pagado,
+              fecha_fin: item.fecha_fin,
+              nombre: item.nombre,
+              dias_laborados: item.dias_laborados,
+              volquete: item.volquete,
+              teletran: item.teletran,
+              asociacion_id: item.asociacion_id,
+              dni: item.dni,
+              observaciones: item.observaciones,
+            },
+            saldo: item?.contrato?.teletrans?.at(-1)?.saldo,
+            total_modificado: saldoFinal,
+            total: item?.contrato?.teletrans?.at(-1)?.total,
+            volquete: item?.contrato?.teletrans?.at(-1)?.volquete,
+            teletran: item?.contrato?.teletrans?.at(-1)?.teletrans,
+            fecha_inicio: item.fecha_inicio,
+            fecha_fin: item.fecha_fin,
+            pagos: pagos,
+            quincena: item.subarray_id,
+            estado: item.estado,
+            totalVolquetes: totalVolquetes,
+          };
+        }
+      })
+      .filter((item) => item?.aprobacion?.estado);
 
     return res.status(200).json({ data: formatData });
   } catch (error) {
@@ -948,7 +942,7 @@ const getTareoAsociacion = async (req, res, next) => {
         {
           model: contrato,
           attributes: { exclude: ["contrato_id"] },
-          where:{finalizado:false},
+          where: { finalizado: false },
 
           include: [
             { model: teletrans },

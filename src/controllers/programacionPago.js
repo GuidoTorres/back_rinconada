@@ -8,6 +8,7 @@ const {
   trabajador,
   pago,
   contrato_pago,
+  saldo,
 } = require("../../config/db");
 
 const getAprobacion = async (req, res, next) => {
@@ -33,22 +34,23 @@ const getAprobacion = async (req, res, next) => {
       ],
     });
 
-    const format = all
+    const filterAprobacion = all.filter(item => item.estado=== true)
+
+    const format = filterAprobacion
       .map((item, i) => {
         // Calcula el total de pagos
-        if (!item?.firma_gerente || !item?.firma_jefe) {
-          return undefined;
-        }
         const pagosTotal = item.contrato.contrato_pagos
-          .filter((pago) => pago.quincena === item.subarray_id)
-          .reduce((acc, pago) => acc + pago.volquetes * 4 + pago.teletrans, 0);
+        .filter((pago) => pago.quincena === item.subarray_id)
+        .reduce((acc, pago) => acc + ((parseFloat(pago.volquetes) || 0) * 4) + (parseFloat(pago.teletrans) || 0), 0);
+    
 
         // Calcula el saldo final
         const saldoFinal = item.contrato.teletrans.at(-1).saldo - pagosTotal;
-        if (saldoFinal < 1) {
+        if (saldoFinal <= 0) {
           updateEstadoAprobacionContratoPago(item.id);
         }
-        if (saldoFinal > 0) {
+        if(saldoFinal > 0){
+
           return {
             quincena: item.subarray_id,
             observaciones: item.observaciones,
@@ -70,7 +72,10 @@ const getAprobacion = async (req, res, next) => {
             ),
             saldoFinal: saldoFinal,
           };
+
         }
+
+
       })
       .filter((item) => item !== undefined)
       .map((item, i) => {
