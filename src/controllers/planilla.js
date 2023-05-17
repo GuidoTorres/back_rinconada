@@ -15,6 +15,7 @@ const {
   area,
   cargo,
   gerencia,
+  sequelize,
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
@@ -398,16 +399,17 @@ const getPlanillaHistoriaTrabajador = async (req, res, next) => {
 //lista de asociaciones con trabajadores para la tabla asocicion para prograrmar
 const getListaPago = async (req, res, next) => {
   try {
-    const getAll = await aprobacion_contrato_pago.findAll({
-      where: { dni: { [Op.is]: null } },
+    const allAsociaciones = await asociacion.findAll();
+    const allAprobaciones = await aprobacion_contrato_pago.findAll({
+      where: { dni: { [Op.is]: null }, estado: true },
       include: [
         {
           model: contrato,
-
           attributes: { exclude: ["contrato_id"] },
+
           include: [
             {
-              model: asociacion,
+              model: trabajador_contrato, // Aquí incluyes el modelo trabajador_contrato
               include: [
                 {
                   model: trabajador,
@@ -416,10 +418,8 @@ const getListaPago = async (req, res, next) => {
               ],
             },
             { model: teletrans },
-
             {
               model: contrato_pago,
-              attributes: { exclude: ["contrato_pago_id"] },
               include: [
                 { model: pago },
                 {
@@ -438,7 +438,16 @@ const getListaPago = async (req, res, next) => {
       ],
     });
 
-    const formatData = getAll
+    for (let aprobacion of allAprobaciones) {
+
+      aprobacion.dataValues.contrato.asociacion = allAsociaciones.find(
+        (asociacion) =>
+          asociacion.id == aprobacion.dataValues.asociacion_id
+      );
+      console.log(aprobacion.dataValues);
+    }
+
+    const formatData = allAprobaciones
       ?.map((item, i) => {
         const trabajadoresProgramados = item?.contrato?.contrato_pagos
           ?.filter((data) => data.quincena === item.subarray_id)
@@ -488,7 +497,7 @@ const getListaPago = async (req, res, next) => {
         const saldoFinal =
           item?.contrato?.teletrans?.at(-1)?.saldo - totalVolquetes * 4;
 
-        if (saldoFinal <= 1) {
+        if (saldoFinal < 1) {
           updateEstadoAprobacionContratoPago(item.id);
         }
 
@@ -496,8 +505,7 @@ const getListaPago = async (req, res, next) => {
           return {
             id: i + 1,
             dni: "---",
-            nombre:
-              item?.contrato?.asociacion?.nombre + " - " + item.subarray_id,
+            nombre: item?.contrato?.asociacion?.nombre +" - "+item.subarray_id,
             tipo: item?.contrato?.asociacion?.tipo,
             asociacion_id: item?.contrato?.asociacion?.id,
             contrato_id: item?.contrato?.id,
@@ -532,8 +540,7 @@ const getListaPago = async (req, res, next) => {
             totalVolquetes: totalVolquetes,
           };
         }
-      })
-      .filter((item) => item?.aprobacion?.estado);
+      }).filter(item => item?.aprobacion?.estado)
 
     return res.status(200).json({ data: formatData });
   } catch (error) {
