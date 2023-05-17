@@ -9,9 +9,9 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const  utc =  require('dayjs/plugin/utc')
+const utc = require("dayjs/plugin/utc");
 
-dayjs.extend(utc); 
+dayjs.extend(utc);
 
 const getContrato = async (req, res, next) => {
   try {
@@ -69,16 +69,12 @@ const getContratoById = async (req, res, next) => {
           return {
             id: data?.contrato_id,
             codigo_contrato: data?.contrato_id,
-            fecha_inicio_tabla: dayjs(data?.contrato?.fecha_inicio)?.format(
-              "DD-MM-YYYY"
-            ),
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),
-            fecha_fin_tabla:
-              dayjs(data?.contrato?.fecha_fin_estimada, ["YYYY-MM-DD"])?.format("DD-MM-YYYY") ||
-              dayjs(data?.contrato?.fecha_fin, ["YYYY-MM-DD"])?.format("DD-MM-YYYY"),
-            fecha_fin: dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
+            fecha_fin:
+              dayjs(data?.contrato?.fecha_fin_estimada)?.format("YYYY-MM-DD") ||
+              dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
             codigo_contrato: data?.contrato?.codigo_contrato,
             tipo_contrato: data?.contrato?.tipo_contrato,
             periodo_trabajo: data?.contrato?.periodo_trabajo,
@@ -189,7 +185,7 @@ const postContrato = async (req, res, next) => {
         });
       } else {
         if (filterEva.length > 0) {
-          let obj = { ...req.body, fecha_fin_estimada: req.body.fecha_fin}
+          let obj = { ...req.body, fecha_fin_estimada: req.body.fecha_fin };
           const post = await contrato.create(obj);
 
           const contraPago = {
