@@ -567,29 +567,29 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           volquetes: item?.volquetes,
           teletrans: item?.teletrans,
-          destino: item.destino_pagos,
-          quincena: item.quincena,
-          pago_id: item.contrato_pagos.map((data) => data.pago_id).toString(),
+          destino: item?.destino_pagos,
+          quincena: item?.quincena,
+          pago_id: item?.contrato_pagos?.map((data) => data.pago_id).toString(),
           pagos: item?.contrato_pagos
             ?.map((data) => {
               const aprobacionData =
-                data.contrato.aprobacion_contrato_pagos.find(
-                  (ele) => ele.subarray_id == item.quincena
+                data?.contrato?.aprobacion_contrato_pagos?.find(
+                  (ele) => ele?.subarray_id == item?.quincena
                 );
               const asociacion = getAsociacion.find(
-                (ele) => ele.id == aprobacionData.asociacion_id
+                (ele) => ele?.id == aprobacionData?.asociacion_id
               );
               return {
                 contrato_id: data?.contrato_id,
                 pago_id: data?.pago_id,
                 asociacion_id: asociacion?.id,
                 nombre: asociacion?.nombre,
-                tipo_asociacion: asociacion.tipo,
+                tipo_asociacion: asociacion?.tipo,
                 area: "---",
                 cargo: "---",
                 celular: "---",
                 dni: "---",
-                trabajadores: data?.pago_asociacions.map((dat) => {
+                trabajadores: data?.pago_asociacions?.map((dat) => {
                   return {
                     fecha_quincena:
                       aprobacionData?.fecha_inicio +
@@ -634,7 +634,7 @@ const getPagoFecha = async (req, res, next) => {
             trabajadores: item?.contrato_pagos.flatMap((data) => {
               const aprobacionData =
                 data.contrato.aprobacion_contrato_pagos.find(
-                  (ele) => ele.subarray_id == data.quincena
+                  (ele) => ele?.subarray_id == data?.quincena
                 );
 
               return data?.contrato_pago_trabajadors?.map((dat) => {
@@ -683,9 +683,9 @@ const getPagoFecha = async (req, res, next) => {
           estado: item?.estado,
           tipo: item?.tipo,
           destino: item?.destino_pagos,
-          volquetes: item.volquetes,
+          volquetes: item?.volquetes,
           pagos: {
-            trabajadores: item?.contrato_pagos.flatMap((data) => {
+            trabajadores: item?.contrato_pagos?.flatMap((data) => {
               return data?.contrato_pago_trabajadors?.map((dat) => {
                 return {
                   contrato_id: data?.contrato_id,
