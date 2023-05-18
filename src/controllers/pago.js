@@ -71,7 +71,6 @@ const createProgramacionMultiple = async (req, res, next) => {
     estado: "programado",
     teletrans: req?.body?.teletrans,
     volquetes: req?.body?.volquetes,
-    quincena: req.body.quincena,
   };
 
   try {
