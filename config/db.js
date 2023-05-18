@@ -447,6 +447,7 @@ const pago = sequelize.define(
     estado: DataTypes.BOOLEAN,
     tipo: DataTypes.STRING,
     volquetes: DataTypes.STRING,
+    quincena: DataTypes.STRING
   },
   {
     tableName: "pago",

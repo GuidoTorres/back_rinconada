@@ -6,7 +6,7 @@ router.get("/historial", pago.historialProgramacion);
 router.get("/fechas", pago.filtroPagoFecha);
 router.get("/individual/lista", pago.getListaPagoIndividual);
 router.get("/validacion/:id", pago.validacionPago);
-router.get("/validacion/:id", pago.validacionPago);
+router.get("/buscar", pago.BusquedaPagos)
 router.post("/", pago.postPago);
 router.post("/asociacion", pago.asociacionPago);
 router.post("/programacion", pago.createProgramacion);
