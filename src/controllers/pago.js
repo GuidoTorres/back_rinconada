@@ -893,7 +893,7 @@ const historialProgramacion = async (req, res, next) => {
                 pago_id: data?.pago_id,
                 asociacion_id: asociacion?.id,
                 nombre: asociacion?.nombre,
-                tipo_asociacion: asociacion.tipo,
+                tipo_asociacion: asociacion?.tipo,
                 area: "---",
                 cargo: "---",
                 celular: "---",
