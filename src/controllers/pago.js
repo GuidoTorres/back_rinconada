@@ -876,17 +876,17 @@ const historialProgramacion = async (req, res, next) => {
           estado: item?.estado,
           volquetes: item?.volquetes,
           teletrans: item?.teletrans,
-          destino: item.destino_pagos,
-          quincena: item.quincena,
+          destino: item?.destino_pagos,
+          quincena: item?.quincena,
           pago_id: item.contrato_pagos.map((data) => data.pago_id).toString(),
           pagos: item?.contrato_pagos
             ?.map((data) => {
               const aprobacionData =
-                data.contrato.aprobacion_contrato_pagos.find(
-                  (ele) => ele.subarray_id == item.quincena
+                data?.contrato?.aprobacion_contrato_pagos.find(
+                  (ele) => ele?.subarray_id == item?.quincena
                 );
-              const asociacion = getAsociacion.find(
-                (ele) => ele.id == aprobacionData.asociacion_id
+              const asociacion = getAsociacion?.find(
+                (ele) => ele?.id == aprobacionData?.asociacion_id
               );
               return {
                 contrato_id: data?.contrato_id,
@@ -940,10 +940,10 @@ const historialProgramacion = async (req, res, next) => {
           destino: item?.destino_pagos,
           volquetes: item.volquetes,
           pagos: {
-            trabajadores: item?.contrato_pagos.flatMap((data) => {
+            trabajadores: item?.contrato_pagos?.flatMap((data) => {
               const aprobacionData =
-                data.contrato.aprobacion_contrato_pagos.find(
-                  (ele) => ele.subarray_id == data.quincena
+                data?.contrato?.aprobacion_contrato_pagos?.find(
+                  (ele) => ele?.subarray_id == data?.quincena
                 );
 
               return data?.contrato_pago_trabajadors?.map((dat) => {
