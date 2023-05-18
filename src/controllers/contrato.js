@@ -66,16 +66,21 @@ const getContratoById = async (req, res, next) => {
         foto: item?.foto,
         suspendido: item?.suspendido,
         contratos: item.trabajador_contratos.map((data) => {
+          const fechaFormateada =
+            data?.contrato?.fecha_fin_estimada &&
+            dayjs(data.contrato.fecha_fin_estimada).isValid()
+              ? dayjs(data.contrato.fecha_fin_estimada).format("YYYY-MM-DD")
+              : data?.contrato?.fecha_fin &&
+                dayjs(data.contrato.fecha_fin).isValid()
+              ? dayjs(data.contrato.fecha_fin).format("YYYY-MM-DD")
+              : null;
           return {
             id: data?.contrato_id,
             codigo_contrato: data?.contrato_id,
             fecha_inicio: dayjs(data?.contrato?.fecha_inicio)?.format(
               "YYYY-MM-DD"
             ),
-            fecha_fin:
-              dayjs(data?.contrato?.fecha_fin_estimada)?.format("YYYY-MM-DD") ||
-              dayjs(data?.contrato?.fecha_fin)?.format("YYYY-MM-DD"),
-            codigo_contrato: data?.contrato?.codigo_contrato,
+            fecha_fin: fechaFormateada,
             tipo_contrato: data?.contrato?.tipo_contrato,
             periodo_trabajo: data?.contrato?.periodo_trabajo,
             gerencia_id: data?.contrato?.gerencia_id,
@@ -117,20 +122,20 @@ const getContratoAsociacionById = async (req, res, next) => {
     });
 
     const format = user.map((item) => {
+      const fechaFormateada =
+        item?.fecha_fin_estimada && dayjs(item.fecha_fin_estimada).isValid()
+          ? dayjs(item.fecha_fin_estimada).format("YYYY-MM-DD")
+          : item?.fecha_fin && dayjs(item.fecha_fin).isValid()
+          ? dayjs(item.fecha_fin).format("YYYY-MM-DD")
+          : null;
       return {
         id: item?.id,
         fecha_inicio_tabla: dayjs(item?.fecha_inicio)?.format("DD-MM-YYYY"),
         fecha_inicio: dayjs(item?.fecha_inicio)?.format("YYYY-MM-DD"),
-        fecha_fin_tabla:
-          dayjs(item?.fecha_fin_estimada)?.format("DD-MM-YYYY") ||
-          dayjs(item?.fecha_fin)?.format("DD-MM-YYYY"),
-        fecha_fin:
-          dayjs(item?.fecha_fin_estimada)?.format("YYYY-MM-DD") ||
-          dayjs(item?.fecha_fin)?.format("YYYY-MM-DD"),
+        fecha_fin: fechaFormateada,
         codigo_contrato: item?.codigo_contrato,
         tipo_contrato: item?.tipo_contrato,
         periodo_trabajo: item?.periodo_trabajo,
-        fecha_fin: item?.fecha_fin,
         gerencia_id: item?.gerencia_id,
         area_id: item?.area_id,
         jefe_directo: item?.jefe_directo,
@@ -152,8 +157,8 @@ const getContratoAsociacionById = async (req, res, next) => {
 
     return res.status(200).json({ data: format });
 
-    next();
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 };
