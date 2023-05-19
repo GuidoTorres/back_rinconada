@@ -569,7 +569,7 @@ const getPagoFecha = async (req, res, next) => {
           teletrans: item?.teletrans,
           destino: item?.destino_pagos,
           quincena: item?.quincena,
-          pago_id: item?.contrato_pagos?.map((data) => data.pago_id).toString(),
+          pago_id: item?.id,
           pagos: item?.contrato_pagos
             ?.map((data) => {
               const aprobacionData =
@@ -579,6 +579,7 @@ const getPagoFecha = async (req, res, next) => {
               const asociacion = getAsociacion.find(
                 (ele) => ele?.id == aprobacionData?.asociacion_id
               );
+              console.log(aprobacionData);
               return {
                 contrato_id: data?.contrato_id,
                 pago_id: data?.pago_id,
@@ -883,7 +884,7 @@ const historialProgramacion = async (req, res, next) => {
             ?.map((data) => {
               const aprobacionData =
                 data?.contrato?.aprobacion_contrato_pagos.find(
-                  (ele) => ele?.subarray_id == item?.quincena
+                  (ele) => ele?.subarray_id == data?.quincena
                 );
               const asociacion = getAsociacion?.find(
                 (ele) => ele?.id == aprobacionData?.asociacion_id
@@ -902,7 +903,7 @@ const historialProgramacion = async (req, res, next) => {
                   return {
                     fecha_quincena:
                       aprobacionData?.fecha_inicio +
-                      " - " +
+                      " al " +
                       aprobacionData?.fecha_fin,
                     contrato_id: data?.contrato_id,
                     volquetes: dat?.volquetes,
@@ -945,13 +946,14 @@ const historialProgramacion = async (req, res, next) => {
                 data?.contrato?.aprobacion_contrato_pagos?.find(
                   (ele) => ele?.subarray_id == data?.quincena
                 );
-
-              return data?.contrato_pago_trabajadors?.map((dat) => {
+                return data?.contrato_pago_trabajadors?.map((dat) => {
+                const cargos = dat?.trabajador?.trabajador_contratos
+                  ?.find(ele => ele?.contrato_id == aprobacionData?.contrato_id)
                 return {
                   contrato_id: data?.contrato_id,
                   fecha_quincena:
                     aprobacionData?.fecha_inicio +
-                    " - " +
+                    " al " +
                     aprobacionData?.fecha_fin,
                   dni: dat?.trabajador?.dni,
                   volquetes: dat?.volquetes,
@@ -963,12 +965,8 @@ const historialProgramacion = async (req, res, next) => {
                     " " +
                     dat?.trabajador?.nombre,
                   telefono: dat?.trabajador?.telefono,
-                  area: dat?.trabajador?.trabajador_contratos
-                    ?.map((da) => da.contrato.area.nombre)
-                    .toString(),
-                  cargo: dat?.trabajador?.trabajador_contratos
-                    ?.map((da) => da?.contrato?.cargo?.nombre)
-                    .toString(),
+                  area: cargos?.contrato?.area?.nombre,
+                  cargo: cargos?.contrato?.cargo?.nombre,
                 };
               });
             }),
@@ -996,9 +994,10 @@ const historialProgramacion = async (req, res, next) => {
           pagos: {
             trabajadores: item?.contrato_pagos.flatMap((data) => {
               return data?.contrato_pago_trabajadors?.map((dat) => {
+
+                const cargos = dat?.trabajador?.trabajador_contratos.find(ele => ele.contrato_id == data.contrato_id)
                 return {
                   contrato_id: data?.contrato_id,
-
                   dni: dat?.trabajador?.dni,
                   volquetes: dat?.volquetes,
                   teletrans: dat?.teletrans,
@@ -1009,12 +1008,8 @@ const historialProgramacion = async (req, res, next) => {
                     " " +
                     dat?.trabajador?.nombre,
                   telefono: dat?.trabajador?.telefono,
-                  area: dat?.trabajador?.trabajador_contratos
-                    ?.map((da) => da.contrato.area.nombre)
-                    .toString(),
-                  cargo: dat?.trabajador?.trabajador_contratos
-                    ?.map((da) => da?.contrato?.cargo?.nombre)
-                    .toString(),
+                  area: cargos?.contrato?.area?.nombre,
+                  cargo: cargos?.contrato?.cargo?.nombre,
                 };
               });
             }),

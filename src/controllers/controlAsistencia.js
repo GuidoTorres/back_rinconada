@@ -13,7 +13,12 @@ const cron = require("node-cron");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
+const fs = require("fs");
 
+// ...
+
+// Ruta del archivo de salida
+const outputFile = "output.txt";
 dayjs.extend(utc);
 function contarDomingos(fechaInicio, fechaFin) {
   let contador = 0;
@@ -516,14 +521,14 @@ const asociacionData = async () => {
           fechaEstimada,
           dayjs(contrato.fecha_inicio),
           asistencias,
-          cantidadEstimada
+          cantidadEstimada,
+          contrato.tareo
         );
         // Actualiza la fecha estimada con el resultado.
         fechaEstimada = result.estimatedDate;
       }
       // Calcula la cantidad real basándose en las asistencias.
       cantidadReal = calcularCantidadReal(asistencias);
-
 
       if (cantidadReal >= cantidadEstimada) {
         finalizarPromises.push(
@@ -651,7 +656,9 @@ const individual = async () => {
           dayjs(fechaEstimada),
           dayjs(contrato.fecha_inicio),
           asistencias,
-          cantidadEstimada
+          cantidadEstimada,
+          contrato.tareo,
+          contrato
         );
 
         // Update the current estimated date with the result.
@@ -661,7 +668,6 @@ const individual = async () => {
       }
 
       //    Check the tareo type of the contract and calculate the estimated quantity accordingly.
-
 
       // Check if the real quantity is greater than or equal to the estimated quantity and update the contract accordingly.
       if (cantidadReal >= cantidadEstimada) {
@@ -706,72 +712,106 @@ function calculateEstimatedDate(
   estimatedDate,
   contractStartDate,
   workerAttendances,
-  totalAsistencia
+  totalAsistencia,
+  tareo,
+  contrato
 ) {
   let lastAttendanceDate = attendance;
   let daysToAdd = 0;
   let daysToSubtract = 0;
 
-  for (
-    let currentDate = contractStartDate;
-    dayjs(currentDate).isSame(dayjs(lastAttendanceDate)) ||
-    dayjs(currentDate).isBefore(dayjs(lastAttendanceDate));
-    currentDate = currentDate.add(1, "day")
-  ) {
-    let hasRecord = workerAttendances.some(
-      (a) =>
-        dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
-        dayjs(currentDate).format("YYYY-MM-DD")
-    );
+  if (tareo === "Mes cerrado") {
+    for (
+      let currentDate = contractStartDate;
+      dayjs(currentDate).isSame(dayjs(lastAttendanceDate)) ||
+      dayjs(currentDate).isBefore(dayjs(lastAttendanceDate));
+      currentDate = currentDate.add(1, "day")
+    ) {
+      let hasAttendance = workerAttendances.some(
+        (a) =>
+          (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
+          dayjs(a.asistencium.fecha).date() === dayjs(currentDate).date()
+      );
 
-    let hasAttendance = workerAttendances.some(
-      (a) =>
-        (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
-        dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
-          dayjs(currentDate).format("YYYY-MM-DD")
-    );
+      if (!hasAttendance) {
+        daysToAdd++;
+      }
+      const output = [
+        contrato?.trabajador_contratos[0]?.trabajador?.nombre +
+          " -- " +
+          daysToAdd +
+          " -- " +
+          dayjs(currentDate).format("DD-MM-YYYY"),
+      ].join("\n");
 
-    if (!hasAttendance && currentDate.day() !== 0) {
-      daysToAdd++;
+      fs.appendFileSync(outputFile, output + "\n");
     }
 
-    let hasAttendanceOnSunday = workerAttendances.some(
-      (a) =>
-        (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
-        dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
-          dayjs(currentDate).format("YYYY-MM-DD") &&
-        currentDate.day() === 0
-    );
-
-    if (hasAttendanceOnSunday) {
-      daysToSubtract++;
-    }
-  }
-
-  while (daysToAdd > 0) {
-    estimatedDate = dayjs(estimatedDate).add(1, "day");
-    if (estimatedDate.day() !== 0) {
+    while (daysToAdd > 0) {
+      estimatedDate = dayjs(estimatedDate).add(1, "day");
       daysToAdd--;
     }
-  }
+  } else if (tareo === "Lunes a sabado") {
+    for (
+      let currentDate = contractStartDate;
+      dayjs(currentDate).isSame(dayjs(lastAttendanceDate)) ||
+      dayjs(currentDate).isBefore(dayjs(lastAttendanceDate));
+      currentDate = currentDate.add(1, "day")
+    ) {
+      let hasRecord = workerAttendances.some(
+        (a) =>
+          dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+          dayjs(currentDate).format("YYYY-MM-DD")
+      );
 
-  while (daysToSubtract > 0) {
-    estimatedDate = dayjs(estimatedDate).subtract(1, "day");
-    if (estimatedDate.day() === 0) {
-      estimatedDate = dayjs(estimatedDate).subtract(1, "day");
+      let hasAttendance = workerAttendances.some(
+        (a) =>
+          (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
+          dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+            dayjs(currentDate).format("YYYY-MM-DD")
+      );
+
+      if (!hasAttendance && currentDate.day() !== 0) {
+        daysToAdd++;
+      }
+
+      let hasAttendanceOnSunday = workerAttendances.some(
+        (a) =>
+          (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
+          dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+            dayjs(currentDate).format("YYYY-MM-DD") &&
+          currentDate.day() === 0
+      );
+
+      if (hasAttendanceOnSunday) {
+        daysToSubtract++;
+      }
     }
-    daysToSubtract--;
+
+    while (daysToAdd > 0) {
+      estimatedDate = dayjs(estimatedDate).add(1, "day");
+      if (estimatedDate.day() !== 0) {
+        daysToAdd--;
+      }
+    }
+
+    while (daysToSubtract > 0) {
+      estimatedDate = dayjs(estimatedDate).subtract(1, "day");
+      if (estimatedDate.day() === 0) {
+        estimatedDate = dayjs(estimatedDate).subtract(1, "day");
+      }
+      daysToSubtract--;
+    }
   }
 
   return { estimatedDate };
 }
 
-
 const actulizarFechaFin = async (req, res, next) => {
   try {
     await getPlanillaAprobacion();
 
-    await Promise.all([asociacionData(),individual()])
+    await Promise.all([asociacionData(), individual()]);
     return res
       .status(200)
       .json({ msg: "Asistencias validadas con éxito!.", status: 200 });

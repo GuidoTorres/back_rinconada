@@ -434,8 +434,8 @@ const getLastId = async (req, res, next) => {
       ],
     });
     const nuevoId =
-      contratos.length > 0
-        ? parseInt(contratos?.at(0)?.contrato.codigo_contrato) + 1
+      contratos?.length > 0
+        ? parseInt(contratos?.at(0)?.contrato?.codigo_contrato) + 1
         : 1;
     return res.status(200).json({ data: nuevoId });
   } catch (error) {
