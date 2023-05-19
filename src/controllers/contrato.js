@@ -328,7 +328,11 @@ const updateContrato = async (req, res, next) => {
   let id = req.params.id;
 
   try {
-    const put = await contrato.update(req.body, {
+    let info = {
+      ...req.body,
+      fecha_fin_estimada: req.body.fecha_fin
+    }
+    const put = await contrato.update(info, {
       where: { id: id },
     });
 
