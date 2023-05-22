@@ -965,41 +965,54 @@ const getTareoTrabajador = async (req, res, next) => {
             a.asistencium.fecha.localeCompare(b.asistencium.fecha)
           );
         
+        let daysInCurrentMonth;
+        
         let subAsistencias = [];
         let fechaInicio = null;
         let fechaFin = null;
-        let daysInCurrentMonth;
         
-        let currentMonth = null;
-        let splitDay = 15; // Día de división inicial
+        // Día de división inicial
+        let splitDay = 15;
+        let pendingDays = 0;
+        
         sortedAsistencias.forEach((asistencia, i) => {
-          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-          const newMonth = fechaAsistencia.month();
-          
-          if (!currentMonth || newMonth !== currentMonth) {
-            if (subAsistencias.length > 0) {
-              fechaFin = subAsistencias[subAsistencias.length - 1].asistencium.fecha;
-              createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
-              subAsistencias = [];
+            const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+        
+            if (!fechaInicio) {
+                fechaInicio = asistencia.asistencium.fecha;
+                splitDay = fechaAsistencia.daysInMonth() === 31 ? 16 : 15;
             }
-            fechaInicio = asistencia.asistencium.fecha;
-            currentMonth = newMonth;
-            splitDay = fechaAsistencia.daysInMonth() === 31 ? 16 : 15;
-          }
+          
+            subAsistencias.push(asistencia);
         
-          subAsistencias.push(asistencia);
+            // Si hemos llegado al final de las asistencias
+            // o si hemos alcanzado el límite de la quincena y no hay días pendientes
+            if (i === sortedAsistencias.length - 1 || (subAsistencias.length >= splitDay && !pendingDays)) {
+                fechaFin = asistencia.asistencium.fecha;
+                createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+                fechaInicio = fechaAsistencia.add(1, 'day').format("YYYY-MM-DD");
+                splitDay = fechaAsistencia.daysInMonth() - splitDay;
+                subAsistencias = [];
+            } else if (subAsistencias.length >= splitDay && pendingDays) {
+                // Si hemos alcanzado el límite de la quincena pero aún hay días pendientes
+                fechaFin = asistencia.asistencium.fecha;
+                createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+                fechaInicio = fechaAsistencia.add(1, 'day').format("YYYY-MM-DD");
+                splitDay = pendingDays;
+                pendingDays = 0;
+                subAsistencias = [];
+            }
         
-          if (i === sortedAsistencias.length - 1) {
-            fechaFin = asistencia.asistencium.fecha;
-            createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
-          } else if (subAsistencias.length >= splitDay) {
-            fechaFin = subAsistencias[subAsistencias.length - 1].asistencium.fecha;
-            createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
-            subAsistencias = [];
-            fechaInicio = fechaAsistencia.add(1, 'day').format("YYYY-MM-DD"); // Add a day to the current date
-            splitDay = fechaAsistencia.daysInMonth() - splitDay;
-          }
+            // Si hemos llegado al final del mes y no hemos llegado al límite de la quincena
+            if (fechaAsistencia.date() === fechaAsistencia.daysInMonth() && subAsistencias.length < splitDay) {
+                pendingDays = splitDay - subAsistencias.length;
+            }
         });
+        
+        if (subAsistencias.length > 0) {
+            // Asegurándonos de agregar el último subarray si hay asistencias pendientes
+            createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+        }
         
         
       }

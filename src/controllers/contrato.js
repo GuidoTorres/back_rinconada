@@ -47,9 +47,10 @@ const getContratoById = async (req, res, next) => {
       ],
     });
 
-    const format = user.map((item) => {
+    const format = user.map((item, i) => {
       const sortedEvaluations = item.evaluacions.sort((a, b) => b.id - a.id);
       return {
+        nro: i +1,
         dni: item?.dni,
         codigo_trabajador: item?.codigo_trabajador,
         fecha_nacimiento: item?.fecha_nacimiento,
@@ -121,7 +122,7 @@ const getContratoAsociacionById = async (req, res, next) => {
       where: { asociacion_id: id },
     });
 
-    const format = user.map((item) => {
+    const format = user.map((item, i) => {
       const fechaFormateada =
         item?.fecha_fin_estimada && dayjs(item.fecha_fin_estimada).isValid()
           ? dayjs(item.fecha_fin_estimada).format("YYYY-MM-DD")
@@ -129,6 +130,7 @@ const getContratoAsociacionById = async (req, res, next) => {
           ? dayjs(item.fecha_fin).format("YYYY-MM-DD")
           : null;
       return {
+        nro: i + 1,
         id: item?.id,
         fecha_inicio_tabla: dayjs(item?.fecha_inicio)?.format("DD-MM-YYYY"),
         fecha_inicio: dayjs(item?.fecha_inicio)?.format("YYYY-MM-DD"),
@@ -156,7 +158,6 @@ const getContratoAsociacionById = async (req, res, next) => {
     });
 
     return res.status(200).json({ data: format });
-
   } catch (error) {
     console.log(error);
     res.status(500).json(error);
@@ -330,8 +331,8 @@ const updateContrato = async (req, res, next) => {
   try {
     let info = {
       ...req.body,
-      fecha_fin_estimada: req.body.fecha_fin
-    }
+      fecha_fin_estimada: req.body.fecha_fin,
+    };
     const put = await contrato.update(info, {
       where: { id: id },
     });
@@ -424,21 +425,15 @@ const deleteContrato = async (req, res, next) => {
 };
 
 const getLastId = async (req, res, next) => {
-  const dniTrabajador = req.params.id;
 
   try {
-    const contratos = await trabajador_contrato.findAll({
-      include: [
-        {
-          model: contrato,
-          order: [["id", "DESC"]],
-          attributes: { exclude: ["contrato_id"] },
-        },
-      ],
+    const contratos = await contrato.findAll({
+      order: [["id", "DESC"]],
+      attributes: ["id"],
     });
     const nuevoId =
       contratos?.length > 0
-        ? parseInt(contratos?.at(-1)?.contrato?.codigo_contrato) + 1
+        ? parseInt(contratos?.at(0)?.id) + 1
         : 1;
     return res.status(200).json({ data: nuevoId });
   } catch (error) {
