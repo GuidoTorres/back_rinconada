@@ -438,7 +438,6 @@ const getListaPago = async (req, res, next) => {
       ],
     });
 
-
     const formatData = allAprobaciones
       ?.map((item, i) => {
         const trabajadoresProgramados = item?.contrato?.contrato_pagos
@@ -487,8 +486,11 @@ const getListaPago = async (req, res, next) => {
             .sort((a, b) => a.nombre.localeCompare(b.nombre)),
         };
         const saldoFinal =
-          parseFloat(item?.contrato?.teletrans?.at(-1)?.saldo) - parseFloat(totalVolquetes * 4);
-        const asociacion = allAsociaciones.find(ele => ele.id == item.asociacion_id)
+          parseFloat(item?.contrato?.teletrans?.at(-1)?.saldo) -
+          parseFloat(totalVolquetes * 4);
+        const asociacion = allAsociaciones.find(
+          (ele) => ele.id == item.asociacion_id
+        );
         if (saldoFinal < 1) {
           updateEstadoAprobacionContratoPago(item.id);
         }
@@ -497,7 +499,7 @@ const getListaPago = async (req, res, next) => {
           return {
             id: i + 1,
             dni: "---",
-            nombre: asociacion.nombre +" - "+ item.subarray_id,
+            nombre: asociacion.nombre + " - " + item.subarray_id,
             tipo: asociacion.tipo,
             asociacion_id: asociacion.id,
             contrato_id: item?.contrato?.id,
@@ -532,7 +534,8 @@ const getListaPago = async (req, res, next) => {
             totalVolquetes: totalVolquetes,
           };
         }
-      }).filter(item => item?.aprobacion?.estado)
+      })
+      .filter((item) => item?.aprobacion?.estado);
 
     return res.status(200).json({ data: formatData });
   } catch (error) {
@@ -851,87 +854,157 @@ const getTareoTrabajador = async (req, res, next) => {
       return;
     }
     filterContrato.map((trabajador) => {
-      let contador = 0;
-      let subAsistencias = [];
-      let fechaInicio = null;
-      let fechaFin = null;
-    
-      const contratoFechaInicio = dayjs(
-        trabajador.trabajador_contratos[0].contrato.fecha_inicio
-      );
-    
-      const contratoFechaFin =
-        dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada) ||
-        dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin);
-    
-      const minAsistencias = 15;
-      const sortedAsistencias = trabajador?.trabajador_asistencia
-        ?.filter((asistencia) => {
-          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-          return (
-            (fechaAsistencia.isSame(contratoFechaInicio) ||
-              fechaAsistencia.isAfter(contratoFechaInicio)) &&
-            (fechaAsistencia.isSame(contratoFechaFin) ||
-              fechaAsistencia.isBefore(contratoFechaFin))
+      const tareo = trabajador.trabajador_contratos[0].contrato.tareo;
+      if (tareo === "Lunes a sabado") {
+        let contador = 0;
+        let subAsistencias = [];
+        let fechaInicio = null;
+        let fechaFin = null;
+
+        const contratoFechaInicio = dayjs(
+          trabajador.trabajador_contratos[0].contrato.fecha_inicio
+        );
+
+        const contratoFechaFin =
+          dayjs(
+            trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada
+          ) || dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin);
+
+        const minAsistencias = 15;
+        const sortedAsistencias = trabajador?.trabajador_asistencia
+          ?.filter((asistencia) => {
+            const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+            return (
+              (fechaAsistencia.isSame(contratoFechaInicio) ||
+                fechaAsistencia.isAfter(contratoFechaInicio)) &&
+              (fechaAsistencia.isSame(contratoFechaFin) ||
+                fechaAsistencia.isBefore(contratoFechaFin))
+            );
+          })
+          .sort((a, b) =>
+            a.asistencium.fecha.localeCompare(b.asistencium.fecha)
           );
-        })
-        .sort((a, b) => a.asistencium.fecha.localeCompare(b.asistencium.fecha));
-    
-      const numAsistencias = sortedAsistencias.length;
-    
-      if (numAsistencias >= 1) {
-        for (let i = 0; i < numAsistencias; i++) {
-          const asistencia = sortedAsistencias[i];
-    
-          if (
-            asistencia &&
-            ["Asistio", "Comisión"].includes(asistencia.asistencia)
-          ) {
-            contador++;
-          }
-    
-          // Creamos subarray cuando se alcance el mínimo de asistencias.
-          if (contador > minAsistencias) {
-            fechaFin = subAsistencias[subAsistencias.length - 1].asistencium.fecha;
-    
-            createSubarray(
-              trabajador,
-              subAsistencias,
-              fechaInicio,
-              fechaFin,
-              contador - 1 // Restamos uno para no contar la asistencia actual en este subarray
-            );
-    
-            // Preparación para el siguiente subarray
-            contador = 1; // Iniciamos en 1 para incluir la asistencia actual
-            subAsistencias = []; // Limpiamos el arreglo de asistencias
-            fechaInicio = asistencia.asistencium.fecha; // Tomamos la fecha actual como inicio del siguiente subarray
-          }
-    
-          // La asistencia se agrega al subarray después de verificar si se ha alcanzado el límite
-          subAsistencias.push(asistencia);
-    
-          if (contador === 1 && !fechaInicio) {
-            fechaInicio = asistencia.asistencium.fecha;
-          }
-    
-          // Creamos el último subarray cuando llegamos a la última asistencia
-          if (i === numAsistencias - 1) {
-            fechaFin = asistencia.asistencium.fecha;
-    
-            createSubarray(
-              trabajador,
-              subAsistencias,
-              fechaInicio,
-              fechaFin,
-              contador
-            );
+
+        const numAsistencias = sortedAsistencias.length;
+
+        if (numAsistencias >= 1) {
+          for (let i = 0; i < numAsistencias; i++) {
+            const asistencia = sortedAsistencias[i];
+
+            if (
+              asistencia &&
+              ["Asistio", "Comisión"].includes(asistencia.asistencia)
+            ) {
+              contador++;
+            }
+
+            // Creamos subarray cuando se alcance el mínimo de asistencias.
+            if (contador > minAsistencias) {
+              fechaFin =
+                subAsistencias[subAsistencias.length - 1].asistencium.fecha;
+
+              createSubarray(
+                trabajador,
+                subAsistencias,
+                fechaInicio,
+                fechaFin,
+                contador - 1 // Restamos uno para no contar la asistencia actual en este subarray
+              );
+
+              // Preparación para el siguiente subarray
+              contador = 1; // Iniciamos en 1 para incluir la asistencia actual
+              subAsistencias = []; // Limpiamos el arreglo de asistencias
+              fechaInicio = asistencia.asistencium.fecha; // Tomamos la fecha actual como inicio del siguiente subarray
+            }
+
+            // La asistencia se agrega al subarray después de verificar si se ha alcanzado el límite
+            subAsistencias.push(asistencia);
+
+            if (contador === 1 && !fechaInicio) {
+              fechaInicio = asistencia.asistencium.fecha;
+            }
+
+            // Creamos el último subarray cuando llegamos a la última asistencia
+            if (i === numAsistencias - 1) {
+              fechaFin = asistencia.asistencium.fecha;
+
+              createSubarray(
+                trabajador,
+                subAsistencias,
+                fechaInicio,
+                fechaFin,
+                contador
+              );
+            }
           }
         }
+      } else if (tareo === "Mes cerrado") {
+        // Calcula las quincenas y divide las asistencias en subarrays en base a ellas...
+
+        const contratoFechaInicio = dayjs(
+          trabajador.trabajador_contratos[0].contrato.fecha_inicio
+        );
+        
+        const contratoFechaFin =
+          dayjs(
+            trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada
+          ) || dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin);
+        
+        const sortedAsistencias = trabajador?.trabajador_asistencia
+          ?.filter((asistencia) => {
+            const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+            return (
+              (fechaAsistencia.isSame(contratoFechaInicio) ||
+                fechaAsistencia.isAfter(contratoFechaInicio)) &&
+              (fechaAsistencia.isSame(contratoFechaFin) ||
+                fechaAsistencia.isBefore(contratoFechaFin)) &&
+              ["Asistio", "Comisión"].includes(asistencia.asistencia)
+            );
+          })
+          .sort((a, b) =>
+            a.asistencium.fecha.localeCompare(b.asistencium.fecha)
+          );
+        
+        let subAsistencias = [];
+        let fechaInicio = null;
+        let fechaFin = null;
+        let daysInCurrentMonth;
+        
+        let currentMonth = null;
+        let splitDay = 15; // Día de división inicial
+        sortedAsistencias.forEach((asistencia, i) => {
+          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+          const newMonth = fechaAsistencia.month();
+          
+          if (!currentMonth || newMonth !== currentMonth) {
+            if (subAsistencias.length > 0) {
+              fechaFin = subAsistencias[subAsistencias.length - 1].asistencium.fecha;
+              createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+              subAsistencias = [];
+            }
+            fechaInicio = asistencia.asistencium.fecha;
+            currentMonth = newMonth;
+            splitDay = fechaAsistencia.daysInMonth() === 31 ? 16 : 15;
+          }
+        
+          subAsistencias.push(asistencia);
+        
+          if (i === sortedAsistencias.length - 1) {
+            fechaFin = asistencia.asistencium.fecha;
+            createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+          } else if (subAsistencias.length >= splitDay) {
+            fechaFin = subAsistencias[subAsistencias.length - 1].asistencium.fecha;
+            createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+            subAsistencias = [];
+            fechaInicio = fechaAsistencia.add(1, 'day').format("YYYY-MM-DD"); // Add a day to the current date
+            splitDay = fechaAsistencia.daysInMonth() - splitDay;
+          }
+        });
+        
+        
       }
     });
-    
-    
+
     return res.status(200).json({ data: aprobacionFilter });
   } catch (error) {
     console.log(error);

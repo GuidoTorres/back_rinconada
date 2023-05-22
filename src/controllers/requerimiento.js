@@ -247,7 +247,7 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
       where: {
         deshabilitado: { [Op.not]: true },
       },
-      attributes: ["dni", "apellido_paterno", "apellido_materno", "nombre"],
+      attributes: ["dni", "apellido_paterno", "apellido_materno", "nombre", "telefono"],
       include: [
         {
           model: trabajador_contrato,
@@ -282,6 +282,7 @@ const getTrabajadorRequerimiento = async (req, res, next) => {
           " " +
           item?.nombre,
 
+          telefono: item?.telefono,
         area: getArea?.filter((data) => data?.id === areaContrato)?.at(-1)?.nombre,
       };
     }).filter(item => item.area);

@@ -13,12 +13,7 @@ const cron = require("node-cron");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
-const fs = require("fs");
 
-// ...
-
-// Ruta del archivo de salida
-const outputFile = "output.txt";
 dayjs.extend(utc);
 function contarDomingos(fechaInicio, fechaFin) {
   let contador = 0;
@@ -299,63 +294,147 @@ const getPlanillaAprobacion = async () => {
             if (contador === 1) {
               fechaInicio = asistencia.asistencium.fecha;
             }
-            if (contador === 15) {
-              fechaFin = asistencia.asistencium.fecha;
 
-              if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
-                subarrayIdsPorTrabajador[trabajador.dni] = 1;
+            if (contrato.tareo === "Lunes a sabado") {
+              if (contador === 15) {
+                fechaFin = asistencia.asistencium.fecha;
+
+                if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
+                  subarrayIdsPorTrabajador[trabajador.dni] = 1;
+                } else {
+                  subarrayIdsPorTrabajador[trabajador.dni]++;
+                }
+                if (contrato.tipo_contrato !== "Planilla") {
+                  aprobacionFilter.push({
+                    subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
+                    dni: trabajador.dni,
+                    nombre:
+                      trabajador.apellido_paterno +
+                      " " +
+                      trabajador.apellido_materno +
+                      " " +
+                      trabajador.nombre,
+                    celular: trabajador.telefono,
+                    fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
+                    fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
+                    volquete:
+                      trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                        -1
+                      )?.volquete,
+                    teletran:
+                      trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                        -1
+                      )?.teletrans,
+                    total:
+                      trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                        -1
+                      )?.total,
+                    contrato_id:
+                      trabajador.trabajador_contratos[0].contrato?.id,
+
+                    asistencia: contador,
+
+                    aprobacion_id:
+                      trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                        ?.filter((item) => item.subarray_id == subarrayId)
+                        .at(0)?.id,
+                    firma_jefe:
+                      trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                        ?.filter((item) => item.subarray_id == subarrayId)
+                        .at(0)?.firma_jefe,
+                    firma_gerente:
+                      trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                        ?.filter((item) => item.subarray_id == subarrayId)
+                        .at(0)?.firma_gerente,
+                  });
+                }
+
+                contador = 0;
+                subAsistencias = [];
+                fechaInicio = null;
+                fechaFin = null;
+                subarrayId++;
+              }
+            } else if (contrato.tareo === "Mes cerrado") {
+              let splitDay;
+              const currentMonth = currentDate.month();
+              const currentDay = currentDate.date();
+              let daysInCurrentMonth = currentDate.daysInMonth();
+              if (
+                currentMonth === fechaInicioContrato.month() &&
+                fechaInicioContrato.date() > 1
+              ) {
+                splitDay =
+                  currentDate.daysInMonth() - fechaInicioContrato.date() + 1;
               } else {
-                subarrayIdsPorTrabajador[trabajador.dni]++;
-              }
-              if (contrato.tipo_contrato !== "Planilla") {
-                aprobacionFilter.push({
-                  subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
-                  dni: trabajador.dni,
-                  nombre:
-                    trabajador.apellido_paterno +
-                    " " +
-                    trabajador.apellido_materno +
-                    " " +
-                    trabajador.nombre,
-                  celular: trabajador.telefono,
-                  fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
-                  fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
-                  volquete:
-                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
-                      -1
-                    )?.volquete,
-                  teletran:
-                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
-                      -1
-                    )?.teletrans,
-                  total:
-                    trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
-                      -1
-                    )?.total,
-                  contrato_id: trabajador.trabajador_contratos[0].contrato?.id,
-
-                  asistencia: contador,
-
-                  aprobacion_id:
-                    trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                      ?.filter((item) => item.subarray_id == subarrayId)
-                      .at(0)?.id,
-                  firma_jefe:
-                    trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                      ?.filter((item) => item.subarray_id == subarrayId)
-                      .at(0)?.firma_jefe,
-                  firma_gerente:
-                    trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
-                      ?.filter((item) => item.subarray_id == subarrayId)
-                      .at(0)?.firma_gerente,
-                });
+                // Define el splitDay dependiendo de los días en el mes
+                if (daysInCurrentMonth === 28) {
+                  splitDay = currentDay <= 15 ? 15 : 13;
+                } else if (daysInCurrentMonth === 29) {
+                  splitDay = currentDay <= 15 ? 15 : 14;
+                } else if (daysInCurrentMonth === 30) {
+                  splitDay = currentDay <= 15 ? 15 : 15;
+                } else {
+                  // Si el mes tiene 31 días
+                  splitDay = currentDay <= 16 ? 16 : 15;  
+                }
               }
 
-              contador = 0;
-              subAsistencias = [];
-              fechaInicio = null;
-              fechaFin = null;
-              subarrayId++;
+              if (contador === splitDay) {
+                fechaFin = asistencia.asistencium.fecha;
+
+                if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
+                  subarrayIdsPorTrabajador[trabajador.dni] = 1;
+                } else {
+                  subarrayIdsPorTrabajador[trabajador.dni]++;
+                }
+
+                if (contrato.tipo_contrato !== "Planilla") {
+                  aprobacionFilter.push({
+                    subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
+                    dni: trabajador.dni,
+                    nombre:
+                      trabajador.apellido_paterno +
+                      " " +
+                      trabajador.apellido_materno +
+                      " " +
+                      trabajador.nombre,
+                    celular: trabajador.telefono,
+                    fecha_inicio: dayjs(fechaInicio).format("DD-MM-YYYY"),
+                    fecha_fin: dayjs(fechaFin).format("DD-MM-YYYY"),
+                    volquete:
+                      trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                        -1
+                      )?.volquete,
+                    teletran:
+                      trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                        -1
+                      )?.teletrans,
+                    total:
+                      trabajador.trabajador_contratos[0].contrato?.teletrans?.at(
+                        -1
+                      )?.total,
+                    contrato_id:
+                      trabajador.trabajador_contratos[0].contrato?.id,
+                    asistencia: contador,
+                    aprobacion_id:
+                      trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                        ?.filter((item) => item.subarray_id == subarrayId)
+                        .at(0)?.id,
+                    firma_jefe:
+                      trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                        ?.filter((item) => item.subarray_id == subarrayId)
+                        .at(0)?.firma_jefe,
+                    firma_gerente:
+                      trabajador.trabajador_contratos[0].contrato?.aprobacion_contrato_pagos
+                        ?.filter((item) => item.subarray_id == subarrayId)
+                        .at(0)?.firma_gerente,
+                  });
+                }
+                // Reinicia el contador y subAsistencias aquí, después de agregar los datos a aprobacionFilter
+                contador = 0;
+                subAsistencias = [];
+              }
             }
           } else {
             // Ignorar asistencias que no son "Asistió"
@@ -626,7 +705,7 @@ const individual = async () => {
             fechaAsistencia.isBefore(fechaFinal, "day"))
         );
       });
-      if (contrato.tareo === "Mes cerrado") {
+      if (contrato.tareo == "Mes cerrado") {
         const fechaFinEstimada = dayjs(contrato.fecha_inicio).add(
           contrato.periodo_trabajo,
           "month"
@@ -635,12 +714,8 @@ const individual = async () => {
           dayjs(contrato.fecha_inicio),
           "day"
         );
-        const domingosEnPeriodo = contarDomingos(
-          dayjs(contrato.fecha_inicio),
-          fechaFinEstimada
-        );
-        cantidadEstimada = diasEnPeriodo - domingosEnPeriodo;
-      } else if (contrato.tareo === "Lunes a sabado") {
+        cantidadEstimada = diasEnPeriodo ;
+      } else if (contrato.tareo == "Lunes a sabado") {
         cantidadEstimada = 15 * parseInt(contrato.periodo_trabajo);
       }
 
@@ -720,37 +795,42 @@ function calculateEstimatedDate(
   let daysToAdd = 0;
   let daysToSubtract = 0;
 
-  if (tareo === "Mes cerrado") {
+  if (tareo == "Mes cerrado") {
     for (
       let currentDate = contractStartDate;
       dayjs(currentDate).isSame(dayjs(lastAttendanceDate)) ||
       dayjs(currentDate).isBefore(dayjs(lastAttendanceDate));
       currentDate = currentDate.add(1, "day")
     ) {
+      let hasRecord = workerAttendances.some(
+        (a) =>
+          dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+          dayjs(currentDate).format("YYYY-MM-DD")
+      );
+
       let hasAttendance = workerAttendances.some(
         (a) =>
           (a.asistencia === "Asistio" || a.asistencia === "Comisión") &&
-          dayjs(a.asistencium.fecha).date() === dayjs(currentDate).date()
+          dayjs(a.asistencium.fecha).format("YYYY-MM-DD") ===
+            dayjs(currentDate).format("YYYY-MM-DD")
       );
+      if (!hasRecord) {
+        daysToAdd++;
+      }
 
       if (!hasAttendance) {
         daysToAdd++;
       }
-      const output = [
-        contrato?.trabajador_contratos[0]?.trabajador?.nombre +
-          " -- " +
-          daysToAdd +
-          " -- " +
-          dayjs(currentDate).format("DD-MM-YYYY"),
-      ].join("\n");
 
-      fs.appendFileSync(outputFile, output + "\n");
+
     }
 
     while (daysToAdd > 0) {
       estimatedDate = dayjs(estimatedDate).add(1, "day");
       daysToAdd--;
     }
+
+
   } else if (tareo === "Lunes a sabado") {
     for (
       let currentDate = contractStartDate;
@@ -805,6 +885,7 @@ function calculateEstimatedDate(
   }
 
   return { estimatedDate };
+
 }
 
 const actulizarFechaFin = async (req, res, next) => {

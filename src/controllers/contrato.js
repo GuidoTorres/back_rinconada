@@ -428,7 +428,6 @@ const getLastId = async (req, res, next) => {
 
   try {
     const contratos = await trabajador_contrato.findAll({
-      where: { trabajador_dni: dniTrabajador },
       include: [
         {
           model: contrato,
@@ -439,7 +438,7 @@ const getLastId = async (req, res, next) => {
     });
     const nuevoId =
       contratos?.length > 0
-        ? parseInt(contratos?.at(0)?.contrato?.codigo_contrato) + 1
+        ? parseInt(contratos?.at(-1)?.contrato?.codigo_contrato) + 1
         : 1;
     return res.status(200).json({ data: nuevoId });
   } catch (error) {
