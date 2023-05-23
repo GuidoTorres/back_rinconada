@@ -71,6 +71,7 @@ const createProgramacionMultiple = async (req, res, next) => {
     estado: "programado",
     teletrans: req?.body?.teletrans,
     volquetes: req?.body?.volquetes,
+    unidad_produccion: req.body.unidad_produccion
   };
 
   try {
@@ -879,6 +880,7 @@ const historialProgramacion = async (req, res, next) => {
           teletrans: item?.teletrans,
           destino: item?.destino_pagos,
           quincena: item?.quincena,
+          unidad_produccion: item?.unidad_produccion,
           pago_id: item.contrato_pagos.map((data) => data.pago_id).toString(),
           pagos: item?.contrato_pagos
             ?.map((data) => {
@@ -940,6 +942,8 @@ const historialProgramacion = async (req, res, next) => {
           tipo: item?.tipo,
           destino: item?.destino_pagos,
           volquetes: item.volquetes,
+          unidad_produccion: item?.unidad_produccion,
+
           pagos: {
             trabajadores: item?.contrato_pagos?.flatMap((data) => {
               const aprobacionData =
@@ -991,6 +995,8 @@ const historialProgramacion = async (req, res, next) => {
           tipo: item?.tipo,
           destino: item?.destino_pagos,
           volquetes: item.volquetes,
+          unidad_produccion: item?.unidad_produccion,
+
           pagos: {
             trabajadores: item?.contrato_pagos.flatMap((data) => {
               return data?.contrato_pago_trabajadors?.map((dat) => {
@@ -1033,6 +1039,7 @@ const historialProgramacion = async (req, res, next) => {
           estado: item?.estado,
           tipo: item?.tipo,
           destino: item?.destino_pagos,
+          unidad_produccion: item?.unidad_produccion,
 
           volquetes: item.volquetes,
           pagos: item?.contrato_pagos
