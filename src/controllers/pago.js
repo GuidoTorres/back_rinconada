@@ -635,7 +635,7 @@ const getPagoFecha = async (req, res, next) => {
           pagos: {
             trabajadores: item?.contrato_pagos.flatMap((data) => {
               const aprobacionData =
-                data.contrato.aprobacion_contrato_pagos.find(
+                data?.contrato?.aprobacion_contrato_pagos?.find(
                   (ele) => ele?.subarray_id == data?.quincena
                 );
 
