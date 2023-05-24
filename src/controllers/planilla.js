@@ -442,16 +442,37 @@ const getListaPago = async (req, res, next) => {
       ?.map((item, i) => {
         const trabajadoresProgramados = item?.contrato?.contrato_pagos
           ?.filter((data) => data.quincena === item.subarray_id)
-          .map((data) =>
-            data.pago_asociacions.map((item) => {
-              return {
-                dni: item.trabajador_dni,
-                volquete: item.volquetes,
-                quincena: data.quincena,
-              };
-            })
-          )
+          .map((data) => {
+            const resultado = [];
+            data.pago_asociacions.forEach((pago) => {
+              const { trabajador_dni, teletrans } = pago;
+
+              // Verificar si ya existe un objeto con el mismo trabajador_dni y quincena en el resultado
+              const objetoExistente = resultado.find(
+                (item) =>
+                  item.trabajador_dni === trabajador_dni &&
+                  item.quincena === data.quincena
+              );
+
+              const teletransNumber = parseFloat(teletrans); // Convertir a número
+
+              if (objetoExistente) {
+                // Si ya existe, se suma el teletrans al objeto existente
+                objetoExistente.teletrans += teletransNumber;
+              } else {
+                // Si no existe, se agrega un nuevo objeto al resultado
+                resultado.push({
+                  trabajador_dni,
+                  quincena: data.quincena,
+                  teletrans: teletransNumber,
+                });
+              }
+            });
+
+            return resultado;
+          })
           .flat();
+
         const totalVolquetes = item?.contrato?.contrato_pagos
           ?.filter((data) => data.quincena === item.subarray_id)
           .reduce((accumulator, current) => {
@@ -461,30 +482,30 @@ const getListaPago = async (req, res, next) => {
         const pagos = {
           trabajadores: item?.contrato?.trabajador_contratos
             .map((trabajador, i) => {
-              const trabajadorProgramado = trabajadoresProgramados.find(
-                (item) => item.dni === trabajador.trabajador.dni
+              const trabajadorProgramado = trabajadoresProgramados.reduce(
+                (acc, item) => {
+                  if (item.trabajador_dni === trabajador.trabajador.dni) {
+                    acc += item.teletrans;
+                  }
+                  return acc;
+                },
+                0
               );
 
               return {
                 id: i + 1,
-                teletrans: trabajadorProgramado
-                  ? trabajadorProgramado.teletrans
-                  : 0,
+                teletrans: trabajadorProgramado,
                 dni: trabajador.trabajador.dni,
-                nombre:
-                  trabajador.trabajador.apellido_paterno +
-                  " " +
-                  trabajador.trabajador.apellido_materno +
-                  " " +
-                  trabajador.trabajador.nombre,
+                nombre: `${trabajador.trabajador.apellido_paterno} ${trabajador.trabajador.apellido_materno} ${trabajador.trabajador.nombre}`,
                 telefono: trabajador.trabajador.telefono,
                 cargo: item.tipo,
-                programado: trabajadorProgramado ? true : false,
+                programado: trabajadorProgramado > 0,
                 contrato_id: item?.contratos?.at(-1)?.id,
               };
             })
             .sort((a, b) => a.nombre.localeCompare(b.nombre)),
         };
+
         const saldoFinal =
           parseFloat(item?.contrato?.teletrans?.at(-1)?.saldo) -
           parseFloat(totalVolquetes * 4);
@@ -494,7 +515,6 @@ const getListaPago = async (req, res, next) => {
         if (saldoFinal < 1) {
           updateEstadoAprobacionContratoPago(item.id);
         }
-        console.log(item);
         if (saldoFinal > 0) {
           return {
             id: i + 1,
@@ -944,12 +964,12 @@ const getTareoTrabajador = async (req, res, next) => {
         const contratoFechaInicio = dayjs(
           trabajador.trabajador_contratos[0].contrato.fecha_inicio
         );
-        
+
         const contratoFechaFin =
           dayjs(
             trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada
           ) || dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin);
-        
+
         const sortedAsistencias = trabajador?.trabajador_asistencia
           ?.filter((asistencia) => {
             const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
@@ -964,57 +984,79 @@ const getTareoTrabajador = async (req, res, next) => {
           .sort((a, b) =>
             a.asistencium.fecha.localeCompare(b.asistencium.fecha)
           );
-        
+
         let daysInCurrentMonth;
-        
+
         let subAsistencias = [];
         let fechaInicio = null;
         let fechaFin = null;
-        
+
         // Día de división inicial
         let splitDay = 15;
         let pendingDays = 0;
-        
+
         sortedAsistencias.forEach((asistencia, i) => {
-            const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-        
-            if (!fechaInicio) {
-                fechaInicio = asistencia.asistencium.fecha;
-                splitDay = fechaAsistencia.daysInMonth() === 31 ? 16 : 15;
-            }
-          
-            subAsistencias.push(asistencia);
-        
-            // Si hemos llegado al final de las asistencias
-            // o si hemos alcanzado el límite de la quincena y no hay días pendientes
-            if (i === sortedAsistencias.length - 1 || (subAsistencias.length >= splitDay && !pendingDays)) {
-                fechaFin = asistencia.asistencium.fecha;
-                createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
-                fechaInicio = fechaAsistencia.add(1, 'day').format("YYYY-MM-DD");
-                splitDay = fechaAsistencia.daysInMonth() - splitDay;
-                subAsistencias = [];
-            } else if (subAsistencias.length >= splitDay && pendingDays) {
-                // Si hemos alcanzado el límite de la quincena pero aún hay días pendientes
-                fechaFin = asistencia.asistencium.fecha;
-                createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
-                fechaInicio = fechaAsistencia.add(1, 'day').format("YYYY-MM-DD");
-                splitDay = pendingDays;
-                pendingDays = 0;
-                subAsistencias = [];
-            }
-        
-            // Si hemos llegado al final del mes y no hemos llegado al límite de la quincena
-            if (fechaAsistencia.date() === fechaAsistencia.daysInMonth() && subAsistencias.length < splitDay) {
-                pendingDays = splitDay - subAsistencias.length;
-            }
+          const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
+
+          if (!fechaInicio) {
+            fechaInicio = asistencia.asistencium.fecha;
+            splitDay = fechaAsistencia.daysInMonth() === 31 ? 16 : 15;
+          }
+
+          subAsistencias.push(asistencia);
+
+          // Si hemos llegado al final de las asistencias
+          // o si hemos alcanzado el límite de la quincena y no hay días pendientes
+          if (
+            i === sortedAsistencias.length - 1 ||
+            (subAsistencias.length >= splitDay && !pendingDays)
+          ) {
+            fechaFin = asistencia.asistencium.fecha;
+            createSubarray(
+              trabajador,
+              subAsistencias,
+              fechaInicio,
+              fechaFin,
+              subAsistencias.length
+            );
+            fechaInicio = fechaAsistencia.add(1, "day").format("YYYY-MM-DD");
+            splitDay = fechaAsistencia.daysInMonth() - splitDay;
+            subAsistencias = [];
+          } else if (subAsistencias.length >= splitDay && pendingDays) {
+            // Si hemos alcanzado el límite de la quincena pero aún hay días pendientes
+            fechaFin = asistencia.asistencium.fecha;
+            createSubarray(
+              trabajador,
+              subAsistencias,
+              fechaInicio,
+              fechaFin,
+              subAsistencias.length
+            );
+            fechaInicio = fechaAsistencia.add(1, "day").format("YYYY-MM-DD");
+            splitDay = pendingDays;
+            pendingDays = 0;
+            subAsistencias = [];
+          }
+
+          // Si hemos llegado al final del mes y no hemos llegado al límite de la quincena
+          if (
+            fechaAsistencia.date() === fechaAsistencia.daysInMonth() &&
+            subAsistencias.length < splitDay
+          ) {
+            pendingDays = splitDay - subAsistencias.length;
+          }
         });
-        
+
         if (subAsistencias.length > 0) {
-            // Asegurándonos de agregar el último subarray si hay asistencias pendientes
-            createSubarray(trabajador, subAsistencias, fechaInicio, fechaFin, subAsistencias.length);
+          // Asegurándonos de agregar el último subarray si hay asistencias pendientes
+          createSubarray(
+            trabajador,
+            subAsistencias,
+            fechaInicio,
+            fechaFin,
+            subAsistencias.length
+          );
         }
-        
-        
       }
     });
 

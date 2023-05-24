@@ -386,6 +386,7 @@ const postTrabajadorAsistencia = async (req, res, next) => {
     asistencia: req.body.asistencia,
   };
 
+
   try {
     const getAsistencia = await trabajadorAsistencia.findOne({
       raw: true,
@@ -432,7 +433,6 @@ const postTrabajadorAsistencia = async (req, res, next) => {
       const createAsistencia = await trabajadorAsistencia.create(info);
       return res.status(200).json({ msg: "Registrada con éxito!", status: 200 });
     }
-    next();
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "No se pudo registrar.", status: 500 });
