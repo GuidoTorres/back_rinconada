@@ -19,9 +19,6 @@ const {
 } = require("../../config/db");
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
-
-dayjs.extend(utc);
 
 //lista de trabajadores y planillas para la vista de planillas
 const getPlanilla = async (req, res, next) => {
@@ -38,6 +35,7 @@ const getPlanilla = async (req, res, next) => {
         "telefono",
         "asociacion_id",
         "dni",
+        "fecha_nacimiento",
       ],
       include: [
         {
@@ -66,6 +64,8 @@ const getPlanilla = async (req, res, next) => {
                 "fecha_inicio",
                 "fecha_fin",
                 "fecha_fin_estimada",
+                "periodo_trabajo",
+                "suspendido",
               ],
               where: {
                 finalizado: false,
@@ -101,6 +101,7 @@ const getPlanilla = async (req, res, next) => {
             "fecha_fin",
             "fecha_fin_estimada",
             "finalizado",
+            "periodo_trabajo",
           ],
           include: [
             { model: teletrans },
@@ -208,6 +209,7 @@ const getPlanilla = async (req, res, next) => {
             saldo: contratoActivo?.teletrans.at(-1)?.saldo,
             asistencia: asistencia,
             area: contratoActivo?.area.nombre,
+            periodo_trabajo:contratoActivo?.periodo_trabajo,
             puesto: item?.tipo,
           };
         })
@@ -224,24 +226,33 @@ const getPlanilla = async (req, res, next) => {
       const contratoFinal = item?.trabajador_contratos?.filter(
         (data) => data.contrato
       );
-      const fechaInicioContrato = dayjs(
-        contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
-      );
+      // Encuentra la fecha de inicio más temprana y la fecha de finalización más tardía
+      let fechaInicioContrato = contratoFiltrado[0]?.contrato?.fecha_inicio;
+      let fechaFinContrato =
+        contratoFiltrado[0]?.contrato?.fecha_fin_estimada ||
+        contratoFiltrado[0]?.contrato?.fecha_fin;
+      contratoFiltrado.forEach((dat) => {
+        if (dayjs(dat?.contrato?.fecha_inicio).isBefore(fechaInicioContrato)) {
+          fechaInicioContrato = dat?.contrato?.fecha_inicio;
+        }
+        const fechaFin =
+          dat?.contrato?.fecha_fin_estimada || dat?.contrato?.fecha_fin;
+        if (dayjs(fechaFin).isAfter(fechaFinContrato)) {
+          fechaFinContrato = fechaFin;
+        }
+      });
 
-      // Crear una variable que almacene la fecha de fin estimada o la fecha de fin
-      const fechaFinContrato =
-        dayjs(
-          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
-        ) || dayjs(contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin));
-
+      // Ahora usa las fechas de inicio y fin con dayjs
+      fechaInicioContrato = dayjs(fechaInicioContrato);
+      fechaFinContrato = dayjs(fechaFinContrato);
       const asistencia = item.trabajador_asistencia.filter((data) => {
-        const fechaAsistencia = dayjs(data.asistencium.fecha);
+        const fechaAsistencia = dayjs(data.asistencium.fecha).startOf("day");
         return (
           (fechaAsistencia.isSame(fechaInicioContrato) ||
             fechaAsistencia.isAfter(fechaInicioContrato)) &&
-          (fechaAsistencia.isSame(fechaFinContrato) ||
-            fechaAsistencia.isBefore(fechaFinContrato)) &&
-          ["Asistio", "Comisión"].includes(data.asistencia)
+          (fechaAsistencia.isBefore(fechaFinContrato) ||
+            fechaAsistencia.isSame(fechaFinContrato)) &&
+          (data.asistencia === "Asistio" || data.asistencia === "Comisión")
         );
       }).length;
 
@@ -267,19 +278,11 @@ const getPlanilla = async (req, res, next) => {
         area: contratoFiltrado?.at(0)?.contrato?.area.nombre,
         puesto: contratoFiltrado?.at(0)?.contrato?.cargo?.nombre,
         suspendido: contratoFiltrado?.at(0)?.contrato?.suspendido,
-        fecha_inicio: dayjs(
-          contratoFiltrado?.map((dat) => dat?.contrato?.fecha_inicio)
-        ).format("DD-MM-YYYY"),
-        fecha_fin:
-          dayjs
-            .utc(
-              contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin_estimada)
-            )
-            .format("DD-MM-YYYY") ||
-          dayjs(
-            contratoFiltrado?.map((dat) => dat?.contrato?.fecha_fin)
-          ).format("DD-MM-YYYY"),
-
+        periodo_trabajo: contratoFiltrado
+          ?.map((dat) => dat?.contrato?.periodo_trabajo)
+          .toString(),
+        fecha_inicio: dayjs(fechaInicioContrato).format("DD-MM-YYYY"),
+        fecha_fin: dayjs(fechaFinContrato).format("DD-MM-YYYY"),
         campamento: contratoFiltrado
           ?.map((dat) => dat?.contrato?.campamento?.nombre)
           .toString(),
@@ -885,10 +888,10 @@ const getTareoTrabajador = async (req, res, next) => {
           trabajador.trabajador_contratos[0].contrato.fecha_inicio
         );
 
-        const contratoFechaFin =
-          dayjs(
-            trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada
-          ) || dayjs(trabajador.trabajador_contratos[0].contrato.fecha_fin);
+        const contratoFechaFin = dayjs(
+          trabajador.trabajador_contratos[0].contrato.fecha_fin_estimada ||
+            trabajador.trabajador_contratos[0].contrato.fecha_fin
+        );
 
         const minAsistencias = 15;
         const sortedAsistencias = trabajador?.trabajador_asistencia
@@ -897,8 +900,8 @@ const getTareoTrabajador = async (req, res, next) => {
             return (
               (fechaAsistencia.isSame(contratoFechaInicio) ||
                 fechaAsistencia.isAfter(contratoFechaInicio)) &&
-              (fechaAsistencia.isSame(contratoFechaFin) ||
-                fechaAsistencia.isBefore(contratoFechaFin))
+              (fechaAsistencia.isBefore(contratoFechaFin) ||
+                fechaAsistencia.isSame(contratoFechaFin))
             );
           })
           .sort((a, b) =>

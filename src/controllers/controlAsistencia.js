@@ -129,9 +129,10 @@ const getPlanillaAprobacion = async () => {
             dayjs(contrato.fecha_fin_estimada).toDate() ||
             dayjs(contrato.fecha_fin).toDate();
 
-          let fechaInicio = dayjs(contrato.fecha_inicio);
+          let fechaInicio = dayjs(contrato.fecha_inicio).startOf("day");
           let fechaFin =
-            dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
+            dayjs(contrato.fecha_fin_estimada).startOf("day") ||
+            dayjs(contrato.fecha_fin).startOf("day");
 
           if (fechaInicioData.getTime() > fechaFinData.getTime()) {
             return [];
@@ -148,8 +149,8 @@ const getPlanillaAprobacion = async () => {
               : curr;
           });
 
-          const asistencias =
-            trabajadorMenorCodigo.trabajador_asistencia.filter((asistencia) => {
+          const asistencias = trabajadorMenorCodigo.trabajador_asistencia
+            .filter((asistencia) => {
               const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
                 "YYYY-MM-DD",
                 "YYYY-MM-DD HH:mm:ss",
@@ -161,7 +162,11 @@ const getPlanillaAprobacion = async () => {
                   asistenciaFecha.isBefore(fechaFin)) &&
                 ["Asistio", "Comisión"].includes(asistencia.asistencia)
               );
-            });
+            })
+            .sort(
+              (a, b) =>
+                new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
+            );
 
           let contadorAsistencias = 0;
           let subAsistencias = [];
@@ -237,29 +242,41 @@ const getPlanillaAprobacion = async () => {
     const aprobacionFilter = []; // Array para almacenar los datos filtrados
     let subarrayId = 1; // ID del subarray actual
     const subarrayIdsPorTrabajador = {}; // Objeto para almacenar el ID del subarray por trabajador
-    
+
     filterContrato.forEach((trabajador) => {
       const contrato = trabajador.trabajador_contratos[0].contrato;
-      const fechaInicioContrato = dayjs(contrato.fecha_inicio);
-      const fechaInicioData = dayjs(contrato.fecha_inicio);
-      const fechaFinData = dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
-    
-      const asistencias = trabajador?.trabajador_asistencia?.filter((asistencia) => {
-        const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
-          "YYYY-MM-DD",
-          "YYYY-MM-DD HH:mm:ss",
-        ]);
-    
-        // Filtrar las asistencias que están dentro del rango de fechas del contrato
-        return (
-          (asistencia.asistencia === "Asistio" || asistencia.asistencia === "Comisión") &&
-          (asistenciaFecha.isSame(fechaInicioData) || asistenciaFecha.isAfter(fechaInicioData)) &&
-          (asistenciaFecha.isSame(fechaFinData) || asistenciaFecha.isBefore(fechaFinData))
+      const fechaInicioContrato = dayjs(contrato.fecha_inicio).startOf("day");
+      const fechaInicioData = dayjs(contrato.fecha_inicio).startOf("day");
+      const fechaFinData = (
+        contrato.fecha_fin_estimada
+          ? dayjs(contrato.fecha_fin_estimada)
+          : dayjs(contrato.fecha_fin)
+      ).startOf("day");
+
+      const asistencias = trabajador?.trabajador_asistencia
+        ?.filter((asistencia) => {
+          const asistenciaFecha = dayjs(asistencia?.asistencium?.fecha, [
+            "YYYY-MM-DD",
+            "YYYY-MM-DD HH:mm:ss",
+          ]);
+
+          // Filtrar las asistencias que están dentro del rango de fechas del contrato
+          return (
+            (asistencia.asistencia === "Asistio" ||
+              asistencia.asistencia === "Comisión") &&
+            (asistenciaFecha.isSame(fechaInicioData) ||
+              asistenciaFecha.isAfter(fechaInicioData)) &&
+            (asistenciaFecha.isSame(fechaFinData) ||
+              asistenciaFecha.isBefore(fechaFinData))
+          );
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha)
         );
-      }).sort((a, b) => new Date(a.asistencium.fecha) - new Date(b.asistencium.fecha));
-    
+
       const numAsistencias = asistencias?.length;
-    
+
       if (numAsistencias >= 15) {
         let contador = 0; // Contador de asistencias
         let subAsistencias = []; // Array de asistencias del subarray
@@ -267,7 +284,7 @@ const getPlanillaAprobacion = async () => {
         let fechaFin = null; // Fecha de fin del subarray
         let currentDate = fechaInicioContrato; // Fecha actual para iterar
         let indexAsistencia = 0; // Índice de la asistencia actual
-    
+
         while (
           currentDate.isBefore(fechaFinData) ||
           currentDate.isSame(fechaFinData)
@@ -276,38 +293,48 @@ const getPlanillaAprobacion = async () => {
             const asistenciaFecha = dayjs(asistencia.asistencium.fecha);
             return asistenciaFecha.isSame(currentDate, "day");
           });
-    
+
           if (!asistencia) {
             // Si no hay asistencia para la fecha actual, pasar al siguiente día
             currentDate = currentDate.add(1, "day");
             continue;
           }
-    
+
           if (
             asistencia.asistencia === "Asistio" ||
             asistencia.asistencia === "Comisión"
           ) {
             contador++; // Incrementar el contador de asistencias
             subAsistencias.push(asistencia); // Agregar la asistencia al subarray
-    
+
             if (contador === 1) {
               fechaInicio = asistencia.asistencium.fecha; // Establecer la fecha de inicio del subarray
             }
-    
+
             if (contrato.tareo === "Lunes a sabado") {
               if (contador === 15) {
                 fechaFin = asistencia.asistencium.fecha; // Establecer la fecha de fin del subarray
-            
+                console.log(trabajador.nombre);
+
                 if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
                   subarrayIdsPorTrabajador[trabajador.dni] = 1; // Inicializar el ID del subarray para el trabajador actual
                 } else {
                   subarrayIdsPorTrabajador[trabajador.dni]++; // Incrementar el ID del subarray para el trabajador actual
                 }
-            
+
                 if (contrato.tipo_contrato !== "Planilla") {
                   // Agregar los datos del subarray a aprobacionFilter
-                  crearSubArray(aprobacionFilter, subarrayIdsPorTrabajador, trabajador, contador, fechaInicio, fechaFin, subarrayId)
-            
+                  console.log(fechaFin);
+                  crearSubArray(
+                    aprobacionFilter,
+                    subarrayIdsPorTrabajador,
+                    trabajador,
+                    contador,
+                    fechaInicio,
+                    fechaFin,
+                    subarrayId
+                  );
+
                   subAsistencias = [];
                   fechaInicio = null;
                   fechaFin = null;
@@ -316,19 +343,20 @@ const getPlanillaAprobacion = async () => {
                 contador = 0;
                 // Reiniciar el contador, el array de asistencias y las fechas del subarray
               }
-            
+
               currentDate = currentDate.add(1, "day"); // Avanzar al siguiente día
             } else if (contrato.tareo === "Mes cerrado") {
               let splitDay;
               const currentMonth = currentDate.month();
               const currentDay = currentDate.date();
               let daysInCurrentMonth = currentDate.daysInMonth();
-            
+
               if (
                 currentMonth === fechaInicioContrato.month() &&
                 fechaInicioContrato.date() > 1
               ) {
-                splitDay = currentDate.daysInMonth() - fechaInicioContrato.date() + 1;
+                splitDay =
+                  currentDate.daysInMonth() - fechaInicioContrato.date() + 1;
               } else {
                 // Define el splitDay dependiendo de los días en el mes
 
@@ -343,20 +371,28 @@ const getPlanillaAprobacion = async () => {
                   splitDay = currentDay <= 16 ? 16 : 15;
                 }
               }
-    
+
               if (contador === splitDay) {
                 fechaFin = asistencia.asistencium.fecha;
-            
+
                 if (!subarrayIdsPorTrabajador.hasOwnProperty(trabajador.dni)) {
                   subarrayIdsPorTrabajador[trabajador.dni] = 1; // Asignar el ID 1 al primer subarray del trabajador
                 } else {
                   subarrayIdsPorTrabajador[trabajador.dni]++; // Incrementar el ID del subarray para el trabajador actual
                 }
-            
+
                 if (contrato.tipo_contrato !== "Planilla") {
                   // Agregar los datos del subarray a aprobacionFilter
-                  crearSubArray(aprobacionFilter, subarrayIdsPorTrabajador, trabajador, contador, fechaInicio, fechaFin, subarrayId)
-            
+                  crearSubArray(
+                    aprobacionFilter,
+                    subarrayIdsPorTrabajador,
+                    trabajador,
+                    contador,
+                    fechaInicio,
+                    fechaFin,
+                    subarrayId
+                  );
+
                   // Reiniciar el contador, el array de asistencias y las fechas del subarray
                   contador = 0;
                   subAsistencias = [];
@@ -364,16 +400,16 @@ const getPlanillaAprobacion = async () => {
                   fechaFin = null;
                 }
               }
-            
+
               currentDate = currentDate.add(1, "day"); // Avanzar al siguiente día
             }
           }
         }
       }
     });
-    
+
     // Finalizado el bucle forEach
-    
+
     if (asociacionData.length > 0) {
       const data = asociacionData.map((item) => {
         return {
@@ -431,7 +467,15 @@ async function guardarAprobacion(aprobacion) {
   }
 }
 
-function crearSubArray(aprobacionFilter, subarrayIdsPorTrabajador,trabajador, contador, fechaInicio, fechaFin,subarrayId){
+function crearSubArray(
+  aprobacionFilter,
+  subarrayIdsPorTrabajador,
+  trabajador,
+  contador,
+  fechaInicio,
+  fechaFin,
+  subarrayId
+) {
   aprobacionFilter.push({
     subArray_id: subarrayIdsPorTrabajador[trabajador.dni],
     dni: trabajador.dni,
@@ -465,7 +509,6 @@ function crearSubArray(aprobacionFilter, subarrayIdsPorTrabajador,trabajador, co
         ?.filter((item) => item.subarray_id == subarrayId)
         .at(0)?.firma_gerente,
   });
-
 }
 
 //Para finalizar los contratos de las asocaciones si se completan las asistencias
@@ -502,7 +545,7 @@ const asociacionData = async () => {
 
     const fechaUpdatePromises = [];
     const finalizarPromises = [];
-
+    const contratosArray = []
     for (const contrato of contratosActivos) {
       let trabajadorAsistencias = contrato.asociacion.trabajadors.sort((a, b) =>
         a.codigo_trabajador.localeCompare(b.codigo_trabajador)
@@ -514,21 +557,25 @@ const asociacionData = async () => {
       ); // Accede a las asistencias del trabajador
       let cantidadEstimada = 0;
       let cantidadReal = 0;
-      let fechaEstimada = dayjs(contrato.fecha_fin);
+      let fechaEstimada = dayjs(contrato.fecha_fin).startOf("day");
       let fechaFinal =
-        dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
+        dayjs(contrato.fecha_fin_estimada).startOf("day") ||
+        dayjs(contrato.fecha_fin).startOf("day");
 
       // La fecha estimada aún no ha sido establecida, entonces solo considerar las asistencias desde la fecha de inicio del contrato
       asistencias = asistencias.filter((asistencia) => {
-        const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-        const fechaInicioContrato = dayjs(contrato.fecha_inicio);
+        const fechaAsistencia = dayjs(asistencia.asistencium.fecha).startOf(
+          "day"
+        );
+        const fechaInicioContrato = dayjs(contrato.fecha_inicio).startOf("day");
 
         return (
           (fechaAsistencia.isSame(fechaInicioContrato, "day") ||
             fechaAsistencia.isAfter(fechaInicioContrato, "day")) &&
           (fechaAsistencia.isSame(fechaFinal, "day") ||
             fechaAsistencia.isBefore(fechaFinal, "day")) &&
-            (asistencia.asistencia === "Asistio" || asistencia.asistencia === "Comisión")
+          (asistencia.asistencia === "Asistio" ||
+            asistencia.asistencia === "Comisión")
         );
       });
 
@@ -571,40 +618,19 @@ const asociacionData = async () => {
       }
       // Calcula la cantidad real basándose en las asistencias.
       cantidadReal = calcularCantidadReal(asistencias);
+      await contrato.update({
+        fecha_fin_estimada: fechaEstimada.toDate(),
+      });
 
-      if (cantidadReal >= cantidadEstimada) {
-        finalizarPromises.push(
-          contrato.update({
-            finalizado: true,
-            fecha_fin: fechaEstimada.toDate(),
-            fecha_fin_estimada: fechaEstimada.toDate(),
-          })
-        );
-        // Desligar trabajadores de la asociación y finalizar evaluaciones
-        for (const trabajador of contrato.asociacion.trabajadors) {
-          finalizarPromises.push(trabajador.update({ asociacion_id: null }));
-
-          // Finalizar evaluaciones de trabajador
-          for (const evaluacion of trabajador.evaluacions) {
-            if (!evaluacion.finalizado) {
-              finalizarPromises.push(evaluacion.update({ finalizado: true }));
-            }
-          }
-        }
-      } else {
-        fechaUpdatePromises.push(
-          contrato.update({
-            fecha_fin_estimada: fechaEstimada.toDate(),
-          })
-        );
-      }
+      contratosArray.push({
+        contrato,
+        cantidadReal,
+        cantidadEstimada,
+        fechaEstimada,
+        trabajador,
+      });
     }
-    // Primero se actualizan las fechas
-    await Promise.all(fechaUpdatePromises);
-    // Luego, una vez las fechas se hayan actualizado, se finalizan los contratos
-    await Promise.all(finalizarPromises);
-
-    return true;
+    return { contratosAFinalizar: contratosArray };
   } catch (error) {
     console.error(error);
   }
@@ -642,6 +668,8 @@ const individual = async () => {
 
     const fechaUpdatePromises = [];
     const finalizarPromises = [];
+    const contratosArray = []
+
     for (const contrato of contratosActivos) {
       let trabajadorAsistencias =
         contrato?.trabajador_contratos[0]?.trabajador?.trabajador_asistencia;
@@ -653,20 +681,24 @@ const individual = async () => {
 
       let cantidadEstimada = 0;
       let cantidadReal = 0;
-      let fechaEstimada = dayjs(contrato.fecha_fin);
+      let fechaEstimada = dayjs(contrato.fecha_fin).startOf("day");
       let fechaFinal =
-        dayjs(contrato.fecha_fin_estimada) || dayjs(contrato.fecha_fin);
+        dayjs(contrato.fecha_fin_estimada).startOf("day") ||
+        dayjs(contrato.fecha_fin).startOf("day");
 
       asistencias = asistencias.filter((asistencia) => {
-        const fechaAsistencia = dayjs(asistencia.asistencium.fecha);
-        const fechaInicioContrato = dayjs(contrato.fecha_inicio);
+        const fechaAsistencia = dayjs(asistencia.asistencium.fecha).startOf(
+          "day"
+        );
+        const fechaInicioContrato = dayjs(contrato.fecha_inicio).startOf("day");
 
         return (
           (fechaAsistencia.isSame(fechaInicioContrato, "day") ||
             fechaAsistencia.isAfter(fechaInicioContrato, "day")) &&
           (fechaAsistencia.isSame(fechaFinal, "day") ||
-            fechaAsistencia.isBefore(fechaFinal, "day"))&&
-            (asistencia.asistencia === "Asistio" || asistencia.asistencia === "Comisión")
+            fechaAsistencia.isBefore(fechaFinal, "day")) &&
+          (asistencia.asistencia === "Asistio" ||
+            asistencia.asistencia === "Comisión")
         );
       });
       if (contrato.tareo == "Mes cerrado") {
@@ -678,7 +710,7 @@ const individual = async () => {
           dayjs(contrato.fecha_inicio),
           "day"
         );
-        cantidadEstimada = diasEnPeriodo ;
+        cantidadEstimada = diasEnPeriodo;
       } else if (contrato.tareo == "Lunes a sabado") {
         cantidadEstimada = 15 * parseInt(contrato.periodo_trabajo);
       }
@@ -707,40 +739,18 @@ const individual = async () => {
       }
 
       //    Check the tareo type of the contract and calculate the estimated quantity accordingly.
-
-      // Check if the real quantity is greater than or equal to the estimated quantity and update the contract accordingly.
-      if (cantidadReal >= cantidadEstimada) {
-        finalizarPromises.push(
-          contrato.update({
-            finalizado: true,
-            fecha_fin: fechaEstimada.toDate(),
-            fecha_fin_estimada: fechaEstimada.toDate(),
-          })
-        );
-        // Finalizamos la evaluacion activa del trabajador, si existe
-        const trabajadorEvaluacion =
-          contrato?.trabajador_contratos[0]?.trabajador.evaluacions[0];
-        if (trabajadorEvaluacion) {
-          finalizarPromises.push(
-            trabajadorEvaluacion.update({
-              finalizado: true,
-            })
-          );
-        }
-      } else {
-        fechaUpdatePromises.push(
-          contrato.update({
-            fecha_fin_estimada: fechaEstimada.toDate(),
-          })
-        );
-      }
+      await contrato.update({
+        fecha_fin_estimada: fechaEstimada.toDate(),
+      });
+      contratosArray.push({
+        contrato,
+        cantidadReal,
+        cantidadEstimada,
+        fechaEstimada,
+        trabajador,
+      });
     }
-    // Primero se actualizan las fechas
-    await Promise.all(fechaUpdatePromises);
-    // Luego, una vez las fechas se hayan actualizado, se finalizan los contratos
-    await Promise.all(finalizarPromises);
-
-    return true;
+    return { contratosAFinalizar1: contratosArray };
   } catch (error) {
     console.error(error);
   }
@@ -755,11 +765,12 @@ function calculateEstimatedDate(
   contrato
 ) {
   let lastAttendanceDate = attendance;
-  let completedWorkDays = workerAttendances.filter(a => a.asistencia === "Asistio" || a.asistencia === "Comisión").length;
+  let completedWorkDays = workerAttendances.filter(
+    (a) => a.asistencia === "Asistio" || a.asistencia === "Comisión"
+  ).length;
   let remainingWorkDays = totalAsistencia - completedWorkDays;
 
   if (tareo == "Mes cerrado") {
-
     estimatedDate = dayjs(lastAttendanceDate).add(remainingWorkDays, "day");
   } else if (tareo === "Lunes a sabado") {
     let currentDate = dayjs(lastAttendanceDate);
@@ -776,13 +787,109 @@ function calculateEstimatedDate(
   return { estimatedDate };
 }
 
+const asociacionFinalizarContratos = async (
+  contrato,
+  cantidadReal,
+  cantidadEstimada,
+  fechaEstimada,
+  trabajador
+) => {
+  try {
+    const finalizarPromises = [];
+    if (cantidadReal >= cantidadEstimada) {
+      finalizarPromises.push(
+        contrato.update({
+          finalizado: true,
+          fecha_fin: fechaEstimada.toDate(),
+          fecha_fin_estimada: fechaEstimada.toDate(),
+        })
+      );
+      // Desligar trabajadores de la asociación y finalizar evaluaciones
+      for (const trabajador of contrato.asociacion.trabajadors) {
+        finalizarPromises.push(trabajador.update({ asociacion_id: null }));
 
+        // Finalizar evaluaciones de trabajador
+        for (const evaluacion of trabajador.evaluacions) {
+          if (!evaluacion.finalizado) {
+            finalizarPromises.push(evaluacion.update({ finalizado: true }));
+          }
+        }
+      }
+    }
+    return Promise.all(finalizarPromises);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
+const individualFinalizarContratos = async (
+  contrato,
+  cantidadReal,
+  cantidadEstimada,
+  fechaEstimada
+) => {
+  try {
+    const finalizarPromises = [];
+    if (cantidadReal >= cantidadEstimada) {
+      finalizarPromises.push(
+        contrato.update({
+          finalizado: true,
+          fecha_fin: fechaEstimada.toDate(),
+          fecha_fin_estimada: fechaEstimada.toDate(),
+        })
+      );
+      // Finalizamos la evaluacion activa del trabajador, si existe
+      const trabajadorEvaluacion =
+        contrato?.trabajador_contratos[0]?.trabajador.evaluacions[0];
+      if (trabajadorEvaluacion) {
+        finalizarPromises.push(
+          trabajadorEvaluacion.update({
+            finalizado: true,
+          })
+        );
+      }
+    }
+    return Promise.all(finalizarPromises);
+  } catch (error) {
+    console.error(error);
+  }
+};
 const actulizarFechaFin = async (req, res, next) => {
   try {
+    const { contratosAFinalizar } = await asociacionData();
+    const { contratosAFinalizar1 } = await individual();
+
+    // Wait for the getPlanillaAprobacion to resolve
     await getPlanillaAprobacion();
 
-    await Promise.all([asociacionData(), individual()]);
+    for (const {
+      contrato,
+      cantidadReal,
+      cantidadEstimada,
+      fechaEstimada,
+    } of contratosAFinalizar) {
+      await asociacionFinalizarContratos(
+        contrato,
+        cantidadReal,
+        cantidadEstimada,
+        fechaEstimada
+      );
+    }
+
+    for (const {
+      contrato,
+      cantidadReal,
+      cantidadEstimada,
+      fechaEstimada,
+    } of contratosAFinalizar1) {
+      await individualFinalizarContratos(
+        contrato,
+        cantidadReal,
+        cantidadEstimada,
+        fechaEstimada
+      );
+    }
+
     return res
       .status(200)
       .json({ msg: "Asistencias validadas con éxito!.", status: 200 });
